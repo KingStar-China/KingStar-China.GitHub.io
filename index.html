@@ -13,6 +13,7 @@
             <h1>网站导航</h1>
             <div class="search-box">
                 <input type="text" id="search" placeholder="搜索网站...">
+                <a href="admin.html" class="btn" style="text-decoration: none; color: white;">管理</a>
                 <button id="theme-toggle">
                     <i class="fas fa-moon"></i>
                 </button>
@@ -20,68 +21,97 @@
         </div>
     </header>
 
-    <main class="container">
-        <section class="category">
-            <h2>常用工具</h2>
-            <div class="links-grid">
-                <a href="https://www.google.com" class="link-card" target="_blank">
-                    <i class="fab fa-google"></i>
-                    <span>Google</span>
-                </a>
-                <a href="https://www.github.com" class="link-card" target="_blank">
-                    <i class="fab fa-github"></i>
-                    <span>GitHub</span>
-                </a>
-                <a href="https://www.youtube.com" class="link-card" target="_blank">
-                    <i class="fab fa-youtube"></i>
-                    <span>YouTube</span>
-                </a>
-            </div>
-        </section>
-
-        <section class="category">
-            <h2>学习资源</h2>
-            <div class="links-grid">
-                <a href="https://www.w3school.com.cn" class="link-card" target="_blank">
-                    <i class="fas fa-code"></i>
-                    <span>W3School</span>
-                </a>
-                <a href="https://www.runoob.com" class="link-card" target="_blank">
-                    <i class="fas fa-book"></i>
-                    <span>菜鸟教程</span>
-                </a>
-                <a href="https://www.zhihu.com" class="link-card" target="_blank">
-                    <i class="fas fa-question-circle"></i>
-                    <span>知乎</span>
-                </a>
-            </div>
-        </section>
-
-        <section class="category">
-            <h2>娱乐</h2>
-            <div class="links-grid">
-                <a href="https://www.bilibili.com" class="link-card" target="_blank">
-                    <i class="fas fa-play-circle"></i>
-                    <span>哔哩哔哩</span>
-                </a>
-                <a href="https://www.weibo.com" class="link-card" target="_blank">
-                    <i class="fab fa-weibo"></i>
-                    <span>微博</span>
-                </a>
-                <a href="https://www.douban.com" class="link-card" target="_blank">
-                    <i class="fas fa-star"></i>
-                    <span>豆瓣</span>
-                </a>
-            </div>
-        </section>
+    <main class="container" id="mainContent">
+        <!-- 内容将通过 JavaScript 动态生成 -->
     </main>
 
     <footer>
         <div class="container">
-            <p>© 2024 网站导航 | 基于 GitHub Pages</p>
+            <p>© 2025 网站导航 | By 少昊金天氏</p>
         </div>
     </footer>
 
-    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 主题切换
+            const themeToggle = document.getElementById('theme-toggle');
+            const icon = themeToggle.querySelector('i');
+            
+            // 设置默认主题为暗色模式
+            document.documentElement.setAttribute('data-theme', 'dark');
+            icon.classList.replace('fa-moon', 'fa-sun');
+            localStorage.setItem('theme', 'dark');
+
+            themeToggle.addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                if (currentTheme === 'dark') {
+                    document.documentElement.removeAttribute('data-theme');
+                    icon.classList.replace('fa-sun', 'fa-moon');
+                    localStorage.setItem('theme', 'light');
+                } else {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    icon.classList.replace('fa-moon', 'fa-sun');
+                    localStorage.setItem('theme', 'dark');
+                }
+            });
+
+            // 加载保存的链接
+            loadMainContent();
+
+            // 搜索功能
+            const searchInput = document.getElementById('search');
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const linkCards = document.querySelectorAll('.link-card');
+                
+                linkCards.forEach(card => {
+                    const text = card.querySelector('span').textContent.toLowerCase();
+                    const category = card.closest('.category');
+                    
+                    if (text.includes(searchTerm)) {
+                        card.style.display = 'flex';
+                        category.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+
+                // 隐藏空分类
+                document.querySelectorAll('.category').forEach(category => {
+                    const visibleCards = category.querySelectorAll('.link-card[style="display: flex"]');
+                    if (visibleCards.length === 0) {
+                        category.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // 加载主页面内容
+        function loadMainContent() {
+            const mainContent = document.getElementById('mainContent');
+            const savedContent = localStorage.getItem('mainPageContent');
+            
+            if (savedContent) {
+                mainContent.innerHTML = savedContent;
+            } else {
+                // 如果没有保存的内容，显示默认内容
+                mainContent.innerHTML = `
+                    <section class="category">
+                        <h2>常用工具</h2>
+                        <div class="links-grid">
+                            <a href="https://www.google.com" class="link-card" target="_blank">
+                                <i class="fab fa-google"></i>
+                                <span>Google</span>
+                            </a>
+                            <a href="https://www.github.com" class="link-card" target="_blank">
+                                <i class="fab fa-github"></i>
+                                <span>GitHub</span>
+                            </a>
+                        </div>
+                    </section>
+                `;
+            }
+        }
+    </script>
 </body>
 </html> 
