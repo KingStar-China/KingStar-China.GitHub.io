@@ -3,17 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>网站导航</title>
+    <title>少昊の导航</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .header-container {
+            transition: transform 0.3s ease-in-out;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-color);
+            z-index: 1000;
+            padding: 1rem 0;
+        }
+        
+        .header-hidden {
+            transform: translateY(-100%);
+        }
+
+        .show-header-btn {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 999;
+            padding: 8px;
+            border-radius: 50%;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            display: none;
+        }
+
+        .show-header-btn.visible {
+            display: block;
+        }
+
+        main {
+            margin-top: 100px;
+        }
+    </style>
 </head>
 <body>
-    <header>
+    <button class="show-header-btn" id="showHeader">
+        <i class="fas fa-chevron-down"></i>
+    </button>
+
+    <header class="header-container">
         <div class="container">
-            <h1>网站导航</h1>
+            <h1>少昊の导航</h1>
             <div class="search-box">
-                <input type="text" id="search" placeholder="搜索网站...">
-                <a href="admin.html" class="btn" style="text-decoration: none; color: white;">管理</a>
                 <button id="theme-toggle">
                     <i class="fas fa-moon"></i>
                 </button>
@@ -22,12 +61,84 @@
     </header>
 
     <main class="container" id="mainContent">
-        <!-- 内容将通过 JavaScript 动态生成 -->
+        <section class="category">
+            <h2>翻墙</h2>
+            <div class="links-grid">
+                <a href="https://www.google.com" class="link-card" target="_blank">
+                    <i class="fab fa-google"></i>
+                    <span>Google</span>
+                </a>
+                
+                <a href="https://x.com/" class="link-card" target="_blank">
+                    <i class="fab fa-x"></i>
+                    <span>X</span>
+                </a>
+
+                <a href="https://www.youtube.com/" class="link-card" target="_blank">
+                    <i class="fab fa-youtube"></i>
+                    <span>YouTube</span>
+                </a>
+                
+                <a href="https://www.instagram.com/" class="link-card" target="_blank">
+                    <i class="fab fa-instagram"></i>
+                    <span>Instagram</span>
+                </a>
+                <a href="https://www.github.com" class="link-card" target="_blank">
+                    <i class="fab fa-github"></i>
+                    <span>GitHub</span>
+                </a>
+            </div>
+        </section>
+
+        <section class="category">
+            <h2>学习</h2>
+            <div class="links-grid">
+                <a href="https://www.w3schools.com" class="link-card" target="_blank">
+                    <i class="fas fa-code"></i>
+                    <span>W3Schools</span>
+                </a>
+                <a href="https://zh.z-library.sk/" class="link-card" target="_blank">
+                    <img src="icon/z-library.svg" alt="z-library" style="width:2em;height:2em;display:block;margin-bottom:10px;">
+                    <span>Z-library</span>
+                </a>
+               
+                
+                <a href="https://www.zhihu.com/" class="link-card" target="_blank">
+                    <i class="fab fa-zhihu"></i>
+                    <span>知乎</span>
+                </a>
+                <a href="https://developer.mozilla.org" class="link-card" target="_blank">
+                    <i class="fab fa-firefox"></i>
+                    <span>MDN</span>
+                </a>
+            </div>
+        </section>
+
+        <section class="category">
+            <h2>AI</h2>
+            <div class="links-grid">
+                <a href="https://www.doubao.com" class="link-card" target="_blank">
+                    <img src="icon/doubao.png" alt="豆包" style="width:2em;height:2em;display:block;margin-bottom:10px;">
+                    <span>豆包</span>
+                </a>
+                
+                <a href="https://kimi.moonshot.cn" class="link-card" target="_blank">
+                    <img src="icon/Kimi.ico" alt="Kimi" style="width:2em;height:2em;display:block;margin-bottom:10px;">
+                    <span>Kimi</span>
+                </a>
+                
+
+                <a href="https://gemini.google.com/" class="link-card" target="_blank">
+                    <img src="icon/gemini.ico" alt="Gemini" style="width:2em;height:2em;display:block;margin-bottom:10px;">
+                    <span>Gemini</span>
+                </a>
+            </div>
+        </section>
     </main>
 
     <footer>
         <div class="container">
-            <p>© 2025 网站导航 | By 少昊金天氏</p>
+            <p>© 2025 少昊の导航 | By 少昊金天氏</p>
         </div>
     </footer>
 
@@ -55,63 +166,28 @@
                 }
             });
 
-            // 加载保存的链接
-            loadMainContent();
+            // 添加自动隐藏header的功能
+            const header = document.querySelector('.header-container');
+            const showHeaderBtn = document.getElementById('showHeader');
+            
+            // 页面加载3秒后自动隐藏header
+            setTimeout(() => {
+                header.classList.add('header-hidden');
+                showHeaderBtn.classList.add('visible');
+            }, 3000);
 
-            // 搜索功能
-            const searchInput = document.getElementById('search');
-            searchInput.addEventListener('input', (e) => {
-                const searchTerm = e.target.value.toLowerCase();
-                const linkCards = document.querySelectorAll('.link-card');
+            // 点击按钮显示header
+            showHeaderBtn.addEventListener('click', () => {
+                header.classList.remove('header-hidden');
+                showHeaderBtn.classList.remove('visible');
                 
-                linkCards.forEach(card => {
-                    const text = card.querySelector('span').textContent.toLowerCase();
-                    const category = card.closest('.category');
-                    
-                    if (text.includes(searchTerm)) {
-                        card.style.display = 'flex';
-                        category.style.display = 'block';
-                    } else {
-                        card.style.display = 'none';
-                    }
-                });
-
-                // 隐藏空分类
-                document.querySelectorAll('.category').forEach(category => {
-                    const visibleCards = category.querySelectorAll('.link-card[style="display: flex"]');
-                    if (visibleCards.length === 0) {
-                        category.style.display = 'none';
-                    }
-                });
+                // 3秒后再次隐藏
+                setTimeout(() => {
+                    header.classList.add('header-hidden');
+                    showHeaderBtn.classList.add('visible');
+                }, 3000);
             });
         });
-
-        // 加载主页面内容
-        function loadMainContent() {
-            const mainContent = document.getElementById('mainContent');
-            const savedContent = localStorage.getItem('mainPageContent');
-            
-            if (savedContent) {
-                mainContent.innerHTML = savedContent;
-            } else {
-                // 如果没有保存的内容，显示默认内容
-                mainContent.innerHTML = `
-                    <section class="category">
-                        <h2>常用工具</h2>
-                        <div class="links-grid">
-                            <a href="https://www.google.com" class="link-card" target="_blank">
-                                <i class="fab fa-google"></i>
-                                <span>Google</span>
-                            </a>
-                            <a href="https://www.github.com" class="link-card" target="_blank">
-                                <i class="fab fa-github"></i>
-                                <span>GitHub</span>
-                            </a>
-                        </div>
-                    </section>
-                `;
-            }
-        }
     </script>
 </body>
-</html> 
+</html>
