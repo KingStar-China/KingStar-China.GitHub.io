@@ -2069,3 +2069,73 @@ body.is-command-open {
   min-height: 0;
   overscroll-behavior: contain;
 }
+
+@media (max-width: 640px) {
+  [data-theme="light"] body {
+    background:
+      radial-gradient(circle at top center, rgba(170, 191, 205, 0.16), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.46), transparent 42%),
+      var(--bg);
+  }
+
+  [data-theme="light"] .hero,
+  [data-theme="light"] .toolbar,
+  [data-theme="light"] .overview-card,
+  [data-theme="light"] .workbench-card,
+  [data-theme="light"] .section-rail,
+  [data-theme="light"] .personal-layer,
+  [data-theme="light"] .category-block,
+  [data-theme="light"] .site-card,
+  [data-theme="light"] .empty-state,
+  [data-theme="light"] .blog-card,
+  [data-theme="light"] .article,
+  [data-theme="light"] .pagination,
+  [data-theme="light"] .command-palette,
+  [data-theme="light"] .stat-card {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.6), transparent 36%),
+      rgba(249, 252, 253, 0.96);
+  }
+
+  [data-theme="light"] .theme-toggle,
+  [data-theme="light"] .section-tab,
+  [data-theme="light"] .command-bar,
+  [data-theme="light"] .toolbar-shortcut,
+  [data-theme="light"] .chip,
+  [data-theme="light"] .section-jump,
+  [data-theme="light"] .section-count,
+  [data-theme="light"] .page-button,
+  [data-theme="light"] .favorite-button,
+  [data-theme="light"] .site-card__category,
+  [data-theme="light"] .blog-card__date,
+  [data-theme="light"] .tag,
+  [data-theme="light"] .inline-reset,
+  [data-theme="light"] .empty-state__button,
+  [data-theme="light"] .article-back,
+  [data-theme="light"] .todo-remove,
+  [data-theme="light"] .command-palette__meta span,
+  [data-theme="light"] .command-group__head small {
+    background: rgba(255, 255, 255, 0.78);
+    color: var(--heading);
+    border-color: var(--border);
+  }
+
+  [data-theme="light"] .search-field input,
+  [data-theme="light"] .workbench-input,
+  [data-theme="light"] .workbench-note,
+  [data-theme="light"] .command-search-wrap,
+  [data-theme="light"] .command-item {
+    background: rgba(255, 255, 255, 0.88);
+    color: var(--heading);
+  }
+
+  [data-theme="light"] .command-item:hover,
+  [data-theme="light"] .command-item.is-active {
+    background: rgba(15, 118, 110, 0.1);
+  }
+
+  [data-theme="light"] .command-overlay__backdrop {
+    background: rgba(232, 238, 242, 0.72);
+    backdrop-filter: blur(8px);
+  }
+}

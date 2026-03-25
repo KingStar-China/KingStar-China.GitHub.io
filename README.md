@@ -5,11 +5,13 @@
 ## 当前能力
 
 - 基于 `src/data/sites.js` 和 `src/data/posts.js` 的数据驱动渲染
-- 搜索、分类筛选、标签筛选`r`n- 导航首页工作台：本地待办、快速便签、时间卡片
+- 搜索、分类筛选、标签筛选
+- 导航首页工作台：本地待办、快速便签、时间卡片
 - 收藏和最近访问，本地存储在浏览器中
 - 明暗主题切换，刷新后保持
 - GitHub Actions 自动构建并发布到 GitHub Pages
-- 站内博客分页、文章详情、文章搜索和标签筛选`r`n- 基础 SEO：动态 title/description/OG、RSS、sitemap、robots.txt
+- 站内博客分页、文章详情、文章搜索和标签筛选
+- 基础 SEO：动态 title/description/OG、RSS、sitemap、robots.txt
 
 ## 本地开发
 
@@ -17,6 +19,18 @@
 npm install
 npm run dev
 ```
+
+## 测试
+
+```bash
+npm test
+```
+
+当前回归测试覆盖：
+
+- 站点和博客数据结构校验
+- 搜索匹配和评分逻辑
+- RSS、sitemap、robots.txt 生成
 
 ## 构建发布
 
@@ -55,7 +69,6 @@ npm run admin
 - `src/data/sites.js`
 - `src/data/posts.js`
 
-
 可以在本地管理器里完成这些操作：
 
 - 新建、编辑、删除网站和博客文章
@@ -66,6 +79,3 @@ npm run admin
 - 网站体检：检查重复链接、批量检测死链 / 异常链接
 
 导入后不会自动写回文件，仍然需要点击“保存当前分类”。
-
-
-

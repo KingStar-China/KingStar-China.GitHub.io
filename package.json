@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "node ./scripts/generate-seo.mjs && vite build",
+    "test": "node --test --experimental-test-isolation=none tests/content.test.mjs tests/search.test.mjs tests/seo.test.mjs",
     "preview": "vite preview",
     "admin": "node ./scripts/admin-server.mjs"
   },
