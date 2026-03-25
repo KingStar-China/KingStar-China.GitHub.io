@@ -1,5 +1,6 @@
 import { sites as rawSites } from "./data/sites.js";
 import { posts as rawPosts } from "./data/posts.js";
+import { siteMeta } from "./data/site.js";
 
 /**
  * @typedef {Object} SiteItem
@@ -35,9 +36,12 @@ const STORAGE_KEYS = {
   theme: "nav-tool.theme",
   favorites: "nav-tool.favorites",
   recent: "nav-tool.recent",
+  workbenchNote: "nav-tool.workbench.note",
+  workbenchTodos: "nav-tool.workbench.todos",
 };
 
 const POSTS_PER_PAGE = 5;
+const COMMAND_RESULT_LIMIT = 8;
 
 /** @type {SiteItem[]} */
 const sites = rawSites.map((site) => ({
@@ -69,9 +73,18 @@ const state = {
   favorites: loadIdSet(STORAGE_KEYS.favorites),
   recent: loadIdList(STORAGE_KEYS.recent),
   theme: document.documentElement.dataset.theme || "dark",
+  workbenchNote: loadStoredText(STORAGE_KEYS.workbenchNote),
+  workbenchTodos: loadTodoList(STORAGE_KEYS.workbenchTodos),
+  workbenchTodoDraft: "",
+  now: Date.now(),
+  blogQuery: "",
+  blogTag: "all",
   blogPage: 1,
   selectedPostId: posts[0]?.id || "",
   postsPerPage: POSTS_PER_PAGE,
+  commandOpen: false,
+  commandQuery: "",
+  commandIndex: 0,
 };
 
 const root = document.querySelector("#app");
@@ -89,14 +102,18 @@ function init() {
   refs.toolbar = root.querySelector('[data-role="toolbar"]');
   refs.content = root.querySelector('[data-role="content"]');
   refs.footerMeta = root.querySelector('[data-role="footer-meta"]');
+  refs.commandPalette = root.querySelector('[data-role="command-palette"]');
 
   root.addEventListener("input", handleInput);
   root.addEventListener("click", handleClick);
+  window.addEventListener("keydown", handleKeydown);
+  window.addEventListener("popstate", handlePopState);
 
+  hydrateFromLocation();
   syncTheme(state.theme);
+  startWorkbenchClock();
   render();
 }
-
 function createShell() {
   return `
     <div class="app-shell">
@@ -105,7 +122,13 @@ function createShell() {
           <p class="eyebrow">PERSONAL START PAGE</p>
           <div class="hero__title-row">
             <h1>少昊导航台</h1>
-            <div class="section-tabs" data-role="section-tabs"></div>
+            <div class="hero__controls">
+              <button type="button" class="command-bar" data-action="open-command" data-role="command-bar">
+                <span class="command-bar__label">全站搜索</span>
+                <span class="command-bar__hint">Ctrl + K</span>
+              </button>
+              <div class="section-tabs" data-role="section-tabs"></div>
+            </div>
           </div>
           <p class="hero__summary" data-role="summary"></p>
         </div>
@@ -124,22 +147,65 @@ function createShell() {
         <span data-role="footer-meta"></span>
       </footer>
     </div>
+
+    <div data-role="command-palette"></div>
   `;
 }
 
 function handleInput(event) {
   if (event.target.matches('[data-role="search"]')) {
-    state.query = event.target.value.trim();
+    state.query = event.target.value;
+    renderNavSearchState();
+    return;
+  }
+
+  if (event.target.matches('[data-role="blog-search"]')) {
+    state.blogQuery = event.target.value;
+    state.blogPage = 1;
+    renderBlogSearchState();
+    return;
+  }
+
+  if (event.target.matches('[data-role="workbench-note"]')) {
+    state.workbenchNote = event.target.value;
+    localStorage.setItem(STORAGE_KEYS.workbenchNote, state.workbenchNote);
+    return;
+  }
+
+  if (event.target.matches('[data-role="workbench-todo-input"]')) {
+    state.workbenchTodoDraft = event.target.value;
+    return;
+  }
+
+  if (event.target.matches('[data-role="command-search"]')) {
+    state.commandQuery = event.target.value;
+    state.commandIndex = 0;
     render();
   }
 }
-
 function handleClick(event) {
   const actionButton = event.target.closest("button[data-action]");
   const siteLink = event.target.closest("a[data-site-id]");
 
   if (actionButton) {
-    const { action, value, siteId, postId } = actionButton.dataset;
+    const { action, value, siteId, postId, commandKind, commandId } = actionButton.dataset;
+
+    if (action === "open-command") {
+      openCommandPalette();
+      render();
+      return;
+    }
+
+    if (action === "close-command") {
+      closeCommandPalette();
+      render();
+      return;
+    }
+
+    if (action === "run-command") {
+      runCommandResult({ kind: commandKind, id: commandId });
+      return;
+    }
 
     if (action === "toggle-theme") {
       syncTheme(state.theme === "dark" ? "light" : "dark");
@@ -177,11 +243,49 @@ function handleClick(event) {
       return;
     }
 
+    if (action === "set-blog-tag") {
+      state.blogTag = value;
+      state.blogPage = 1;
+      state.section = "blog-list";
+      render();
+      return;
+    }
+
     if (action === "reset-filters") {
-      state.query = "";
-      state.category = "all";
-      state.tag = "all";
-      state.view = "all";
+      resetNavFilters();
+      render();
+      return;
+    }
+
+    if (action === "reset-blog-filters") {
+      resetBlogFilters();
+      state.section = "blog-list";
+      render();
+      return;
+    }
+
+    if (action === "add-workbench-todo") {
+      if (addWorkbenchTodo()) {
+        render();
+        focusWorkbenchTodoInput();
+      }
+      return;
+    }
+
+    if (action === "toggle-workbench-todo") {
+      toggleWorkbenchTodo(value);
+      render();
+      return;
+    }
+
+    if (action === "remove-workbench-todo") {
+      removeWorkbenchTodo(value);
+      render();
+      return;
+    }
+
+    if (action === "clear-workbench-done") {
+      clearCompletedWorkbenchTodos();
       render();
       return;
     }
@@ -193,8 +297,7 @@ function handleClick(event) {
     }
 
     if (action === "open-post" && postId && postMap.has(postId)) {
-      state.selectedPostId = postId;
-      state.section = "blog-detail";
+      openPost(postId);
       render();
       return;
     }
@@ -209,6 +312,7 @@ function handleClick(event) {
       state.blogPage = clampPage(Number(value));
       state.section = "blog-list";
       render();
+      return;
     }
   }
 
@@ -218,6 +322,58 @@ function handleClick(event) {
   }
 }
 
+function handleKeydown(event) {
+  if (event.target.matches('[data-role="workbench-todo-input"]') && event.key === "Enter") {
+    event.preventDefault();
+    if (addWorkbenchTodo()) {
+      render();
+      focusWorkbenchTodoInput();
+    }
+    return;
+  }
+
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+    event.preventDefault();
+    openCommandPalette();
+    render();
+    return;
+  }
+
+  if (!state.commandOpen) {
+    return;
+  }
+
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeCommandPalette();
+    render();
+    return;
+  }
+
+  const commandResults = getFlatCommandResults();
+  if (commandResults.length === 0) {
+    return;
+  }
+
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    state.commandIndex = (state.commandIndex + 1) % commandResults.length;
+    render();
+    return;
+  }
+
+  if (event.key === "ArrowUp") {
+    event.preventDefault();
+    state.commandIndex = (state.commandIndex - 1 + commandResults.length) % commandResults.length;
+    render();
+    return;
+  }
+
+  if (event.key === "Enter") {
+    event.preventDefault();
+    runCommandResult(commandResults[state.commandIndex]);
+  }
+}
 function render() {
   state.blogPage = clampPage(state.blogPage);
   refs.themeToggle.textContent = state.theme === "dark" ? "切换到浅色" : "切换到深色";
@@ -227,11 +383,36 @@ function render() {
   refs.toolbar.innerHTML = renderToolbar();
   refs.content.innerHTML = renderContent();
   refs.footerMeta.textContent = buildFooterMeta();
+  refs.commandPalette.innerHTML = renderCommandPalette();
 
   refs.searchInput = refs.toolbar.querySelector('[data-role="search"]');
   if (refs.searchInput) {
     refs.searchInput.value = state.query;
   }
+
+  refs.blogSearchInput = refs.toolbar.querySelector('[data-role="blog-search"]');
+  if (refs.blogSearchInput) {
+    refs.blogSearchInput.value = state.blogQuery;
+  }
+
+  refs.workbenchTodoInput = refs.content.querySelector('[data-role="workbench-todo-input"]');
+  if (refs.workbenchTodoInput) {
+    refs.workbenchTodoInput.value = state.workbenchTodoDraft;
+  }
+
+  refs.commandInput = refs.commandPalette.querySelector('[data-role="command-search"]');
+  if (state.commandOpen && refs.commandInput) {
+    refs.commandInput.value = state.commandQuery;
+    requestAnimationFrame(() => {
+      refs.commandInput.focus();
+      refs.commandInput.setSelectionRange(state.commandQuery.length, state.commandQuery.length);
+      refs.commandPalette.querySelector(".command-item.is-active")?.scrollIntoView({ block: "nearest" });
+    });
+  }
+
+  syncWorkbenchClock();
+  syncRoute();
+  updateSeo();
 }
 
 function renderSectionTabs() {
@@ -270,14 +451,16 @@ function renderNavStats() {
 }
 
 function renderBlogStats() {
-  const totalPages = getTotalBlogPages();
+  const filteredPosts = getFilteredPosts();
+  const totalPages = getTotalBlogPages(filteredPosts);
   const uniqueTags = new Set(posts.flatMap((post) => post.tags)).size;
   const latestDate = posts[0] ? formatShortDate(posts[0].publishedAt) : "--";
 
   return [
     createStatCard("文章", String(posts.length)),
-    createStatCard("分页", `${state.blogPage}/${totalPages}`),
+    createStatCard("命中", String(filteredPosts.length)),
     createStatCard("标签", String(uniqueTags)),
+    createStatCard("分页", `${state.blogPage}/${totalPages}`),
     createStatCard("最新发布", latestDate),
   ].join("");
 }
@@ -308,7 +491,14 @@ function renderNavToolbar() {
       >
     </label>
 
-    <div class="filter-stack">
+    <div class="toolbar-shortcuts">
+      <button type="button" class="toolbar-shortcut" data-action="open-command">
+        <span>全站命令面板</span>
+        <small>Ctrl + K</small>
+      </button>
+    </div>
+
+    <div class="filter-stack" data-role="nav-filters">
       <div class="filter-row">
         <span class="filter-label">视图</span>
         <div class="chip-group">${renderViewFilters()}</div>
@@ -326,23 +516,107 @@ function renderNavToolbar() {
     </div>
 
     <div class="toolbar__footer">
-      <div class="active-state">${renderActiveState()}</div>
+      <div class="active-state" data-role="nav-active-state">${renderActiveState()}</div>
     </div>
   `;
 }
 
+function renderNavFilterRows() {
+  return `
+    <div class="filter-row">
+      <span class="filter-label">视图</span>
+      <div class="chip-group">${renderViewFilters()}</div>
+    </div>
+
+    <div class="filter-row">
+      <span class="filter-label">分类</span>
+      <div class="chip-group">${renderCategoryFilters()}</div>
+    </div>
+
+    <div class="filter-row">
+      <span class="filter-label">标签</span>
+      <div class="chip-group chip-group--dense">${renderTagFilters()}</div>
+    </div>
+  `;
+}
+
+function renderNavSearchState() {
+  if (state.section !== "nav") {
+    render();
+    return;
+  }
+
+  refs.summary.textContent = buildSummary();
+  refs.stats.innerHTML = renderNavStats();
+  refs.toolbar.querySelector('[data-role="nav-filters"]')?.replaceChildren();
+  const navFilters = refs.toolbar.querySelector('[data-role="nav-filters"]');
+  if (navFilters) {
+    navFilters.innerHTML = renderNavFilterRows();
+  }
+  const activeState = refs.toolbar.querySelector('[data-role="nav-active-state"]');
+  if (activeState) {
+    activeState.innerHTML = renderActiveState();
+  }
+  refs.content.innerHTML = renderNavContent();
+  refs.footerMeta.textContent = buildFooterMeta();
+  syncRoute();
+  updateSeo();
+}
+
+function renderBlogSearchState() {
+  if (state.section !== "blog-list") {
+    render();
+    return;
+  }
+
+  state.blogPage = clampPage(state.blogPage);
+  refs.summary.textContent = buildSummary();
+  refs.stats.innerHTML = renderBlogStats();
+  refs.toolbar.innerHTML = renderBlogToolbar();
+  refs.content.innerHTML = renderBlogList();
+  refs.footerMeta.textContent = buildFooterMeta();
+  syncRoute();
+  updateSeo();
+
+  refs.blogSearchInput = refs.toolbar.querySelector('[data-role="blog-search"]');
+  if (refs.blogSearchInput) {
+    refs.blogSearchInput.value = state.blogQuery;
+    requestAnimationFrame(() => {
+      refs.blogSearchInput.focus();
+      refs.blogSearchInput.setSelectionRange(state.blogQuery.length, state.blogQuery.length);
+    });
+  }
+}
 function renderBlogToolbar() {
+  const filteredPosts = getFilteredPosts();
+
   return `
     <div class="toolbar--blog">
       <div class="toolbar__heading">
         <span class="field-label">BLOG</span>
-        <h2>博客分页</h2>
-        <p>记录建站、工具、AI 和效率方法。第一版先把列表、详情和分页做好，方便后续继续写内容。</p>
+        <h2>博客搜索与分页</h2>
+        <p>记录建站、工具、AI 和效率方法。现在支持按标题、摘要、正文和标签筛选文章，同时保留分页阅读。</p>
       </div>
-      <div class="active-state">
-        <span class="state-pill">共 ${posts.length} 篇文章</span>
-        <span class="state-pill">第 ${state.blogPage} / ${getTotalBlogPages()} 页</span>
-        <span class="state-pill">每页 ${state.postsPerPage} 篇</span>
+      <label class="search-field search-field--blog">
+        <span class="field-label">搜索文章</span>
+        <input
+          data-role="blog-search"
+          type="search"
+          inputmode="search"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="搜标题、摘要、正文、标签，例如 Cloudflare / GitHub Pages / 工作流"
+        >
+      </label>
+      <div class="filter-row">
+        <span class="filter-label">博客标签</span>
+        <div class="chip-group chip-group--dense">${renderBlogTagFilters()}</div>
+      </div>
+      <div class="toolbar__footer">
+        <div class="active-state">
+          ${renderBlogActiveState(filteredPosts.length)}
+          <button type="button" class="inline-reset" data-action="open-command">全站搜 Ctrl + K</button>
+        </div>
       </div>
     </div>
   `;
@@ -355,6 +629,10 @@ function renderBlogDetailToolbar() {
     return renderBlogToolbar();
   }
 
+  const pageSource = getPostPageSource(post.id);
+  const currentPage = getBlogPageForPost(post.id, pageSource);
+  const sourceLabel = pageSource === posts ? "总列表视图" : "当前筛选视图";
+
   return `
     <div class="toolbar--detail">
       <button type="button" class="article-back" data-action="back-to-blog">返回博客列表</button>
@@ -365,7 +643,9 @@ function renderBlogDetailToolbar() {
       </div>
       <div class="active-state">
         <span class="state-pill">${formatDate(post.publishedAt)}</span>
-        <span class="state-pill">第 ${state.blogPage} / ${getTotalBlogPages()} 页</span>
+        <span class="state-pill">第 ${currentPage} / ${getTotalBlogPages(pageSource)} 页</span>
+        <span class="state-pill">${sourceLabel}</span>
+        <button type="button" class="inline-reset" data-action="open-command">全站搜 Ctrl + K</button>
       </div>
     </div>
   `;
@@ -383,11 +663,100 @@ function renderContent() {
   return renderBlogDetail();
 }
 
+function renderWorkbench() {
+  const pendingCount = state.workbenchTodos.filter((item) => !item.done).length;
+  const doneCount = state.workbenchTodos.length - pendingCount;
+  const favoriteCount = sites.filter((site) => state.favorites.has(site.id)).length;
+  const recentCount = state.recent.filter((id) => siteIds.has(id)).length;
+
+  return `
+    <section class="workbench">
+      <article class="panel workbench-card workbench-card--time">
+        <p class="section-head__eyebrow">WORKBENCH</p>
+        <div class="workbench-time" data-role="workbench-time">--:--</div>
+        <div class="workbench-date" data-role="workbench-date">--</div>
+        <div class="workbench-metrics">
+          <span class="state-pill">待办 ${pendingCount}</span>
+          <span class="state-pill">已完成 ${doneCount}</span>
+          <span class="state-pill">收藏 ${favoriteCount}</span>
+          <span class="state-pill">最近访问 ${recentCount}</span>
+        </div>
+      </article>
+
+      <article class="panel workbench-card workbench-card--todo">
+        <div class="workbench-card__head">
+          <div>
+            <p class="section-head__eyebrow">TODAY</p>
+            <h2>待办清单</h2>
+          </div>
+          <span class="section-count">${pendingCount}</span>
+        </div>
+        <div class="workbench-todo-form">
+          <input
+            type="text"
+            data-role="workbench-todo-input"
+            class="workbench-input"
+            placeholder="写下当前最重要的一件事"
+            value="${escapeHTML(state.workbenchTodoDraft)}"
+          >
+          <button type="button" class="workbench-button" data-action="add-workbench-todo">添加</button>
+        </div>
+        <div class="workbench-todo-list">
+          ${renderWorkbenchTodoItems()}
+        </div>
+        <div class="workbench-card__foot">
+          <span class="workbench-helper">回车也可以直接添加待办。</span>
+          ${doneCount > 0 ? '<button type="button" class="inline-reset" data-action="clear-workbench-done">清理已完成</button>' : ''}
+        </div>
+      </article>
+
+      <article class="panel workbench-card workbench-card--note">
+        <div class="workbench-card__head">
+          <div>
+            <p class="section-head__eyebrow">SCRATCHPAD</p>
+            <h2>快速便签</h2>
+          </div>
+          <span class="section-count">${state.workbenchNote.trim().length}</span>
+        </div>
+        <textarea
+          class="workbench-note"
+          data-role="workbench-note"
+          placeholder="记灵感、记临时命令、记今天要查的内容..."
+        >${escapeHTML(state.workbenchNote)}</textarea>
+        <div class="workbench-card__foot">
+          <span class="workbench-helper">只保存在当前浏览器，不会写入项目文件。</span>
+        </div>
+      </article>
+    </section>
+  `;
+}
+
+function renderWorkbenchTodoItems() {
+  if (state.workbenchTodos.length === 0) {
+    return '<div class="workbench-empty">还没有待办。先写一条今天最重要的任务。</div>';
+  }
+
+  return state.workbenchTodos
+    .map(
+      (item) => `
+        <div class="todo-item ${item.done ? "is-done" : ""}">
+          <button type="button" class="todo-toggle ${item.done ? "is-done" : ""}" data-action="toggle-workbench-todo" data-value="${escapeHTML(item.id)}">${item.done ? "✓" : ""}</button>
+          <div class="todo-copy">
+            <strong>${escapeHTML(item.text)}</strong>
+          </div>
+          <button type="button" class="todo-remove" data-action="remove-workbench-todo" data-value="${escapeHTML(item.id)}">删除</button>
+        </div>
+      `,
+    )
+    .join("");
+}
+
 function renderNavContent() {
   const visibleSites = getVisibleSites();
+  const workbench = renderWorkbench();
 
   if (visibleSites.length === 0) {
-    return `
+    return `${workbench}
       <section class="panel empty-state">
         <h2>没有匹配结果</h2>
         <p>${escapeHTML(getEmptyMessage())}</p>
@@ -396,8 +765,7 @@ function renderNavContent() {
     `;
   }
 
-  const groups = getGroupedSites(visibleSites);
-  return groups
+  const groups = getGroupedSites(visibleSites)
     .map(
       (group) => `
         <section class="category-block">
@@ -415,8 +783,9 @@ function renderNavContent() {
       `,
     )
     .join("");
-}
 
+  return `${workbench}${groups}`;
+}
 function renderBlogList() {
   if (posts.length === 0) {
     return `
@@ -427,13 +796,24 @@ function renderBlogList() {
     `;
   }
 
-  const currentPosts = getCurrentPosts();
+  const filteredPosts = getFilteredPosts();
+  if (filteredPosts.length === 0) {
+    return `
+      <section class="panel empty-state">
+        <h2>没有匹配文章</h2>
+        <p>当前关键词或标签没有命中文章。清空博客筛选后会恢复全部内容。</p>
+        <button type="button" class="empty-state__button" data-action="reset-blog-filters">恢复全部文章</button>
+      </section>
+    `;
+  }
+
+  const currentPosts = getCurrentPosts(filteredPosts);
   return `
     <section class="blog-list">
       <div class="blog-grid">
         ${currentPosts.map((post) => renderBlogCard(post)).join("")}
       </div>
-      ${renderPagination()}
+      ${renderPagination(filteredPosts)}
     </section>
   `;
 }
@@ -460,8 +840,8 @@ function renderBlogCard(post) {
   `;
 }
 
-function renderPagination() {
-  const totalPages = getTotalBlogPages();
+function renderPagination(sourcePosts = getFilteredPosts()) {
+  const totalPages = getTotalBlogPages(sourcePosts);
 
   if (totalPages <= 1) {
     return "";
@@ -486,7 +866,7 @@ function renderPagination() {
     <div class="panel pagination">
       <div class="pagination__summary">
         <strong>分页</strong>
-        <span>当前第 ${state.blogPage} 页，共 ${totalPages} 页</span>
+        <span>当前第 ${state.blogPage} 页，共 ${totalPages} 页，命中 ${sourcePosts.length} 篇</span>
       </div>
       <div class="pagination__controls">
         <button
@@ -526,6 +906,9 @@ function renderBlogDetail() {
     `;
   }
 
+  const pageSource = getPostPageSource(post.id);
+  const sourceLabel = pageSource === posts ? "来自博客总列表" : "来自当前筛选列表";
+
   return `
     <article class="panel article">
       <div class="article__header">
@@ -534,7 +917,7 @@ function renderBlogDetail() {
         <div class="article__meta">
           <span>${formatDate(post.publishedAt)}</span>
           <span>${post.content.length} 段正文</span>
-          <span>第 ${state.blogPage} 页来源</span>
+          <span>${sourceLabel}</span>
         </div>
         <div class="tag-list">
           ${post.tags.map((tag) => `<span class="tag">${escapeHTML(tag)}</span>`).join("")}
@@ -590,6 +973,112 @@ function renderSiteCard(site) {
         </a>
       </div>
     </article>
+  `;
+}
+
+function renderCommandPalette() {
+  if (!state.commandOpen) {
+    return "";
+  }
+
+  const sections = getCommandSections();
+  const flatResults = sections.flatMap((section) => section.items);
+  state.commandIndex = flatResults.length === 0 ? 0 : Math.min(state.commandIndex, flatResults.length - 1);
+
+  let offset = 0;
+  const groupsMarkup = sections
+    .map((section) => {
+      const markup = renderCommandSection(section, offset);
+      offset += section.items.length;
+      return markup;
+    })
+    .join("");
+
+  return `
+    <div class="command-overlay">
+      <button type="button" class="command-overlay__backdrop" data-action="close-command" aria-label="关闭全站搜索"></button>
+      <div class="panel command-palette" role="dialog" aria-modal="true" aria-label="全站搜索">
+        <div class="command-palette__head">
+          <div class="command-search-wrap">
+            <span class="command-search__icon">⌘</span>
+            <input
+              type="search"
+              data-role="command-search"
+              class="command-search"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="搜网站、文章、标签、分类，例如 GPT / Cloudflare / 博客"
+            >
+          </div>
+          <button type="button" class="command-close" data-action="close-command">关闭</button>
+        </div>
+        <div class="command-palette__meta">
+          <span>网站和博客统一入口</span>
+          <span>↑ ↓ 选择</span>
+          <span>Enter 打开</span>
+          <span>Esc 关闭</span>
+        </div>
+        <div class="command-results ${flatResults.length === 0 ? "is-empty" : ""}">
+          ${flatResults.length === 0 ? renderCommandEmptyState() : groupsMarkup}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderCommandSection(section, startIndex) {
+  return `
+    <section class="command-group">
+      <div class="command-group__head">
+        <span>${escapeHTML(section.title)}</span>
+        <small>${section.items.length}</small>
+      </div>
+      <div class="command-group__list">
+        ${section.items.map((item, index) => renderCommandItem(item, startIndex + index)).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderCommandItem(item, absoluteIndex) {
+  const isActive = state.commandIndex === absoluteIndex;
+  const badgeClass = item.kind === "site" ? "is-site" : item.kind === "post" ? "is-post" : "is-action";
+
+  return `
+    <button
+      type="button"
+      class="command-item ${isActive ? "is-active" : ""}"
+      data-action="run-command"
+      data-command-kind="${escapeHTML(item.kind)}"
+      data-command-id="${escapeHTML(item.id)}"
+    >
+      <span class="command-item__badge ${badgeClass}">${escapeHTML(item.badge)}</span>
+      <div class="command-item__body">
+        <strong>${escapeHTML(item.title)}</strong>
+        <span>${escapeHTML(item.subtitle)}</span>
+      </div>
+      <span class="command-item__meta">${escapeHTML(item.meta)}</span>
+    </button>
+  `;
+}
+
+function renderCommandEmptyState() {
+  const query = state.commandQuery.trim();
+
+  if (!query) {
+    return `
+      <div class="command-empty">
+        <strong>这里会显示快捷操作、最近访问和最新文章。</strong>
+        <span>直接输入关键词，就会开始搜网站名、文章标题、标签和描述。</span>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="command-empty">
+      <strong>没有找到“${escapeHTML(query)}”</strong>
+      <span>试试站点名、博客标题、标签、分类或别名。</span>
+    </div>
   `;
 }
 
@@ -694,6 +1183,48 @@ function renderActiveState() {
   `;
 }
 
+function renderBlogTagFilters() {
+  const entries = getBlogTagCounts();
+  const items = [{ value: "all", label: "全部标签", count: getFilteredPosts({ ignoreTag: true }).length }];
+
+  for (const entry of entries) {
+    items.push({
+      value: entry.tag,
+      label: entry.tag,
+      count: entry.count,
+    });
+  }
+
+  return items
+    .filter((item) => item.value === "all" || item.count > 0 || item.value === state.blogTag)
+    .map((item) => renderChip("set-blog-tag", item.value, item.label, item.count, state.blogTag === item.value))
+    .join("");
+}
+
+function renderBlogActiveState(count) {
+  const parts = [
+    `<span class="state-pill">共 ${posts.length} 篇文章</span>`,
+    `<span class="state-pill">命中 ${count} 篇</span>`,
+    `<span class="state-pill">第 ${state.blogPage} / ${getTotalBlogPages(getFilteredPosts())} 页</span>`,
+  ];
+
+  if (state.blogTag !== "all") {
+    parts.push(`<span class="state-pill">标签: ${escapeHTML(state.blogTag)}</span>`);
+  }
+  if (state.blogQuery) {
+    parts.push(`<span class="state-pill">搜索: ${escapeHTML(state.blogQuery)}</span>`);
+  }
+
+  if (!state.blogQuery && state.blogTag === "all") {
+    return `${parts.join("")}<span class="active-state__hint">当前显示全部文章，可按标题、摘要、正文和标签继续收窄范围。</span>`;
+  }
+
+  return `
+    ${parts.join("")}
+    <button type="button" class="inline-reset" data-action="reset-blog-filters">清空博客筛选</button>
+  `;
+}
+
 function renderChip(action, value, label, count, isActive) {
   return `
     <button
@@ -720,12 +1251,31 @@ function getVisibleSites(options = {}) {
       return false;
     }
 
-    if (!matchesQuery(site, state.query)) {
+    if (!matchesSiteQuery(site, state.query)) {
       return false;
     }
 
     return true;
   });
+}
+
+function getFilteredPosts(options = {}) {
+  return posts.filter((post) => {
+    if (!options.ignoreTag && state.blogTag !== "all" && !post.tags.includes(state.blogTag)) {
+      return false;
+    }
+
+    if (!matchesPostQuery(post, state.blogQuery)) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function getPostPageSource(postId) {
+  const filteredPosts = getFilteredPosts();
+  return filteredPosts.some((post) => post.id === postId) ? filteredPosts : posts;
 }
 
 function getViewScopedSites() {
@@ -769,6 +1319,21 @@ function getTagCounts() {
     .sort((left, right) => left.tag.localeCompare(right.tag, "zh-CN"));
 }
 
+function getBlogTagCounts() {
+  const scopedPosts = getFilteredPosts({ ignoreTag: true });
+  const counts = new Map();
+
+  for (const post of scopedPosts) {
+    for (const tag of post.tags) {
+      counts.set(tag, (counts.get(tag) || 0) + 1);
+    }
+  }
+
+  return [...counts.entries()]
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((left, right) => left.tag.localeCompare(right.tag, "zh-CN"));
+}
+
 function getGroupedSites(visibleSites) {
   if (state.view === "recent") {
     return [
@@ -795,27 +1360,320 @@ function getGroupedSites(visibleSites) {
   return grouped;
 }
 
-function matchesQuery(site, query) {
+function getCommandSections() {
+  const query = state.commandQuery.trim();
+
+  if (!query) {
+    return getDefaultCommandSections();
+  }
+
+  const siteResults = sites
+    .map((site) => ({ site, score: getSiteSearchScore(site, query) }))
+    .filter((entry) => entry.score > 0)
+    .sort((left, right) => right.score - left.score || left.site.name.localeCompare(right.site.name, "zh-CN"))
+    .slice(0, COMMAND_RESULT_LIMIT)
+    .map((entry) => createSiteCommandResult(entry.site));
+
+  const postResults = posts
+    .map((post) => ({ post, score: getPostSearchScore(post, query) }))
+    .filter((entry) => entry.score > 0)
+    .sort((left, right) => right.score - left.score || new Date(right.post.publishedAt).getTime() - new Date(left.post.publishedAt).getTime())
+    .slice(0, COMMAND_RESULT_LIMIT)
+    .map((entry) => createPostCommandResult(entry.post));
+
+  return [
+    siteResults.length > 0 ? { title: "网站结果", items: siteResults } : null,
+    postResults.length > 0 ? { title: "博客结果", items: postResults } : null,
+  ].filter(Boolean);
+}
+
+function getDefaultCommandSections() {
+  const recentSites = state.recent
+    .map((id) => siteMap.get(id))
+    .filter(Boolean)
+    .slice(0, 4)
+    .map((site) => createSiteCommandResult(site));
+
+  const latestPosts = posts.slice(0, 4).map((post) => createPostCommandResult(post));
+
+  return [
+    { title: "快捷操作", items: getCommandActions() },
+    recentSites.length > 0 ? { title: "最近访问", items: recentSites } : null,
+    latestPosts.length > 0 ? { title: "最新文章", items: latestPosts } : null,
+  ].filter(Boolean);
+}
+
+function getFlatCommandResults() {
+  return getCommandSections().flatMap((section) => section.items);
+}
+
+function getCommandActions() {
+  return [
+    {
+      kind: "action",
+      id: "nav-home",
+      badge: "导航",
+      title: "打开导航首页",
+      subtitle: "回到全部网站视图",
+      meta: "全部站点",
+    },
+    {
+      kind: "action",
+      id: "nav-favorites",
+      badge: "收藏",
+      title: "查看收藏站点",
+      subtitle: "快速进入你的高频入口",
+      meta: `${sites.filter((site) => state.favorites.has(site.id)).length} 个`,
+    },
+    {
+      kind: "action",
+      id: "nav-recent",
+      badge: "最近",
+      title: "查看最近访问",
+      subtitle: "回到最近点开的站点列表",
+      meta: `${state.recent.filter((id) => siteIds.has(id)).length} 个`,
+    },
+    {
+      kind: "action",
+      id: "blog-list",
+      badge: "博客",
+      title: "打开博客列表",
+      subtitle: "查看最新文章和分页列表",
+      meta: `${posts.length} 篇`,
+    },
+  ];
+}
+
+function createSiteCommandResult(site) {
+  return {
+    kind: "site",
+    id: site.id,
+    badge: site.category || "网站",
+    title: site.name,
+    subtitle: site.description || site.url,
+    meta: site.tags.slice(0, 3).join(" / ") || getHost(site.url),
+  };
+}
+
+function createPostCommandResult(post) {
+  return {
+    kind: "post",
+    id: post.id,
+    badge: "博客",
+    title: post.title,
+    subtitle: post.summary,
+    meta: `${formatShortDate(post.publishedAt)} · ${post.tags.slice(0, 2).join(" / ") || "文章"}`,
+  };
+}
+
+function runCommandResult(result) {
+  if (!result) {
+    return;
+  }
+
+  if (result.kind === "site") {
+    const site = siteMap.get(result.id);
+    if (!site) {
+      return;
+    }
+
+    trackRecent(site.id);
+    closeCommandPalette();
+    render();
+    window.open(site.url, "_blank", "noopener,noreferrer");
+    return;
+  }
+
+  if (result.kind === "post") {
+    openPost(result.id);
+    closeCommandPalette();
+    render();
+    return;
+  }
+
+  if (result.kind === "action") {
+    runCommandAction(result.id);
+    closeCommandPalette();
+    render();
+  }
+}
+
+function runCommandAction(actionId) {
+  if (actionId === "nav-home") {
+    state.section = "nav";
+    resetNavFilters();
+    return;
+  }
+
+  if (actionId === "nav-favorites") {
+    state.section = "nav";
+    resetNavFilters();
+    state.view = "favorites";
+    return;
+  }
+
+  if (actionId === "nav-recent") {
+    state.section = "nav";
+    resetNavFilters();
+    state.view = "recent";
+    return;
+  }
+
+  if (actionId === "blog-list") {
+    state.section = "blog-list";
+  }
+}
+
+function openCommandPalette() {
+  state.commandOpen = true;
+  state.commandIndex = 0;
+}
+
+function closeCommandPalette() {
+  state.commandOpen = false;
+  state.commandQuery = "";
+  state.commandIndex = 0;
+}
+
+function openPost(postId) {
+  if (!postMap.has(postId)) {
+    return;
+  }
+
+  const pageSource = getPostPageSource(postId);
+  state.selectedPostId = postId;
+  state.blogPage = getBlogPageForPost(postId, pageSource);
+  state.section = "blog-detail";
+}
+
+function getBlogPageForPost(postId, sourcePosts = posts) {
+  const postIndex = sourcePosts.findIndex((post) => post.id === postId);
+  if (postIndex < 0) {
+    return 1;
+  }
+
+  return Math.floor(postIndex / state.postsPerPage) + 1;
+}
+
+function getSiteSearchScore(site, query) {
+  const keyword = normalizeQuery(query);
+  if (!keyword) {
+    return 0;
+  }
+
+  let score = 0;
+  const name = normalizeQuery(site.name);
+  const category = normalizeQuery(site.category);
+  const description = normalizeQuery(site.description);
+  const tags = site.tags.map((tag) => normalizeQuery(tag));
+  const aliases = (site.aliases || []).map((alias) => normalizeQuery(alias));
+
+  if (name === keyword) {
+    score += 300;
+  } else if (name.startsWith(keyword)) {
+    score += 220;
+  } else if (name.includes(keyword)) {
+    score += 160;
+  }
+
+  if (category === keyword) {
+    score += 120;
+  } else if (category.includes(keyword)) {
+    score += 80;
+  }
+
+  if (tags.some((tag) => tag === keyword)) {
+    score += 140;
+  } else if (tags.some((tag) => tag.includes(keyword))) {
+    score += 100;
+  }
+
+  if (aliases.some((alias) => alias === keyword)) {
+    score += 130;
+  } else if (aliases.some((alias) => alias.includes(keyword))) {
+    score += 90;
+  }
+
+  if (description.includes(keyword)) {
+    score += 60;
+  }
+
+  return score;
+}
+
+function getPostSearchScore(post, query) {
+  const keyword = normalizeQuery(query);
+  if (!keyword) {
+    return 0;
+  }
+
+  let score = 0;
+  const title = normalizeQuery(post.title);
+  const summary = normalizeQuery(post.summary);
+  const tags = post.tags.map((tag) => normalizeQuery(tag));
+  const content = normalizeQuery(post.content.join(" "));
+
+  if (title === keyword) {
+    score += 300;
+  } else if (title.startsWith(keyword)) {
+    score += 230;
+  } else if (title.includes(keyword)) {
+    score += 170;
+  }
+
+  if (tags.some((tag) => tag === keyword)) {
+    score += 130;
+  } else if (tags.some((tag) => tag.includes(keyword))) {
+    score += 90;
+  }
+
+  if (summary.includes(keyword)) {
+    score += 70;
+  }
+
+  if (content.includes(keyword)) {
+    score += 40;
+  }
+
+  return score;
+}
+
+function matchesSiteQuery(site, query) {
   if (!query) {
     return true;
   }
 
-  const source = [
-    site.name,
-    site.description,
-    site.category,
-    ...site.tags,
-    ...(site.aliases || []),
-  ]
-    .join(" ")
-    .toLocaleLowerCase();
+  return getSiteSearchScore(site, query) > 0;
+}
 
-  return source.includes(query.toLocaleLowerCase());
+function matchesPostQuery(post, query) {
+  if (!query) {
+    return true;
+  }
+
+  return getPostSearchScore(post, query) > 0;
+}
+
+function normalizeQuery(value) {
+  return String(value || "").trim().toLocaleLowerCase();
+}
+
+function getHost(url) {
+  try {
+    return new URL(url).host.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
 }
 
 function buildSummary() {
   if (state.section === "blog-list") {
-    return `记录建站、工具和效率实践。当前共有 ${posts.length} 篇文章，按最轻量的方式把内容整合进同一个站。`;
+    const filteredPosts = getFilteredPosts();
+    if (!state.blogQuery && state.blogTag === "all") {
+      return `记录建站、工具和效率实践。当前共有 ${posts.length} 篇文章，已经支持博客搜索、标签筛选和分页阅读。`;
+    }
+
+    return `当前命中 ${filteredPosts.length} 篇文章。你可以继续按关键词和标签把内容范围缩小。`;
   }
 
   if (state.section === "blog-detail") {
@@ -826,7 +1684,7 @@ function buildSummary() {
   const filteredCount = getVisibleSites().length;
 
   if (!state.query && state.category === "all" && state.tag === "all" && state.view === "all") {
-    return "把常用网站集中成一个可搜索、可筛选、可沉淀习惯的个人起始台。";
+    return "把常用网站集中成一个可搜索、可筛选、可沉淀习惯的个人起始台。现在支持 Ctrl + K 全站搜索网站和博客。";
   }
 
   return `当前命中 ${filteredCount} 个站点。你可以继续按分类、标签或收藏状态继续收窄范围。`;
@@ -837,7 +1695,7 @@ function buildFooterMeta() {
     return `站点数据：src/data/sites.js · 共 ${sites.length} 个站点`;
   }
 
-  return `文章数据：src/data/posts.js · 共 ${posts.length} 篇文章`;
+  return `文章数据：src/data/posts.js · 共 ${posts.length} 篇文章 · RSS: ${siteMeta.rssPath}`;
 }
 
 function getEmptyMessage() {
@@ -852,12 +1710,11 @@ function getEmptyMessage() {
   return "当前关键词或筛选条件太严格了。清空筛选后会恢复全部站点。";
 }
 
-function getTotalBlogPages() {
-  return Math.max(1, Math.ceil(posts.length / state.postsPerPage));
+function getTotalBlogPages(sourcePosts = getFilteredPosts()) {
+  return Math.max(1, Math.ceil(sourcePosts.length / state.postsPerPage));
 }
 
-function clampPage(value) {
-  const totalPages = getTotalBlogPages();
+function clampPage(value, totalPages = getTotalBlogPages()) {
   if (!Number.isFinite(value)) {
     return 1;
   }
@@ -865,9 +1722,9 @@ function clampPage(value) {
   return Math.min(Math.max(1, value), totalPages);
 }
 
-function getCurrentPosts() {
+function getCurrentPosts(sourcePosts = getFilteredPosts()) {
   const start = (state.blogPage - 1) * state.postsPerPage;
-  return posts.slice(start, start + state.postsPerPage);
+  return sourcePosts.slice(start, start + state.postsPerPage);
 }
 
 function getSelectedPost() {
@@ -880,6 +1737,19 @@ function isSectionActive(value) {
   }
 
   return state.section === value;
+}
+
+function resetNavFilters() {
+  state.query = "";
+  state.category = "all";
+  state.tag = "all";
+  state.view = "all";
+}
+
+function resetBlogFilters() {
+  state.blogQuery = "";
+  state.blogTag = "all";
+  state.blogPage = 1;
 }
 
 function toggleFavorite(siteId) {
@@ -905,10 +1775,271 @@ function trackRecent(siteId) {
   localStorage.setItem(STORAGE_KEYS.recent, JSON.stringify(state.recent));
 }
 
+function addWorkbenchTodo() {
+  const text = state.workbenchTodoDraft.trim();
+  if (!text) {
+    return false;
+  }
+
+  state.workbenchTodos = [
+    { id: `todo-${Date.now()}`, text, done: false },
+    ...state.workbenchTodos,
+  ].slice(0, 12);
+  state.workbenchTodoDraft = "";
+  saveWorkbenchTodos();
+  return true;
+}
+
+function toggleWorkbenchTodo(todoId) {
+  state.workbenchTodos = state.workbenchTodos.map((item) => (
+    item.id === todoId ? { ...item, done: !item.done } : item
+  ));
+  saveWorkbenchTodos();
+}
+
+function removeWorkbenchTodo(todoId) {
+  state.workbenchTodos = state.workbenchTodos.filter((item) => item.id !== todoId);
+  saveWorkbenchTodos();
+}
+
+function clearCompletedWorkbenchTodos() {
+  state.workbenchTodos = state.workbenchTodos.filter((item) => !item.done);
+  saveWorkbenchTodos();
+}
+
+function saveWorkbenchTodos() {
+  localStorage.setItem(STORAGE_KEYS.workbenchTodos, JSON.stringify(state.workbenchTodos));
+}
+
+function focusWorkbenchTodoInput() {
+  requestAnimationFrame(() => {
+    refs.workbenchTodoInput?.focus();
+  });
+}
+
+function startWorkbenchClock() {
+  window.setInterval(() => {
+    state.now = Date.now();
+    syncWorkbenchClock();
+  }, 1000);
+}
+
+function syncWorkbenchClock() {
+  const timeNode = refs.content?.querySelector('[data-role="workbench-time"]');
+  const dateNode = refs.content?.querySelector('[data-role="workbench-date"]');
+  if (!timeNode || !dateNode) {
+    return;
+  }
+
+  const now = new Date(state.now);
+  timeNode.textContent = new Intl.DateTimeFormat("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(now);
+  dateNode.textContent = new Intl.DateTimeFormat("zh-CN", {
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+  }).format(now);
+}
+
 function syncTheme(theme) {
   state.theme = theme;
   document.documentElement.dataset.theme = theme;
   localStorage.setItem(STORAGE_KEYS.theme, theme);
+}
+
+function handlePopState() {
+  hydrateFromLocation();
+  render();
+}
+
+function hydrateFromLocation() {
+  const url = new URL(window.location.href);
+  const params = url.searchParams;
+  const allBlogTags = new Set(posts.flatMap((post) => post.tags));
+
+  state.blogQuery = params.get("blogSearch") || "";
+  state.blogTag = allBlogTags.has(params.get("blogTag") || "") ? params.get("blogTag") : "all";
+  state.blogPage = clampPage(Number(params.get("page") || 1), getTotalBlogPages(getFilteredPosts()));
+
+  const postId = params.get("post");
+  if (postId && postMap.has(postId)) {
+    state.selectedPostId = postId;
+    state.blogPage = getBlogPageForPost(postId, getPostPageSource(postId));
+    state.section = "blog-detail";
+    return;
+  }
+
+  state.section = params.get("section") === "blog" ? "blog-list" : "nav";
+}
+
+function syncRoute() {
+  const nextPath = buildRoutePath();
+  const currentPath = `${window.location.pathname}${window.location.search}`;
+  if (nextPath !== currentPath) {
+    window.history.replaceState(null, "", nextPath);
+  }
+}
+
+function buildRoutePath() {
+  const params = new URLSearchParams();
+
+  if (state.section === "blog-detail") {
+    const post = getSelectedPost();
+    if (post) {
+      params.set("post", post.id);
+    }
+  } else if (state.section === "blog-list") {
+    params.set("section", "blog");
+    if (state.blogQuery.trim()) {
+      params.set("blogSearch", state.blogQuery.trim());
+    }
+    if (state.blogTag !== "all") {
+      params.set("blogTag", state.blogTag);
+    }
+    if (state.blogPage > 1) {
+      params.set("page", String(state.blogPage));
+    }
+  }
+
+  const pathname = window.location.pathname || "/";
+  const query = params.toString();
+  return query ? `${pathname}?${query}` : pathname;
+}
+
+function updateSeo() {
+  const title = buildPageTitle();
+  const description = buildPageDescription();
+  const canonicalUrl = getCanonicalUrl();
+  const currentPost = state.section === "blog-detail" ? getSelectedPost() : null;
+
+  document.title = title;
+  setMetaTag("name", "description", description);
+  setMetaTag("property", "og:title", title);
+  setMetaTag("property", "og:description", description);
+  setMetaTag("property", "og:url", canonicalUrl);
+  setMetaTag("property", "og:type", currentPost ? "article" : "website");
+  setMetaTag("property", "og:site_name", siteMeta.name);
+  setMetaTag("name", "twitter:title", title);
+  setMetaTag("name", "twitter:description", description);
+  setMetaTag("name", "twitter:card", "summary");
+  setMetaTag("name", "robots", "index,follow");
+  setMetaTag("property", "article:published_time", currentPost ? new Date(currentPost.publishedAt).toISOString() : null);
+  setLinkTag("canonical", canonicalUrl);
+  setAlternateFeed();
+}
+
+function buildPageTitle() {
+  if (state.section === "blog-detail") {
+    const post = getSelectedPost();
+    return post ? `${post.title} | ${siteMeta.name}` : `博客详情 | ${siteMeta.name}`;
+  }
+
+  if (state.section === "blog-list") {
+    if (state.blogQuery) {
+      return `博客搜索：${state.blogQuery} | ${siteMeta.name}`;
+    }
+    if (state.blogTag !== "all") {
+      return `${state.blogTag} 相关文章 | ${siteMeta.name}`;
+    }
+    return `博客 | ${siteMeta.name}`;
+  }
+
+  if (state.query || state.category !== "all" || state.tag !== "all" || state.view !== "all") {
+    return `导航筛选 | ${siteMeta.name}`;
+  }
+
+  return siteMeta.name;
+}
+
+function buildPageDescription() {
+  if (state.section === "blog-detail") {
+    const post = getSelectedPost();
+    return post ? post.summary : siteMeta.description;
+  }
+
+  if (state.section === "blog-list") {
+    const filteredPosts = getFilteredPosts();
+    if (state.blogQuery || state.blogTag !== "all") {
+      return `博客当前命中 ${filteredPosts.length} 篇文章，支持按标题、摘要、正文和标签搜索。`;
+    }
+    return `收录建站、工具、AI 和效率实践的轻量博客，当前共有 ${posts.length} 篇文章。`;
+  }
+
+  return siteMeta.description;
+}
+
+function getCanonicalBaseUrl() {
+  const isLocal = /^(https?:\/\/(127\.0\.0\.1|localhost))/i.test(window.location.origin);
+  return isLocal ? window.location.origin : siteMeta.url.replace(/\/+$/, "");
+}
+
+function getCanonicalUrl() {
+  return new URL(buildRoutePath(), `${getCanonicalBaseUrl()}/`).href;
+}
+
+function setMetaTag(attributeName, attributeValue, content) {
+  let element = document.head.querySelector(`meta[${attributeName}="${attributeValue}"]`);
+  if (!content) {
+    element?.remove();
+    return;
+  }
+
+  if (!element) {
+    element = document.createElement("meta");
+    element.setAttribute(attributeName, attributeValue);
+    document.head.append(element);
+  }
+
+  element.setAttribute("content", content);
+}
+
+function setLinkTag(rel, href) {
+  let element = document.head.querySelector(`link[rel="${rel}"]`);
+  if (!element) {
+    element = document.createElement("link");
+    element.setAttribute("rel", rel);
+    document.head.append(element);
+  }
+
+  element.setAttribute("href", href);
+}
+
+function setAlternateFeed() {
+  let element = document.head.querySelector('link[rel="alternate"][type="application/rss+xml"]');
+  if (!element) {
+    element = document.createElement("link");
+    element.setAttribute("rel", "alternate");
+    element.setAttribute("type", "application/rss+xml");
+    element.setAttribute("title", `${siteMeta.name} RSS`);
+    document.head.append(element);
+  }
+
+  element.setAttribute("href", new URL(siteMeta.rssPath, `${getCanonicalBaseUrl()}/`).href);
+}
+function loadStoredText(key) {
+  return String(localStorage.getItem(key) || "");
+}
+
+function loadTodoList(key) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || "[]");
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value
+      .map((item) => ({
+        id: String(item.id || `todo-${Date.now()}`),
+        text: String(item.text || "").trim(),
+        done: Boolean(item.done),
+      }))
+      .filter((item) => item.text);
+  } catch {
+    return [];
+  }
 }
 
 function loadIdSet(key) {
@@ -999,4 +2130,21 @@ function escapeHTML(value) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
