@@ -1,4 +1,4 @@
-[
+export const sites = [
   {
     "id": "google",
     "name": "Google",
@@ -149,4 +149,5 @@
     "description": "通用对话、写作、推理和多场景辅助的主入口。",
     "aliases": ["chatgpt", "openai", "gpt"]
   }
-]
+];
+

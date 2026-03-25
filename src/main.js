@@ -1,5 +1,4 @@
-import "./style.css";
-import rawSites from "./data/sites.json";
+import { sites as rawSites } from "./data/sites.js";
 
 /**
  * @typedef {Object} SiteItem
@@ -632,9 +631,11 @@ function getHue(value) {
 
 function escapeHTML(value) {
   return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
+
+
