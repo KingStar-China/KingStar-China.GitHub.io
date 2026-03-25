@@ -1,21 +1,40 @@
-# 导航网站
+# 少昊导航台
 
-这是一个基于 GitHub Pages 的静态导航网站。
+这是一个部署在 GitHub Pages 上的 Vite 静态导航站，定位为自己长期使用的效率工具。
 
-## 功能特点
+## 当前能力
 
-- 响应式设计，适配各种设备
-- 分类展示常用网站
-- 支持搜索功能
-- 支持暗色/亮色主题切换
-
-## 使用方法
-
-1. 克隆此仓库
-2. 修改 `index.html` 中的网站链接
-3. 提交到 GitHub
-4. 在仓库设置中启用 GitHub Pages
+- 基于 `src/data/sites.json` 的数据驱动渲染
+- 搜索、分类筛选、标签筛选
+- 收藏和最近访问，本地存储在浏览器中
+- 明暗主题切换，刷新后保持
+- GitHub Actions 自动构建并发布到 GitHub Pages
 
 ## 本地开发
 
-直接在浏览器中打开 `index.html` 文件即可预览。 
+```bash
+npm install
+npm run dev
+```
+
+## 构建发布
+
+```bash
+npm run build
+```
+
+构建产物会输出到 `dist/`，推送到 `main` 后会由 GitHub Actions 自动发布。
+
+## 数据维护
+
+站点数据统一维护在 [`src/data/sites.json`](./src/data/sites.json)。
+
+每个站点条目至少包含这些字段：
+
+- `id`
+- `name`
+- `url`
+- `category`
+- `tags`
+- `icon`
+- `description`
