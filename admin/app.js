@@ -21,12 +21,17 @@ const state = {
   },
 };
 
+const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "::1"]);
 const root = document.querySelector("#app");
 const refs = {};
 
-init().catch((error) => {
-  root.innerHTML = `<div class="panel empty-state">启动失败：${escapeHTML(error.message)}</div>`;
-});
+if (!LOCAL_HOSTS.has(window.location.hostname)) {
+  root.innerHTML = renderRemoteOnlyState();
+} else {
+  init().catch((error) => {
+    root.innerHTML = `<div class="panel empty-state">启动失败：${escapeHTML(error.message)}</div>`;
+  });
+}
 
 async function init() {
   root.innerHTML = createShell();
@@ -47,6 +52,28 @@ async function init() {
   render();
 }
 
+function renderRemoteOnlyState() {
+  return `
+    <div class="admin-shell">
+      <header class="panel hero">
+        <div>
+          <h1>本地内容管理器</h1>
+          <p>这个页面只支持在你本机运行。线上站点不会提供内容编辑接口，所以不能直接管理站点和博客数据。</p>
+        </div>
+        <div class="hero__aside hero__aside--notice">
+          <div class="hero__meta">
+            <span class="pill">仅本机可用</span>
+            <span class="pill">不会开放线上编辑</span>
+          </div>
+          <div class="hero__actions">
+            <a class="ghost-button" href="/">返回首页</a>
+          </div>
+          <p class="helper hero__helper">请在项目目录执行 <code>npm run admin</code>，然后打开 <code>http://127.0.0.1:3210</code>。</p>
+        </div>
+      </header>
+    </div>
+  `;
+}
 function createShell() {
   return `
     <div class="admin-shell">
