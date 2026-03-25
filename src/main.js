@@ -185,7 +185,7 @@ function handleInput(event) {
   if (event.target.matches('[data-role="command-search"]')) {
     state.commandQuery = event.target.value;
     state.commandIndex = 0;
-    render();
+    syncCommandPaletteResults({ maintainFocus: true });
   }
 }
 function handleClick(event) {
@@ -197,13 +197,13 @@ function handleClick(event) {
 
     if (action === "open-command") {
       openCommandPalette();
-      render();
+      syncCommandPaletteResults({ maintainFocus: true });
       return;
     }
 
     if (action === "close-command") {
       closeCommandPalette();
-      render();
+      renderCommandPaletteState();
       return;
     }
 
@@ -351,7 +351,7 @@ function handleKeydown(event) {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
     event.preventDefault();
     openCommandPalette();
-    render();
+    syncCommandPaletteResults({ maintainFocus: true });
     return;
   }
 
@@ -359,10 +359,14 @@ function handleKeydown(event) {
     return;
   }
 
+  if (event.isComposing) {
+    return;
+  }
+
   if (event.key === "Escape") {
     event.preventDefault();
     closeCommandPalette();
-    render();
+    renderCommandPaletteState();
     return;
   }
 
@@ -374,14 +378,14 @@ function handleKeydown(event) {
   if (event.key === "ArrowDown") {
     event.preventDefault();
     state.commandIndex = (state.commandIndex + 1) % commandResults.length;
-    render();
+    syncCommandPaletteResults({ maintainFocus: true });
     return;
   }
 
   if (event.key === "ArrowUp") {
     event.preventDefault();
     state.commandIndex = (state.commandIndex - 1 + commandResults.length) % commandResults.length;
-    render();
+    syncCommandPaletteResults({ maintainFocus: true });
     return;
   }
 
@@ -399,7 +403,7 @@ function render() {
   refs.toolbar.innerHTML = renderToolbar();
   refs.content.innerHTML = renderContent();
   refs.footerMeta.textContent = buildFooterMeta();
-  refs.commandPalette.innerHTML = renderCommandPalette();
+  renderCommandPaletteState({ maintainFocus: state.commandOpen });
 
   refs.searchInput = refs.toolbar.querySelector('[data-role="search"]');
   if (refs.searchInput) {
@@ -416,21 +420,65 @@ function render() {
     refs.workbenchTodoInput.value = state.workbenchTodoDraft;
   }
 
-  refs.commandInput = refs.commandPalette.querySelector('[data-role="command-search"]');
-  if (state.commandOpen && refs.commandInput) {
-    refs.commandInput.value = state.commandQuery;
-    requestAnimationFrame(() => {
-      refs.commandInput.focus();
-      refs.commandInput.setSelectionRange(state.commandQuery.length, state.commandQuery.length);
-      refs.commandPalette.querySelector(".command-item.is-active")?.scrollIntoView({ block: "nearest" });
-    });
-  }
-
   syncWorkbenchClock();
   syncRoute();
   updateSeo();
 }
 
+function renderCommandPaletteState({ maintainFocus = false } = {}) {
+  refs.commandPalette.innerHTML = renderCommandPalette();
+  syncCommandScrollLock();
+
+  refs.commandInput = refs.commandPalette.querySelector('[data-role="command-search"]');
+  if (!state.commandOpen || !refs.commandInput) {
+    return;
+  }
+
+  refs.commandInput.value = state.commandQuery;
+
+  if (!maintainFocus) {
+    return;
+  }
+
+  requestAnimationFrame(() => {
+    if (!refs.commandInput) {
+      return;
+    }
+
+    refs.commandInput.focus({ preventScroll: true });
+    refs.commandInput.setSelectionRange(state.commandQuery.length, state.commandQuery.length);
+    refs.commandPalette.querySelector('.command-item.is-active')?.scrollIntoView({ block: 'nearest' });
+  });
+}
+
+function syncCommandPaletteResults({ maintainFocus = false } = {}) {
+  if (!state.commandOpen) {
+    renderCommandPaletteState();
+    return;
+  }
+
+  refs.commandInput = refs.commandPalette.querySelector('[data-role="command-search"]');
+  const resultsNode = refs.commandPalette.querySelector('.command-results');
+  if (!refs.commandInput || !resultsNode) {
+    renderCommandPaletteState({ maintainFocus });
+    return;
+  }
+
+  const { flatResults, markup } = buildCommandResultsMarkup();
+  resultsNode.classList.toggle("is-empty", flatResults.length === 0);
+  resultsNode.innerHTML = markup;
+  refs.commandInput.value = state.commandQuery;
+
+  if (!maintainFocus) {
+    return;
+  }
+
+  requestAnimationFrame(() => {
+    refs.commandInput?.focus({ preventScroll: true });
+    refs.commandInput?.setSelectionRange(state.commandQuery.length, state.commandQuery.length);
+    refs.commandPalette.querySelector('.command-item.is-active')?.scrollIntoView({ block: 'nearest' });
+  });
+}
 function renderSectionTabs() {
   const items = [
     { value: "nav", label: "导航" },
@@ -1127,18 +1175,7 @@ function renderCommandPalette() {
     return "";
   }
 
-  const sections = getCommandSections();
-  const flatResults = sections.flatMap((section) => section.items);
-  state.commandIndex = flatResults.length === 0 ? 0 : Math.min(state.commandIndex, flatResults.length - 1);
-
-  let offset = 0;
-  const groupsMarkup = sections
-    .map((section) => {
-      const markup = renderCommandSection(section, offset);
-      offset += section.items.length;
-      return markup;
-    })
-    .join("");
+  const { flatResults, markup } = buildCommandResultsMarkup();
 
   return `
     <div class="command-overlay">
@@ -1165,13 +1202,36 @@ function renderCommandPalette() {
           <span>Esc 关闭</span>
         </div>
         <div class="command-results ${flatResults.length === 0 ? "is-empty" : ""}">
-          ${flatResults.length === 0 ? renderCommandEmptyState() : groupsMarkup}
+          ${markup}
         </div>
       </div>
     </div>
   `;
 }
 
+function buildCommandResultsMarkup() {
+  const sections = getCommandSections();
+  const flatResults = sections.flatMap((section) => section.items);
+  state.commandIndex = flatResults.length === 0 ? 0 : Math.min(state.commandIndex, flatResults.length - 1);
+
+  if (flatResults.length === 0) {
+    return {
+      flatResults,
+      markup: renderCommandEmptyState(),
+    };
+  }
+
+  let offset = 0;
+  const markup = sections
+    .map((section) => {
+      const sectionMarkup = renderCommandSection(section, offset);
+      offset += section.items.length;
+      return sectionMarkup;
+    })
+    .join("");
+
+  return { flatResults, markup };
+}
 function renderCommandSection(section, startIndex) {
   return `
     <section class="command-group">
@@ -2322,30 +2382,3 @@ function escapeHTML(value) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
