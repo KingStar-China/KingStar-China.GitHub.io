@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>少昊导航台</title>
+    <link>https://845864204.xyz</link>
+    <description>少昊导航台，一个把常用网站、博客文章和个人工作流整理到一起的效率导航工具。</description>
+    <language>zh-CN</language>
+    
+    <item>
+      <title>为什么我把常用网站做成自己的起始页</title>
+      <link>https://845864204.xyz/?post=why-build-a-start-page</link>
+      <guid>https://845864204.xyz/?post=why-build-a-start-page</guid>
+      <description>把常用入口收拢到一个可搜索、可筛选、可沉淀习惯的页面里，能明显减少每天的切换成本。</description>
+      <pubDate>Fri, 20 Mar 2026 00:00:00 GMT</pubDate>
+      <category>效率</category><category>工作流</category><category>建站</category>
+    </item>
+
+    <item>
+      <title>GitHub Pages 配自定义域名时最容易踩的坑</title>
+      <link>https://845864204.xyz/?post=github-pages-and-custom-domain</link>
+      <guid>https://845864204.xyz/?post=github-pages-and-custom-domain</guid>
+      <description>代码能跑不代表域名一定同步，尤其是 Cloudflare、CNAME 和 GitHub Pages 发布链路混在一起的时候。</description>
+      <pubDate>Wed, 18 Mar 2026 00:00:00 GMT</pubDate>
+      <category>GitHub Pages</category><category>域名</category><category>Cloudflare</category>
+    </item>
+
+    <item>
+      <title>我怎么整理越来越多的 AI 工具入口</title>
+      <link>https://845864204.xyz/?post=organizing-ai-tools</link>
+      <guid>https://845864204.xyz/?post=organizing-ai-tools</guid>
+      <description>AI 工具变多以后，真正的麻烦不是没有工具，而是不知道什么时候该用哪一个。</description>
+      <pubDate>Sun, 15 Mar 2026 00:00:00 GMT</pubDate>
+      <category>AI</category><category>工具箱</category><category>整理</category>
+    </item>
+
+    <item>
+      <title>为什么收藏和最近访问比想象中更重要</title>
+      <link>https://845864204.xyz/?post=favorites-and-recent-visits</link>
+      <guid>https://845864204.xyz/?post=favorites-and-recent-visits</guid>
+      <description>它们看起来像小功能，但实际上是在帮页面形成『短期工作台』和『长期工作台』。</description>
+      <pubDate>Thu, 12 Mar 2026 00:00:00 GMT</pubDate>
+      <category>产品设计</category><category>交互</category><category>效率</category>
+    </item>
+
+    <item>
+      <title>把导航页改成数据驱动之后，维护会轻松很多</title>
+      <link>https://845864204.xyz/?post=data-driven-navigation</link>
+      <guid>https://845864204.xyz/?post=data-driven-navigation</guid>
+      <description>当网站数量增长时，继续手写 HTML 卡片只会越来越难维护，数据层是更重要的那一步。</description>
+      <pubDate>Mon, 09 Mar 2026 00:00:00 GMT</pubDate>
+      <category>前端</category><category>数据驱动</category><category>维护</category>
+    </item>
+
+    <item>
+      <title>在工具站里加博客，设计重点其实不是花哨</title>
+      <link>https://845864204.xyz/?post=designing-for-reading</link>
+      <guid>https://845864204.xyz/?post=designing-for-reading</guid>
+      <description>同一个站里同时放导航和博客时，真正要解决的是阅读密度和信息层级，而不是堆更多效果。</description>
+      <pubDate>Fri, 06 Mar 2026 00:00:00 GMT</pubDate>
+      <category>设计</category><category>博客</category><category>阅读体验</category>
+    </item>
+  </channel>
+</rss>
