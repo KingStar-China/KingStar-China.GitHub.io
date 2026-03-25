@@ -63,6 +63,11 @@ const categoryOrder = [...new Set(sites.map((site) => site.category))];
 const siteIds = new Set(sites.map((site) => site.id));
 const siteMap = new Map(sites.map((site) => [site.id, site]));
 const postMap = new Map(posts.map((post) => [post.id, post]));
+const categoryDescriptions = {
+  AI: "把高频模型、检索和内容生成入口压到同一层，减少来回切换。",
+  学习: "课程、资料、文档和知识型工具的集中区，适合连续阅读。",
+  翻墙: "网络、线路和连接工具入口，优先保证进入主工作流的速度。",
+};
 
 const state = {
   section: "nav",
@@ -219,6 +224,17 @@ function handleClick(event) {
       return;
     }
 
+    if (action === "jump-category" && value) {
+      const target = Array.from(refs.content.querySelectorAll("[data-category-anchor]"))
+        .find((element) => element.dataset.categoryAnchor === value);
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    if (action === "jump-workbench") {
+      refs.content.querySelector('[data-section-anchor="workbench"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
     if (action === "set-view") {
       state.view = value;
       render();
@@ -479,23 +495,33 @@ function renderToolbar() {
 
 function renderNavToolbar() {
   return `
-    <label class="search-field">
-      <span class="field-label">即时搜索</span>
-      <input
-        data-role="search"
-        type="search"
-        inputmode="search"
-        autocomplete="off"
-        spellcheck="false"
-        placeholder="搜站点名、标签、描述，例如 GPT / 文档 / 视频"
-      >
-    </label>
+    <div class="toolbar-shell">
+      <div class="toolbar__heading toolbar__heading--compact">
+        <span class="field-label">NAV TOOLKIT</span>
+        <h2>导航工具台</h2>
+        <p>先搜，再筛，再进入分类区，不让首页重新退化成一整面链接墙。</p>
+      </div>
 
-    <div class="toolbar-shortcuts">
-      <button type="button" class="toolbar-shortcut" data-action="open-command">
-        <span>全站命令面板</span>
-        <small>Ctrl + K</small>
-      </button>
+      <div class="toolbar__tools">
+        <label class="search-field">
+          <span class="field-label">即时搜索</span>
+          <input
+            data-role="search"
+            type="search"
+            inputmode="search"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="搜站点名、标签、描述，例如 GPT / 文档 / 视频"
+          >
+        </label>
+
+        <div class="toolbar-shortcuts">
+          <button type="button" class="toolbar-shortcut" data-action="open-command">
+            <span>全站命令面板</span>
+            <small>Ctrl + K</small>
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="filter-stack" data-role="nav-filters">
@@ -520,7 +546,6 @@ function renderNavToolbar() {
     </div>
   `;
 }
-
 function renderNavFilterRows() {
   return `
     <div class="filter-row">
@@ -587,27 +612,32 @@ function renderBlogSearchState() {
     });
   }
 }
+
 function renderBlogToolbar() {
   const filteredPosts = getFilteredPosts();
 
   return `
     <div class="toolbar--blog">
-      <div class="toolbar__heading">
-        <span class="field-label">BLOG</span>
-        <h2>博客搜索与分页</h2>
-        <p>记录建站、工具、AI 和效率方法。现在支持按标题、摘要、正文和标签筛选文章，同时保留分页阅读。</p>
+      <div class="toolbar-shell">
+        <div class="toolbar__heading">
+          <span class="field-label">BLOG</span>
+          <h2>博客搜索与分页</h2>
+          <p>记录建站、工具、AI 和效率方法。现在支持按标题、摘要、正文和标签筛选文章，同时保留分页阅读。</p>
+        </div>
+        <div class="toolbar__tools">
+          <label class="search-field search-field--blog">
+            <span class="field-label">搜索文章</span>
+            <input
+              data-role="blog-search"
+              type="search"
+              inputmode="search"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="搜标题、摘要、正文、标签，例如 Cloudflare / GitHub Pages / 工作流"
+            >
+          </label>
+        </div>
       </div>
-      <label class="search-field search-field--blog">
-        <span class="field-label">搜索文章</span>
-        <input
-          data-role="blog-search"
-          type="search"
-          inputmode="search"
-          autocomplete="off"
-          spellcheck="false"
-          placeholder="搜标题、摘要、正文、标签，例如 Cloudflare / GitHub Pages / 工作流"
-        >
-      </label>
       <div class="filter-row">
         <span class="filter-label">博客标签</span>
         <div class="chip-group chip-group--dense">${renderBlogTagFilters()}</div>
@@ -650,7 +680,6 @@ function renderBlogDetailToolbar() {
     </div>
   `;
 }
-
 function renderContent() {
   if (state.section === "nav") {
     return renderNavContent();
@@ -730,49 +759,166 @@ function renderWorkbench() {
     </section>
   `;
 }
+function renderOverviewDeck(visibleSites) {
+  const favoriteSites = sites.filter((site) => state.favorites.has(site.id));
+  const spotlightSites = (favoriteSites.length > 0 ? favoriteSites : visibleSites).slice(0, 4);
+  const recentSites = state.recent.map((id) => siteMap.get(id)).filter(Boolean).slice(0, 4);
+  const latestPosts = posts.slice(0, 3);
 
-function renderWorkbenchTodoItems() {
-  if (state.workbenchTodos.length === 0) {
-    return '<div class="workbench-empty">还没有待办。先写一条今天最重要的任务。</div>';
-  }
-
-  return state.workbenchTodos
-    .map(
-      (item) => `
-        <div class="todo-item ${item.done ? "is-done" : ""}">
-          <button type="button" class="todo-toggle ${item.done ? "is-done" : ""}" data-action="toggle-workbench-todo" data-value="${escapeHTML(item.id)}">${item.done ? "✓" : ""}</button>
-          <div class="todo-copy">
-            <strong>${escapeHTML(item.text)}</strong>
+  return `
+    <section class="overview-grid">
+      <article class="panel overview-card overview-card--primary">
+        <div class="overview-card__head">
+          <div>
+            <p class="section-head__eyebrow">FOCUS</p>
+            <h2>重点入口</h2>
           </div>
-          <button type="button" class="todo-remove" data-action="remove-workbench-todo" data-value="${escapeHTML(item.id)}">删除</button>
+          <span class="section-count">${spotlightSites.length}</span>
         </div>
-      `,
-    )
-    .join("");
+        <p class="overview-card__summary">把最常用的网站直接抬到首页第一层，优先服务高频动作，不让核心入口淹没在分类墙里。</p>
+        <div class="overview-link-list">
+          ${spotlightSites.length > 0 ? spotlightSites.map((site) => renderOverviewSiteLink(site)).join("") : '<div class="overview-empty">先收藏几个高频站点，这里会自动变成你的快捷发射台。</div>'}
+        </div>
+      </article>
+
+      <article class="panel overview-card">
+        <div class="overview-card__head">
+          <div>
+            <p class="section-head__eyebrow">FLOW</p>
+            <h2>最近动线</h2>
+          </div>
+          <span class="section-count">${recentSites.length}</span>
+        </div>
+        <p class="overview-card__summary">刚用过的入口会临时聚成一条工作链，不用回忆，也不用重新搜索。</p>
+        <div class="overview-link-list overview-link-list--stacked">
+          ${recentSites.length > 0 ? recentSites.map((site) => renderOverviewSiteLink(site, true)).join("") : '<div class="overview-empty">打开几个站点后，这里会自动形成当前任务的短期工作台。</div>'}
+        </div>
+      </article>
+
+      <article class="panel overview-card overview-card--posts">
+        <div class="overview-card__head">
+          <div>
+            <p class="section-head__eyebrow">WRITING</p>
+            <h2>最新文章</h2>
+          </div>
+          <button type="button" class="inline-reset" data-action="set-section" data-value="blog-list">去博客</button>
+        </div>
+        <p class="overview-card__summary">导航和内容放在同一站内，入口之外还能顺手记录方法、问题和维护经验。</p>
+        <div class="overview-post-list">
+          ${latestPosts.map((post) => renderOverviewPost(post)).join("")}
+        </div>
+      </article>
+    </section>
+  `;
+}
+
+function renderOverviewSiteLink(site, compact = false) {
+  return `
+    <a
+      class="overview-link ${compact ? "is-compact" : ""}"
+      href="${escapeHTML(site.url)}"
+      target="_blank"
+      rel="noreferrer noopener"
+      data-site-id="${escapeHTML(site.id)}"
+    >
+      <strong>${escapeHTML(site.name)}</strong>
+      <span>${escapeHTML(site.category)}</span>
+    </a>
+  `;
+}
+
+function renderOverviewPost(post) {
+  return `
+    <button type="button" class="overview-post" data-action="open-post" data-post-id="${escapeHTML(post.id)}">
+      <span class="overview-post__date">${formatShortDate(post.publishedAt)}</span>
+      <strong>${escapeHTML(post.title)}</strong>
+      <span>${escapeHTML(post.summary)}</span>
+    </button>
+  `;
+}
+
+function renderSectionRail(groups) {
+  const pendingCount = state.workbenchTodos.filter((item) => !item.done).length;
+
+  return `
+    <section class="panel section-rail">
+      <div class="section-rail__head">
+        <div>
+          <p class="section-head__eyebrow">SECTIONS</p>
+          <h2>首页结构</h2>
+        </div>
+        <p class="section-rail__summary">先处理高频入口，再按分类扫站点，个人工作台单独落在最后一层，避免首页继续变成纯功能堆叠。</p>
+      </div>
+      <div class="section-rail__chips">
+        ${groups
+          .map(
+            (group) => `
+              <button
+                type="button"
+                class="section-jump"
+                data-action="jump-category"
+                data-value="${escapeHTML(group.title)}"
+              >
+                <strong>${escapeHTML(group.title)}</strong>
+                <small>${group.sites.length} 个</small>
+              </button>
+            `,
+          )
+          .join("")}
+        <button type="button" class="section-jump section-jump--secondary" data-action="jump-workbench">
+          <strong>工作台</strong>
+          <small>${pendingCount > 0 ? `${pendingCount} 件待办` : "个人层"}</small>
+        </button>
+      </div>
+    </section>
+  `;
+}
+
+function renderWorkbenchSection() {
+  const pendingCount = state.workbenchTodos.filter((item) => !item.done).length;
+
+  return `
+    <section class="panel personal-layer" data-section-anchor="workbench">
+      <div class="section-head personal-layer__head">
+        <div>
+          <p class="section-head__eyebrow">PERSONAL LAYER</p>
+          <h2>个人工作台</h2>
+          <p class="section-head__summary">把待办、便签和临时节奏沉到首页最后一层，保留工具效率，但不抢主要浏览动线。</p>
+        </div>
+        <span class="section-count">${pendingCount}</span>
+      </div>
+      ${renderWorkbench()}
+    </section>
+  `;
 }
 
 function renderNavContent() {
   const visibleSites = getVisibleSites();
-  const workbench = renderWorkbench();
+  const groups = getGroupedSites(visibleSites);
+  const overview = renderOverviewDeck(visibleSites);
+  const sectionRail = groups.length > 1 ? renderSectionRail(groups) : "";
+  const workbench = renderWorkbenchSection();
 
   if (visibleSites.length === 0) {
-    return `${workbench}
+    return `${overview}
       <section class="panel empty-state">
         <h2>没有匹配结果</h2>
         <p>${escapeHTML(getEmptyMessage())}</p>
         <button type="button" class="empty-state__button" data-action="reset-filters">恢复全部站点</button>
       </section>
+      ${workbench}
     `;
   }
 
-  const groups = getGroupedSites(visibleSites)
+  const groupsMarkup = groups
     .map(
       (group) => `
-        <section class="category-block">
+        <section class="panel category-block" data-category-anchor="${escapeHTML(group.title)}">
           <div class="section-head">
             <div>
               <p class="section-head__eyebrow">${escapeHTML(group.label)}</p>
               <h2>${escapeHTML(group.title)}</h2>
+              <p class="section-head__summary">${escapeHTML(getCategorySummary(group.title, group.sites.length))}</p>
             </div>
             <span class="section-count">${group.sites.length}</span>
           </div>
@@ -784,7 +930,7 @@ function renderNavContent() {
     )
     .join("");
 
-  return `${workbench}${groups}`;
+  return `${overview}${sectionRail}${groupsMarkup}${workbench}`;
 }
 function renderBlogList() {
   if (posts.length === 0) {
@@ -1360,6 +1506,17 @@ function getGroupedSites(visibleSites) {
   return grouped;
 }
 
+function getCategorySummary(category, count) {
+  if (category === "最近访问") {
+    return "按最近点开的顺序临时排成一条工作链，方便回到刚才的上下文。";
+  }
+
+  if (categoryDescriptions[category]) {
+    return `${categoryDescriptions[category]} 当前 ${count} 个入口。`;
+  }
+
+  return `当前分类下共有 ${count} 个站点，适合成组浏览和连续切换。`;
+}
 function getCommandSections() {
   const query = state.commandQuery.trim();
 
@@ -1775,6 +1932,41 @@ function trackRecent(siteId) {
   localStorage.setItem(STORAGE_KEYS.recent, JSON.stringify(state.recent));
 }
 
+function renderWorkbenchTodoItems() {
+  if (state.workbenchTodos.length === 0) {
+    return '<div class="workbench-empty">还没有待办。先写下一件最重要的事，工作台就开始真正有用了。</div>';
+  }
+
+  return state.workbenchTodos
+    .map(
+      (item) => `
+        <div class="todo-item ${item.done ? "is-done" : ""}">
+          <button
+            type="button"
+            class="todo-toggle ${item.done ? "is-done" : ""}"
+            data-action="toggle-workbench-todo"
+            data-value="${escapeHTML(item.id)}"
+            aria-label="${item.done ? "标记为未完成" : "标记为已完成"}"
+          >
+            ${item.done ? "✓" : ""}
+          </button>
+          <div class="todo-copy">
+            <strong>${escapeHTML(item.text)}</strong>
+          </div>
+          <button
+            type="button"
+            class="todo-remove"
+            data-action="remove-workbench-todo"
+            data-value="${escapeHTML(item.id)}"
+            aria-label="删除待办"
+          >
+            删除
+          </button>
+        </div>
+      `,
+    )
+    .join("");
+}
 function addWorkbenchTodo() {
   const text = state.workbenchTodoDraft.trim();
   if (!text) {
@@ -2130,6 +2322,15 @@ function escapeHTML(value) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+
+
+
+
+
+
+
+
+
 
 
 
