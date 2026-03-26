@@ -1,3 +1,5 @@
+import { normalizeStringArray as normalizeStringList, validatePostsPayload, validateSitesPayload } from "./content-validation.js";
+
 const state = {
   section: "sites",
   filter: "",
@@ -1062,36 +1064,12 @@ function getBookmarkFolders(anchor) {
 }
 
 function validateBeforeSave(payload, section) {
-  const ids = new Set();
-  for (const item of payload) {
-    const id = String(item.id || "").trim();
-    if (!id) {
-      throw new Error("ID 不能为空");
-    }
-    if (ids.has(id)) {
-      throw new Error(`ID 重复：${id}`);
-    }
-    ids.add(id);
-
-    if (section === "sites") {
-      if (!String(item.name || "").trim()) {
-        throw new Error(`站点 ${id} 缺少名称`);
-      }
-      if (!String(item.url || "").trim()) {
-        throw new Error(`站点 ${id} 缺少链接`);
-      }
-      if (!String(item.category || "").trim()) {
-        throw new Error(`站点 ${id} 缺少分类`);
-      }
-    } else {
-      if (!String(item.title || "").trim()) {
-        throw new Error(`文章 ${id} 缺少标题`);
-      }
-      if (!String(item.publishedAt || "").trim()) {
-        throw new Error(`文章 ${id} 缺少发布日期`);
-      }
-    }
+  if (section === "sites") {
+    validateSitesPayload(payload);
+    return;
   }
+
+  validatePostsPayload(payload);
 }
 
 function normalizeSite(site = {}) {
@@ -1100,10 +1078,10 @@ function normalizeSite(site = {}) {
     name: String(site.name || "").trim(),
     url: String(site.url || "").trim(),
     category: String(site.category || "").trim(),
-    tags: normalizeStringArray(site.tags),
+    tags: normalizeStringList(site.tags),
     icon: typeof site.icon === "string" ? site.icon.trim() : "",
     description: String(site.description || "").trim(),
-    aliases: normalizeStringArray(site.aliases),
+    aliases: normalizeStringList(site.aliases),
   };
 }
 
@@ -1113,22 +1091,11 @@ function normalizePost(post = {}) {
     title: String(post.title || "").trim(),
     summary: String(post.summary || "").trim(),
     publishedAt: String(post.publishedAt || "").trim(),
-    tags: normalizeStringArray(post.tags),
-    content: normalizeStringArray(post.content),
+    tags: normalizeStringList(post.tags),
+    content: normalizeStringList(post.content),
   };
 }
 
-function normalizeStringArray(value) {
-  if (Array.isArray(value)) {
-    return value.map((item) => String(item || "").trim()).filter(Boolean);
-  }
-
-  if (typeof value === "string") {
-    return splitCommaList(value);
-  }
-
-  return [];
-}
 
 function getExistingSiteCategories() {
   return Array.from(new Set(
@@ -1324,9 +1291,4 @@ function escapeHTML(value) {
 function escapeAttr(value) {
   return escapeHTML(value).replace(/\n/g, "&#10;");
 }
-
-
-
-
-
 

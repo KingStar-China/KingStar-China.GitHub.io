@@ -1,7 +1,9 @@
 import { createServer } from "node:http";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { runInNewContext } from "node:vm";
+import { fileURLToPath } from "node:url";
+import { validatePostsPayload, validateSitesPayload } from "../admin/content-validation.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +19,7 @@ const routes = {
   "/": path.join(adminDir, "index.html"),
   "/app.js": path.join(adminDir, "app.js"),
   "/style.css": path.join(adminDir, "style.css"),
+  "/content-validation.js": path.join(adminDir, "content-validation.js"),
 };
 
 const server = createServer(async (req, res) => {
@@ -36,7 +39,7 @@ const server = createServer(async (req, res) => {
 
     if (req.method === "PUT" && url.pathname === "/api/sites") {
       const payload = await readJsonBody(req);
-      validateSites(payload);
+      validateSitesPayload(payload);
       await writeModuleExport("sites.js", "sites", payload);
       sendJson(res, 200, { ok: true });
       return;
@@ -44,7 +47,7 @@ const server = createServer(async (req, res) => {
 
     if (req.method === "PUT" && url.pathname === "/api/posts") {
       const payload = await readJsonBody(req);
-      validatePosts(payload);
+      validatePostsPayload(payload);
       await writeModuleExport("posts.js", "posts", payload);
       sendJson(res, 200, { ok: true });
       return;
@@ -77,15 +80,33 @@ server.listen(port, host, () => {
 });
 
 async function readModuleExport(fileName, exportName) {
-  const fileUrl = pathToFileURL(path.join(dataDir, fileName)).href;
-  const module = await import(`${fileUrl}?t=${Date.now()}`);
-  return module[exportName];
+  const filePath = path.join(dataDir, fileName);
+  const source = await readFile(filePath, "utf8");
+  return parseModuleExport(source, exportName, fileName);
 }
 
 async function writeModuleExport(fileName, exportName, value) {
   const filePath = path.join(dataDir, fileName);
   const serialized = `export const ${exportName} = ${JSON.stringify(value, null, 2)};\n`;
   await writeFile(filePath, serialized, "utf8");
+}
+
+function parseModuleExport(source, exportName, fileName) {
+  const pattern = new RegExp(`^\\s*export\\s+const\\s+${escapeRegExp(exportName)}\\s*=\\s*([\\s\\S]*);\\s*$`);
+  const match = source.match(pattern);
+  if (!match) {
+    throw new Error(`${fileName} 缺少导出的 ${exportName}`);
+  }
+
+  try {
+    return structuredClone(runInNewContext(`(${match[1]})`, Object.create(null), { timeout: 1000 }));
+  } catch (error) {
+    throw new Error(`${fileName} 解析失败：${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
 }
 
 async function readJsonBody(req) {
@@ -134,53 +155,6 @@ function getContentType(filePath) {
   return "application/octet-stream";
 }
 
-function validateSites(sites) {
-  if (!Array.isArray(sites)) {
-    throw new Error("站点数据必须是数组");
-  }
-
-  const ids = new Set();
-  for (const site of sites) {
-    if (!site || typeof site !== "object") {
-      throw new Error("站点条目格式不正确");
-    }
-    assertString(site.id, "站点 id");
-    assertString(site.name, "站点名称");
-    assertString(site.url, "站点链接");
-    assertString(site.category, "站点分类");
-    assertString(site.description, "站点描述");
-    if (ids.has(site.id)) {
-      throw new Error(`站点 id 重复: ${site.id}`);
-    }
-    ids.add(site.id);
-    site.tags = normalizeStringArray(site.tags);
-    site.aliases = normalizeStringArray(site.aliases);
-    site.icon = typeof site.icon === "string" ? site.icon.trim() : "";
-  }
-}
-
-function validatePosts(posts) {
-  if (!Array.isArray(posts)) {
-    throw new Error("文章数据必须是数组");
-  }
-
-  const ids = new Set();
-  for (const post of posts) {
-    if (!post || typeof post !== "object") {
-      throw new Error("文章条目格式不正确");
-    }
-    assertString(post.id, "文章 id");
-    assertString(post.title, "文章标题");
-    assertString(post.summary, "文章摘要");
-    assertString(post.publishedAt, "发布日期");
-    if (ids.has(post.id)) {
-      throw new Error(`文章 id 重复: ${post.id}`);
-    }
-    ids.add(post.id);
-    post.tags = normalizeStringArray(post.tags);
-    post.content = normalizeStringArray(post.content);
-  }
-}
 
 function validateSitesForCheck(sites) {
   if (!Array.isArray(sites)) {
@@ -288,21 +262,10 @@ async function cancelBody(response) {
   }
 }
 
-function normalizeStringArray(value) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((item) => (typeof item === "string" ? item.trim() : ""))
-    .filter(Boolean);
-}
 
 function assertString(value, label) {
   if (typeof value !== "string" || !value.trim()) {
     throw new Error(`${label}不能为空`);
   }
 }
-
-
 
