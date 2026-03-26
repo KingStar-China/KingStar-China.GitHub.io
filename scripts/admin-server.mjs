@@ -3,7 +3,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { runInNewContext } from "node:vm";
 import { fileURLToPath } from "node:url";
-import { validatePostsPayload, validateSitesPayload } from "../admin/content-validation.js";
+import { validatePostsPayload, validateSearchEnginesPayload, validateSitesPayload } from "../admin/content-validation.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,8 +32,8 @@ const server = createServer(async (req, res) => {
     const url = new URL(req.url, `http://${host}:${port}`);
 
     if (req.method === "GET" && url.pathname === "/api/content") {
-      const [sites, posts] = await Promise.all([readModuleExport("sites.js", "sites"), readModuleExport("posts.js", "posts")]);
-      sendJson(res, 200, { sites, posts });
+      const [sites, posts, searchEngines] = await Promise.all([readModuleExport("sites.js", "sites"), readModuleExport("posts.js", "posts"), readModuleExport("search-engines.js", "searchEngines")]);
+      sendJson(res, 200, { sites, posts, searchEngines });
       return;
     }
 
@@ -49,6 +49,14 @@ const server = createServer(async (req, res) => {
       const payload = await readJsonBody(req);
       validatePostsPayload(payload);
       await writeModuleExport("posts.js", "posts", payload);
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    if (req.method === "PUT" && url.pathname === "/api/search-engines") {
+      const payload = await readJsonBody(req);
+      validateSearchEnginesPayload(payload);
+      await writeModuleExport("search-engines.js", "searchEngines", payload);
       sendJson(res, 200, { ok: true });
       return;
     }

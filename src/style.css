@@ -141,6 +141,79 @@ a {
   font-size: 1rem;
 }
 
+.hero__search:empty {
+  display: none;
+}
+
+.hero-search-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 10px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.hero-search-panel__field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+.hero-search-panel__input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.48);
+  color: var(--heading);
+  outline: none;
+}
+
+[data-theme="dark"] .hero-search-panel__input {
+  background: rgba(8, 20, 28, 0.92);
+}
+
+.hero-search-panel__input:focus {
+  border-color: rgba(15, 118, 110, 0.38);
+  box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.12);
+}
+
+.hero-search-panel__submit {
+  padding: 0 18px;
+  border-radius: 16px;
+  background: var(--chip-active);
+  color: var(--chip-active-text);
+  border: 1px solid transparent;
+}
+
+.hero-search-panel__engines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.engine-chip {
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--chip);
+  color: var(--text);
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.engine-chip:hover,
+.hero-search-panel__submit:hover {
+  transform: translateY(-1px);
+}
+
+.engine-chip.is-active {
+  background: var(--chip-active);
+  color: var(--chip-active-text);
+  border-color: transparent;
+}
+
 .hero__aside {
   display: grid;
   gap: 16px;
@@ -569,6 +642,14 @@ a {
 
   .stats-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .hero-search-panel__field {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-search-panel__submit {
+    min-height: 48px;
   }
 
   .site-grid {
@@ -2043,6 +2124,14 @@ body,
   .hero__summary {
     max-width: none;
     font-size: 0.98rem;
+  }
+
+  .hero-search-panel {
+    padding: 14px;
+  }
+
+  .hero-search-panel__engines {
+    gap: 8px;
   }
 
   .filter-stack,

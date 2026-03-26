@@ -1,12 +1,14 @@
-import { normalizeStringArray as normalizeStringList, validatePostsPayload, validateSitesPayload } from "./content-validation.js";
+import { normalizeStringArray as normalizeStringList, validatePostsPayload, validateSearchEnginesPayload, validateSitesPayload } from "./content-validation.js";
 
 const state = {
   section: "sites",
   filter: "",
   sites: [],
   posts: [],
+  searchEngines: [],
   selectedSiteId: "",
   selectedPostId: "",
+  selectedSearchEngineId: "",
   diagnostics: {
     duplicates: [],
     linkResults: [],
@@ -16,6 +18,7 @@ const state = {
   dirty: {
     sites: false,
     posts: false,
+    searchEngines: false,
   },
   status: {
     type: "info",
@@ -141,10 +144,12 @@ async function loadContent() {
   const payload = await response.json();
   state.sites = Array.isArray(payload.sites) ? payload.sites.map(normalizeSite) : [];
   state.posts = Array.isArray(payload.posts) ? payload.posts.map(normalizePost) : [];
+  state.searchEngines = Array.isArray(payload.searchEngines) ? payload.searchEngines.map(normalizeSearchEngine) : [];
   syncSelections();
   resetSiteDiagnostics();
   state.dirty.sites = false;
   state.dirty.posts = false;
+  state.dirty.searchEngines = false;
   setStatus("success", "本地内容已加载，可以开始编辑。", false);
 }
 
@@ -156,16 +161,23 @@ function render() {
   refs.search.value = state.filter;
   refs.status.className = `status-bar ${state.status.type === "error" ? "is-error" : state.status.type === "success" ? "is-success" : ""}`.trim();
   refs.status.textContent = state.status.text;
-  root.querySelector('[data-role="editor-title"]').textContent = state.section === "sites" ? "网站编辑器" : "博客编辑器";
+  root.querySelector('[data-role="editor-title"]').textContent = state.section === "sites"
+    ? "网站编辑器"
+    : state.section === "posts"
+      ? "博客编辑器"
+      : "搜索引擎编辑器";
   root.querySelector('[data-role="editor-subtitle"]').textContent = state.section === "sites"
     ? "维护导航站里的网站条目，图标路径填 public/icon 下的相对路径。"
-    : "维护站内博客文章。正文用空行分段保存。";
+    : state.section === "posts"
+      ? "维护站内博客文章。正文用空行分段保存。"
+      : "维护首页搜索框里的搜索引擎。搜索链接模板必须包含 {query}。";
 }
 
 function renderSectionTabs() {
   const items = [
     { value: "sites", label: `网站 (${state.sites.length})` },
     { value: "posts", label: `博客 (${state.posts.length})` },
+    { value: "searchEngines", label: `搜索引擎 (${state.searchEngines.length})` },
   ];
 
   return items.map((item) => `
@@ -183,8 +195,8 @@ function renderSectionTabs() {
 function renderListActions() {
   const isSites = state.section === "sites";
   return `
-    <button type="button" class="primary-button" data-action="create-item">${isSites ? "新建网站" : "新建文章"}</button>
-    <button type="button" class="danger-button" data-action="delete-item">${isSites ? "删除网站" : "删除文章"}</button>
+    <button type="button" class="primary-button" data-action="create-item">${isSites ? "新建网站" : state.section === "posts" ? "新建文章" : "新建引擎"}</button>
+    <button type="button" class="danger-button" data-action="delete-item">${isSites ? "删除网站" : state.section === "posts" ? "删除文章" : "删除引擎"}</button>
   `;
 }
 
@@ -202,12 +214,14 @@ function renderListItem(item) {
   const isActive = getSelectedId() === item.id;
   const secondary = isSites
     ? `${item.category || "未分类"} · ${(item.tags || []).join(" / ") || "无标签"}`
-    : `${formatDate(item.publishedAt)} · ${(item.tags || []).join(" / ") || "无标签"}`;
-  const preview = isSites ? item.description : item.summary;
+    : state.section === "posts"
+      ? `${formatDate(item.publishedAt)} · ${(item.tags || []).join(" / ") || "无标签"}`
+      : item.urlTemplate || "无模板";
+  const preview = isSites ? item.description : state.section === "posts" ? item.summary : item.placeholder;
 
   return `
     <button type="button" class="list-item ${isActive ? "is-active" : ""}" data-action="select-item" data-id="${escapeHTML(item.id)}">
-      <strong>${escapeHTML(isSites ? item.name || "未命名网站" : item.title || "未命名文章")}</strong>
+      <strong>${escapeHTML(isSites ? item.name || "未命名网站" : state.section === "posts" ? item.title || "未命名文章" : item.label || "未命名引擎")}</strong>
       <span>${escapeHTML(secondary)}</span>
       <span>${escapeHTML(preview || "暂无说明")}</span>
     </button>
@@ -226,7 +240,11 @@ function renderEditor() {
     return `${diagnostics}${renderSiteEditor(item)}`;
   }
 
-  return renderPostEditor(item);
+  if (state.section === "posts") {
+    return renderPostEditor(item);
+  }
+
+  return renderSearchEngineEditor(item);
 }
 
 function renderDiagnosticsPanel() {
@@ -390,6 +408,35 @@ function renderSiteEditor(site) {
       </div>
       <div class="field field--full">
         <span class="helper">icon 为空时，页面会自动生成占位图标。ID 建议只用英文、数字和短横线。</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderSearchEngineEditor(engine) {
+  return `
+    <div class="form-grid">
+      <div class="field">
+        <label for="engine-label">显示名称</label>
+        <input id="engine-label" data-field="label" value="${escapeAttr(engine.label)}">
+      </div>
+      <div class="field">
+        <label for="engine-id">唯一 ID</label>
+        <div class="meta-row">
+          <input id="engine-id" data-field="id" value="${escapeAttr(engine.id)}">
+          <button type="button" class="mini-button" data-action="generate-id">生成</button>
+        </div>
+      </div>
+      <div class="field field--full">
+        <label for="engine-placeholder">输入框提示词</label>
+        <input id="engine-placeholder" data-field="placeholder" value="${escapeAttr(engine.placeholder)}">
+      </div>
+      <div class="field field--full">
+        <label for="engine-url-template">搜索链接模板</label>
+        <input id="engine-url-template" data-field="urlTemplate" value="${escapeAttr(engine.urlTemplate)}" placeholder="https://www.sogou.com/web?query={query}">
+      </div>
+      <div class="field field--full">
+        <span class="helper">模板必须包含 <code>{query}</code>，搜索时会自动替换成关键词。比如搜狗可写 <code>https://www.sogou.com/web?query={query}</code>。</span>
       </div>
     </div>
   `;
@@ -559,9 +606,12 @@ function handleInput(event) {
     applySiteField(item, field, value);
     state.dirty.sites = true;
     resetSiteDiagnostics();
-  } else {
+  } else if (state.section === "posts") {
     applyPostField(item, field, value);
     state.dirty.posts = true;
+  } else {
+    applySearchEngineField(item, field, value);
+    state.dirty.searchEngines = true;
   }
 
   setStatus("info", "内容已修改，记得点击“保存当前分类”。", false);
@@ -613,6 +663,10 @@ function applySiteField(site, field, value) {
   }
 
   site[field] = value;
+}
+
+function applySearchEngineField(engine, field, value) {
+  engine[field] = value;
 }
 
 function applyPostField(post, field, value) {
@@ -668,7 +722,7 @@ function appendPickedTag(value) {
 
 function getFilteredItems() {
   const keyword = state.filter.toLowerCase();
-  const items = state.section === "sites" ? state.sites : state.posts;
+  const items = state.section === "sites" ? state.sites : state.section === "posts" ? state.posts : state.searchEngines;
   if (!keyword) {
     return items;
   }
@@ -676,33 +730,37 @@ function getFilteredItems() {
   return items.filter((item) => {
     const source = state.section === "sites"
       ? [item.name, item.category, item.description, ...(item.tags || []), ...(item.aliases || [])]
-      : [item.title, item.summary, item.publishedAt, ...(item.tags || []), ...(item.content || [])];
+      : state.section === "posts"
+        ? [item.title, item.summary, item.publishedAt, ...(item.tags || []), ...(item.content || [])]
+        : [item.label, item.id, item.placeholder, item.urlTemplate];
     return source.join(" ").toLowerCase().includes(keyword);
   });
 }
 
 function getSelectedItem() {
   const selectedId = getSelectedId();
-  const items = state.section === "sites" ? state.sites : state.posts;
+  const items = state.section === "sites" ? state.sites : state.section === "posts" ? state.posts : state.searchEngines;
   return items.find((item) => item.id === selectedId) || null;
 }
 
 function getSelectedId() {
-  return state.section === "sites" ? state.selectedSiteId : state.selectedPostId;
+  return state.section === "sites" ? state.selectedSiteId : state.section === "posts" ? state.selectedPostId : state.selectedSearchEngineId;
 }
 
 function setSelectedId(id) {
   if (state.section === "sites") {
     state.selectedSiteId = id;
-  } else {
+  } else if (state.section === "posts") {
     state.selectedPostId = id;
+  } else {
+    state.selectedSearchEngineId = id;
   }
 }
 
 function createItem() {
   if (state.section === "sites") {
     const site = {
-      id: `site-${Date.now()}`,
+      id: `site-${Date.now()}` ,
       name: "",
       url: "https://",
       category: "未分类",
@@ -719,19 +777,33 @@ function createItem() {
     return;
   }
 
-  const today = new Date().toISOString().slice(0, 10);
-  const post = {
-    id: `post-${Date.now()}`,
-    title: "",
-    summary: "",
-    publishedAt: today,
-    tags: [],
-    content: [],
+  if (state.section === "posts") {
+    const today = new Date().toISOString().slice(0, 10);
+    const post = {
+      id: `post-${Date.now()}` ,
+      title: "",
+      summary: "",
+      publishedAt: today,
+      tags: [],
+      content: [],
+    };
+    state.posts = [post, ...state.posts];
+    state.selectedPostId = post.id;
+    state.dirty.posts = true;
+    setStatus("info", "已创建新文章草稿。", false);
+    return;
+  }
+
+  const engine = {
+    id: `engine-${Date.now()}` ,
+    label: "",
+    placeholder: "",
+    urlTemplate: "https://www.sogou.com/web?query={query}",
   };
-  state.posts = [post, ...state.posts];
-  state.selectedPostId = post.id;
-  state.dirty.posts = true;
-  setStatus("info", "已创建新文章草稿。", false);
+  state.searchEngines = [engine, ...state.searchEngines];
+  state.selectedSearchEngineId = engine.id;
+  state.dirty.searchEngines = true;
+  setStatus("info", "已创建新搜索引擎草稿。", false);
 }
 
 function deleteItem() {
@@ -741,7 +813,7 @@ function deleteItem() {
     return;
   }
 
-  const label = state.section === "sites" ? item.name || item.id : item.title || item.id;
+  const label = state.section === "sites" ? item.name || item.id : state.section === "posts" ? item.title || item.id : item.label || item.id;
   if (!window.confirm(`确定删除“${label}”吗？删除后会在保存时写回文件。`)) {
     return;
   }
@@ -751,10 +823,14 @@ function deleteItem() {
     state.selectedSiteId = state.sites[0]?.id || "";
     state.dirty.sites = true;
     resetSiteDiagnostics();
-  } else {
+  } else if (state.section === "posts") {
     state.posts = state.posts.filter((post) => post.id !== item.id);
     state.selectedPostId = state.posts[0]?.id || "";
     state.dirty.posts = true;
+  } else {
+    state.searchEngines = state.searchEngines.filter((engine) => engine.id !== item.id);
+    state.selectedSearchEngineId = state.searchEngines[0]?.id || "";
+    state.dirty.searchEngines = true;
   }
 
   setStatus("info", "已删除当前内容，记得保存当前分类。", false);
@@ -766,16 +842,16 @@ function generateId() {
     return;
   }
 
-  const source = state.section === "sites" ? item.name : item.title;
+  const source = state.section === "sites" ? item.name : state.section === "posts" ? item.title : item.label;
   const slug = slugify(source);
-  item.id = slug || `${state.section === "sites" ? "site" : "post"}-${Date.now()}`;
+  item.id = slug || `${state.section === "sites" ? "site" : state.section === "posts" ? "post" : "engine"}-${Date.now()}`;
   state.dirty[state.section] = true;
   setStatus("info", "已根据当前标题生成 ID。", false);
 }
 
 async function saveSection() {
-  const target = state.section === "sites" ? "/api/sites" : "/api/posts";
-  const payload = state.section === "sites" ? state.sites : state.posts;
+  const target = state.section === "sites" ? "/api/sites" : state.section === "posts" ? "/api/posts" : "/api/search-engines";
+  const payload = state.section === "sites" ? state.sites : state.section === "posts" ? state.posts : state.searchEngines;
 
   validateBeforeSave(payload, state.section);
 
@@ -793,7 +869,7 @@ async function saveSection() {
   }
 
   state.dirty[state.section] = false;
-  setStatus("success", `已保存${state.section === "sites" ? "网站" : "博客文章"}到本地文件。`, true);
+  setStatus("success", `已保存${state.section === "sites" ? "网站" : state.section === "posts" ? "博客文章" : "搜索引擎"}到本地文件。`, true);
   render();
 }
 
@@ -802,11 +878,11 @@ function exportCurrentSection() {
     version: 1,
     exportedAt: new Date().toISOString(),
     section: state.section,
-    items: state.section === "sites" ? state.sites : state.posts,
+    items: state.section === "sites" ? state.sites : state.section === "posts" ? state.posts : state.searchEngines,
   };
   const filename = `backup-${state.section}-${formatFileDate(new Date())}.json`;
   downloadJson(filename, payload);
-  setStatus("success", `已导出${state.section === "sites" ? "网站" : "博客文章"} JSON。`, true);
+  setStatus("success", `已导出${state.section === "sites" ? "网站" : state.section === "posts" ? "博客文章" : "搜索引擎"} JSON。`, true);
   refreshChrome();
 }
 
@@ -816,6 +892,7 @@ function exportFullBackup() {
     exportedAt: new Date().toISOString(),
     sites: state.sites,
     posts: state.posts,
+    searchEngines: state.searchEngines,
   };
   const filename = `backup-all-${formatFileDate(new Date())}.json`;
   downloadJson(filename, payload);
@@ -861,10 +938,15 @@ async function importJsonFile(file) {
       applyImportedSection("posts", payload.posts);
       importedSections.push("posts");
     }
+
+    if (Array.isArray(payload.searchEngines)) {
+      applyImportedSection("searchEngines", payload.searchEngines);
+      importedSections.push("searchEngines");
+    }
   }
 
   if (importedSections.length === 0) {
-    throw new Error("没有识别到可导入的 sites/posts 数据。");
+    throw new Error("没有识别到可导入的 sites/posts/searchEngines 数据。");
   }
 
   syncSelections();
@@ -970,6 +1052,14 @@ function applyImportedSection(section, items) {
     return;
   }
 
+  if (section === "searchEngines") {
+    const searchEngines = items.map(normalizeSearchEngine);
+    validateBeforeSave(searchEngines, "searchEngines");
+    state.searchEngines = searchEngines;
+    state.dirty.searchEngines = true;
+    return;
+  }
+
   throw new Error(`不支持的导入分类：${section}`);
 }
 
@@ -1069,7 +1159,12 @@ function validateBeforeSave(payload, section) {
     return;
   }
 
-  validatePostsPayload(payload);
+  if (section === "posts") {
+    validatePostsPayload(payload);
+    return;
+  }
+
+  validateSearchEnginesPayload(payload);
 }
 
 function normalizeSite(site = {}) {
@@ -1096,6 +1191,14 @@ function normalizePost(post = {}) {
   };
 }
 
+function normalizeSearchEngine(engine = {}) {
+  return {
+    id: String(engine.id || "").trim(),
+    label: String(engine.label || "").trim(),
+    placeholder: String(engine.placeholder || "").trim(),
+    urlTemplate: String(engine.urlTemplate || "").trim(),
+  };
+}
 
 function getExistingSiteCategories() {
   return Array.from(new Set(
@@ -1129,6 +1232,10 @@ function syncSelections() {
 
   if (!state.posts.some((post) => post.id === state.selectedPostId)) {
     state.selectedPostId = state.posts[0]?.id || "";
+  }
+
+  if (!state.searchEngines.some((engine) => engine.id === state.selectedSearchEngineId)) {
+    state.selectedSearchEngineId = state.searchEngines[0]?.id || "";
   }
 }
 
@@ -1172,7 +1279,7 @@ function downloadJson(filename, payload) {
 }
 
 function formatImportedSections(sections) {
-  const labels = Array.from(new Set(sections)).map((section) => (section === "sites" ? "网站" : "博客"));
+  const labels = Array.from(new Set(sections)).map((section) => (section === "sites" ? "网站" : section === "posts" ? "博客" : "搜索引擎"));
   return labels.join("和");
 }
 

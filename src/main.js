@@ -1,6 +1,7 @@
 import { sites as rawSites } from "./data/sites.js";
 import { posts as rawPosts } from "./data/posts.js";
 import { siteMeta } from "./data/site.js";
+import { searchEngines as rawSearchEngines } from "./data/search-engines.js";
 import { getPostSearchScore, getSiteSearchScore, matchesPostQuery, matchesSiteQuery } from "./lib/search.js";
 
 /**
@@ -39,7 +40,20 @@ const STORAGE_KEYS = {
   recent: "nav-tool.recent",
   workbenchNote: "nav-tool.workbench.note",
   workbenchTodos: "nav-tool.workbench.todos",
+  searchEngine: "nav-tool.search.engine",
 };
+
+const searchEngines = rawSearchEngines
+  .map((engine) => ({
+    id: String(engine.id || "").trim(),
+    label: String(engine.label || "").trim(),
+    placeholder: String(engine.placeholder || "").trim(),
+    urlTemplate: String(engine.urlTemplate || "").trim(),
+    buildUrl: (query) => String(engine.urlTemplate || "").replace(/{query}/g, encodeURIComponent(query)),
+  }))
+  .filter((engine) => engine.id && engine.label && engine.urlTemplate);
+
+const defaultSearchEngine = searchEngines[0]?.id || "baidu";
 
 const POSTS_PER_PAGE = 5;
 const COMMAND_RESULT_LIMIT = 8;
@@ -83,6 +97,8 @@ const state = {
   workbenchTodos: loadTodoList(STORAGE_KEYS.workbenchTodos),
   workbenchTodoDraft: "",
   now: Date.now(),
+  engineQuery: "",
+  searchEngine: loadStoredText(STORAGE_KEYS.searchEngine) || defaultSearchEngine,
   blogQuery: "",
   blogTag: "all",
   blogPage: 1,
@@ -104,6 +120,7 @@ function init() {
   refs.sectionTabs = root.querySelector('[data-role="section-tabs"]');
   refs.themeToggle = root.querySelector('[data-role="theme-toggle"]');
   refs.summary = root.querySelector('[data-role="summary"]');
+  refs.heroSearch = root.querySelector('[data-role="hero-search"]');
   refs.stats = root.querySelector('[data-role="stats"]');
   refs.toolbar = root.querySelector('[data-role="toolbar"]');
   refs.content = root.querySelector('[data-role="content"]');
@@ -137,6 +154,7 @@ function createShell() {
             </div>
           </div>
           <p class="hero__summary" data-role="summary"></p>
+          <div class="hero__search" data-role="hero-search"></div>
         </div>
         <div class="hero__aside">
           <button class="theme-toggle" type="button" data-action="toggle-theme" data-role="theme-toggle"></button>
@@ -159,6 +177,11 @@ function createShell() {
 }
 
 function handleInput(event) {
+  if (event.target.matches('[data-role="engine-search"]')) {
+    state.engineQuery = event.target.value;
+    return;
+  }
+
   if (event.target.matches('[data-role="search"]')) {
     state.query = event.target.value;
     renderNavSearchState();
@@ -199,6 +222,20 @@ function handleClick(event) {
     if (action === "open-command") {
       openCommandPalette();
       syncCommandPaletteResults({ maintainFocus: true });
+      return;
+    }
+
+    if (action === "set-search-engine") {
+      state.searchEngine = getSearchEngineId(value);
+      localStorage.setItem(STORAGE_KEYS.searchEngine, state.searchEngine);
+      refs.heroSearch.innerHTML = renderHeroSearch();
+      refs.engineSearchInput = refs.heroSearch.querySelector('[data-role="engine-search"]');
+      syncHeroSearchBox();
+      return;
+    }
+
+    if (action === "submit-engine-search") {
+      submitEngineSearch();
       return;
     }
 
@@ -340,6 +377,12 @@ function handleClick(event) {
 }
 
 function handleKeydown(event) {
+  if (event.target.matches('[data-role="engine-search"]') && event.key === "Enter") {
+    event.preventDefault();
+    submitEngineSearch();
+    return;
+  }
+
   if (event.target.matches('[data-role="workbench-todo-input"]') && event.key === "Enter") {
     event.preventDefault();
     if (addWorkbenchTodo()) {
@@ -400,6 +443,7 @@ function render() {
   refs.themeToggle.textContent = state.theme === "dark" ? "切换到浅色" : "切换到深色";
   refs.sectionTabs.innerHTML = renderSectionTabs();
   refs.summary.textContent = buildSummary();
+  refs.heroSearch.innerHTML = state.section === "nav" ? renderHeroSearch() : "";
   refs.stats.innerHTML = state.section === "nav" ? renderNavStats() : renderBlogStats();
   refs.toolbar.innerHTML = renderToolbar();
   refs.content.innerHTML = renderContent();
@@ -415,6 +459,9 @@ function render() {
   if (refs.blogSearchInput) {
     refs.blogSearchInput.value = state.blogQuery;
   }
+
+  refs.engineSearchInput = refs.heroSearch.querySelector('[data-role="engine-search"]');
+  syncHeroSearchBox();
 
   refs.workbenchTodoInput = refs.content.querySelector('[data-role="workbench-todo-input"]');
   if (refs.workbenchTodoInput) {
@@ -528,6 +575,48 @@ function renderBlogStats() {
     createStatCard("分页", `${state.blogPage}/${totalPages}`),
     createStatCard("最新发布", latestDate),
   ].join("");
+}
+
+function renderHeroSearch() {
+  const activeEngine = getActiveSearchEngine();
+
+  return `
+    <section class="hero-search-panel">
+      <div class="hero-search-panel__field">
+        <input
+          type="search"
+          data-role="engine-search"
+          class="hero-search-panel__input"
+          inputmode="search"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="${escapeHTML(activeEngine.placeholder)}"
+        >
+        <button type="button" class="hero-search-panel__submit" data-action="submit-engine-search">搜索</button>
+      </div>
+      <div class="hero-search-panel__engines">
+        ${searchEngines.map((engine) => `
+          <button
+            type="button"
+            class="engine-chip ${state.searchEngine === engine.id ? "is-active" : ""}"
+            data-action="set-search-engine"
+            data-value="${escapeHTML(engine.id)}"
+          >
+            ${escapeHTML(engine.label)}
+          </button>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function syncHeroSearchBox() {
+  if (!refs.engineSearchInput) {
+    return;
+  }
+
+  refs.engineSearchInput.value = state.engineQuery;
+  refs.engineSearchInput.placeholder = getActiveSearchEngine().placeholder;
 }
 
 function renderToolbar() {
@@ -1888,6 +1977,25 @@ function trackRecent(siteId) {
 
   state.recent = [siteId, ...state.recent.filter((id) => id !== siteId)].slice(0, 8);
   localStorage.setItem(STORAGE_KEYS.recent, JSON.stringify(state.recent));
+}
+
+function getSearchEngineId(value) {
+  return searchEngines.some((engine) => engine.id === value) ? value : defaultSearchEngine;
+}
+
+function getActiveSearchEngine() {
+  return searchEngines.find((engine) => engine.id === state.searchEngine) || searchEngines[0];
+}
+
+function submitEngineSearch() {
+  const query = state.engineQuery.trim();
+  if (!query) {
+    refs.engineSearchInput?.focus();
+    return;
+  }
+
+  const engine = getActiveSearchEngine();
+  window.open(engine.buildUrl(query), "_blank", "noopener,noreferrer");
 }
 
 function renderWorkbenchTodoItems() {
