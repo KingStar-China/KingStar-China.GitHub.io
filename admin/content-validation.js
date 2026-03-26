@@ -102,6 +102,43 @@ export function validatePostsPayload(posts) {
   }
 }
 
+export function validateSearchEnginesPayload(searchEngines) {
+  if (!Array.isArray(searchEngines)) {
+    throw new Error("搜索引擎数据必须是数组");
+  }
+
+  const ids = new Set();
+  for (const engine of searchEngines) {
+    if (!engine || typeof engine !== "object") {
+      throw new Error("搜索引擎条目格式不正确");
+    }
+
+    const id = assertString(engine.id, "搜索引擎 id");
+    assertString(engine.label, "搜索引擎名称");
+    assertString(engine.placeholder, "搜索提示词");
+    const urlTemplate = assertString(engine.urlTemplate, "搜索链接模板");
+
+    if (!isValidSearchUrlTemplate(urlTemplate)) {
+      throw new Error(`搜索引擎 ${id} 的链接模板无效，必须是 http/https 且包含 {query}`);
+    }
+    if (ids.has(id)) {
+      throw new Error(`搜索引擎 id 重复: ${id}`);
+    }
+
+    ids.add(id);
+  }
+}
+
+export function isValidSearchUrlTemplate(value) {
+  const text = String(value || "").trim();
+  if (!text || !text.includes("{query}")) {
+    return false;
+  }
+
+  const sample = text.replace(/{query}/g, "codex");
+  return isValidHttpUrl(sample);
+}
+
 function assertString(value, label) {
   const text = String(value || "").trim();
   if (!text) {

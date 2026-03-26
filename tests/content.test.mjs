@@ -3,7 +3,15 @@ import assert from "node:assert/strict";
 import { sites } from "../src/data/sites.js";
 import { posts } from "../src/data/posts.js";
 import { siteMeta } from "../src/data/site.js";
-import { isValidDateString, isValidHttpUrl, validatePostsPayload, validateSitesPayload } from "../admin/content-validation.js";
+import { searchEngines } from "../src/data/search-engines.js";
+import {
+  isValidDateString,
+  isValidHttpUrl,
+  isValidSearchUrlTemplate,
+  validatePostsPayload,
+  validateSearchEnginesPayload,
+  validateSitesPayload,
+} from "../admin/content-validation.js";
 
 test("站点数据结构有效", () => {
   const ids = new Set();
@@ -37,6 +45,19 @@ test("博客数据结构有效", () => {
   }
 });
 
+test("搜索引擎数据结构有效", () => {
+  const ids = new Set();
+
+  for (const engine of searchEngines) {
+    assert.ok(engine.id, "搜索引擎 id 不能为空");
+    assert.equal(ids.has(engine.id), false, `搜索引擎 id 重复: ${engine.id}`);
+    ids.add(engine.id);
+    assert.ok(engine.label, `搜索引擎名称不能为空: ${engine.id}`);
+    assert.ok(engine.placeholder, `搜索提示词不能为空: ${engine.id}`);
+    assert.equal(isValidSearchUrlTemplate(engine.urlTemplate), true, `搜索引擎模板无效: ${engine.id}`);
+  }
+});
+
 test("站点元信息有效", () => {
   const url = new URL(siteMeta.url);
   assert.equal(url.protocol, "https:");
@@ -46,12 +67,13 @@ test("站点元信息有效", () => {
   assert.equal(siteMeta.sitemapPath, "/sitemap.xml");
 });
 
-test("本地管理校验接受当前站点和文章数据", () => {
+test("本地管理校验接受当前站点、文章和搜索引擎数据", () => {
   assert.doesNotThrow(() => validateSitesPayload(structuredClone(sites)));
   assert.doesNotThrow(() => validatePostsPayload(structuredClone(posts)));
+  assert.doesNotThrow(() => validateSearchEnginesPayload(structuredClone(searchEngines)));
 });
 
-test("本地管理校验会拒绝错误链接、错误日期和空正文", () => {
+test("本地管理校验会拒绝错误链接、错误日期、空正文和错误模板", () => {
   const badSites = structuredClone(sites);
   badSites[0].url = "javascript:alert(1)";
   assert.throws(() => validateSitesPayload(badSites), /链接格式无效/);
@@ -63,5 +85,8 @@ test("本地管理校验会拒绝错误链接、错误日期和空正文", () =>
   const emptyContentPosts = structuredClone(posts);
   emptyContentPosts[0].content = [];
   assert.throws(() => validatePostsPayload(emptyContentPosts), /正文不能为空/);
-});
 
+  const badEngines = structuredClone(searchEngines);
+  badEngines[0].urlTemplate = "https://www.sogou.com/web";
+  assert.throws(() => validateSearchEnginesPayload(badEngines), /链接模板无效/);
+});
