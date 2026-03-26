@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
-import { readFile, writeFile } from "node:fs/promises";
+import { spawn } from "node:child_process";
+import { readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { runInNewContext } from "node:vm";
 import { fileURLToPath } from "node:url";
@@ -10,6 +11,7 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
 const adminDir = path.join(rootDir, "admin");
 const dataDir = path.join(rootDir, "src", "data");
+const iconDir = path.join(rootDir, "public", "icon");
 const host = process.env.ADMIN_HOST || "127.0.0.1";
 const port = Number(process.env.ADMIN_PORT || 3210);
 const LINK_CHECK_TIMEOUT = 8000;
@@ -32,8 +34,13 @@ const server = createServer(async (req, res) => {
     const url = new URL(req.url, `http://${host}:${port}`);
 
     if (req.method === "GET" && url.pathname === "/api/content") {
-      const [sites, posts, searchEngines] = await Promise.all([readModuleExport("sites.js", "sites"), readModuleExport("posts.js", "posts"), readModuleExport("search-engines.js", "searchEngines")]);
-      sendJson(res, 200, { sites, posts, searchEngines });
+      const [sites, posts, searchEngines, iconFiles] = await Promise.all([
+        readModuleExport("sites.js", "sites"),
+        readModuleExport("posts.js", "posts"),
+        readModuleExport("search-engines.js", "searchEngines"),
+        listIconFiles(),
+      ]);
+      sendJson(res, 200, { sites, posts, searchEngines, iconFiles });
       return;
     }
 
@@ -57,6 +64,12 @@ const server = createServer(async (req, res) => {
       const payload = await readJsonBody(req);
       validateSearchEnginesPayload(payload);
       await writeModuleExport("search-engines.js", "searchEngines", payload);
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/open-icon-folder") {
+      await openIconFolder();
       sendJson(res, 200, { ok: true });
       return;
     }
@@ -111,6 +124,29 @@ function parseModuleExport(source, exportName, fileName) {
   } catch (error) {
     throw new Error(`${fileName} 解析失败：${error instanceof Error ? error.message : String(error)}`);
   }
+}
+
+async function listIconFiles() {
+  const entries = await readdir(iconDir, { withFileTypes: true });
+  return entries
+    .filter((entry) => entry.isFile())
+    .map((entry) => entry.name)
+    .sort((left, right) => left.localeCompare(right, "zh-CN"));
+}
+
+async function openIconFolder() {
+  await new Promise((resolve, reject) => {
+    const child = spawn("explorer.exe", [iconDir], {
+      detached: true,
+      stdio: "ignore",
+    });
+
+    child.once("error", reject);
+    child.once("spawn", () => {
+      child.unref();
+      resolve();
+    });
+  });
 }
 
 function escapeRegExp(value) {

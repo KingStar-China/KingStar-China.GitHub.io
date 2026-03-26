@@ -6,9 +6,13 @@ const state = {
   sites: [],
   posts: [],
   searchEngines: [],
+  iconFiles: [],
+  iconQuery: "",
+  iconPickerOpen: false,
   selectedSiteId: "",
   selectedPostId: "",
   selectedSearchEngineId: "",
+  renameCategorySource: "",
   diagnostics: {
     duplicates: [],
     linkResults: [],
@@ -29,6 +33,8 @@ const state = {
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "::1"]);
 const root = document.querySelector("#app");
 const refs = {};
+let pendingEditorScrollY = null;
+let pendingIconSearchSelection = null;
 
 if (!LOCAL_HOSTS.has(window.location.hostname)) {
   root.innerHTML = renderRemoteOnlyState();
@@ -145,11 +151,13 @@ async function loadContent() {
   state.sites = Array.isArray(payload.sites) ? payload.sites.map(normalizeSite) : [];
   state.posts = Array.isArray(payload.posts) ? payload.posts.map(normalizePost) : [];
   state.searchEngines = Array.isArray(payload.searchEngines) ? payload.searchEngines.map(normalizeSearchEngine) : [];
+  state.iconFiles = Array.isArray(payload.iconFiles) ? payload.iconFiles.map((name) => String(name || "").trim()).filter(Boolean) : [];
   syncSelections();
   resetSiteDiagnostics();
   state.dirty.sites = false;
   state.dirty.posts = false;
   state.dirty.searchEngines = false;
+  state.renameCategorySource = getSelectedSiteCategory();
   setStatus("success", "本地内容已加载，可以开始编辑。", false);
 }
 
@@ -171,6 +179,8 @@ function render() {
     : state.section === "posts"
       ? "维护站内博客文章。正文用空行分段保存。"
       : "维护首页搜索框里的搜索引擎。搜索链接模板必须包含 {query}。";
+
+  restoreEditorStateAfterRender();
 }
 
 function renderSectionTabs() {
@@ -358,6 +368,11 @@ function renderLinkResult(result) {
 function renderSiteEditor(site) {
   const categoryOptions = renderOptionList(getExistingSiteCategories(), site.category);
   const tagOptions = renderOptionList(getExistingTags("sites"), "", new Set(site.tags || []));
+  const iconKeyword = state.iconQuery.toLowerCase();
+  const iconOptions = state.iconFiles
+    .map((name) => ({ name, path: `icon/${name}` }))
+    .filter((option) => option.path !== (site.icon || ""))
+    .filter((option) => !iconKeyword || option.name.toLowerCase().includes(iconKeyword) || option.path.toLowerCase().includes(iconKeyword));
 
   return `
     <div class="form-grid">
@@ -379,15 +394,39 @@ function renderSiteEditor(site) {
       <div class="field">
         <label for="site-category">分类</label>
         <input id="site-category" data-field="category" value="${escapeAttr(site.category)}" placeholder="可直接自定义输入">
-        <select data-action="pick-category">
-          <option value="">选择已有分类</option>
-          ${categoryOptions}
-        </select>
-        <span class="helper">上面可自定义，下面可直接选当前已有分类。</span>
+        <div class="meta-row">
+          <select data-action="pick-category">
+            <option value="">选择已有分类</option>
+            ${categoryOptions}
+          </select>
+          <button type="button" class="mini-button" data-action="rename-category" data-from-category="${escapeAttr(state.renameCategorySource || site.category)}">批量改名</button>
+        </div>
+        <span class="helper">上面可直接改当前网站分类；点“批量改名”会把所有同分类网站一起改成输入框里的新名字。</span>
       </div>
       <div class="field">
         <label for="site-icon">图标路径</label>
-        <input id="site-icon" data-field="icon" value="${escapeAttr(site.icon || "")}">
+        <div class="meta-row">
+          <input id="site-icon" data-field="icon" value="${escapeAttr(site.icon || "")}" placeholder="icon/example.png 或 https://...">
+          <button type="button" class="mini-button" data-action="open-icon-folder">打开ICON文件夹</button>
+        </div>
+        <span class="helper">支持 public/icon 下的相对路径，也支持直接填网络图片地址。</span>
+        ${state.iconFiles.length > 0 ? `
+          <div class="icon-picker-panel">
+            <div class="icon-picker-panel__head">
+              <button type="button" class="mini-button" data-action="toggle-icon-picker">${state.iconPickerOpen ? "收起图标列表" : `选择图标（${state.iconFiles.length}）`}</button>
+            </div>
+            ${state.iconPickerOpen ? `
+              <div class="icon-picker-panel__body">
+                <input class="search-input icon-picker-panel__search" data-role="icon-search" type="search" value="${escapeAttr(state.iconQuery)}" placeholder="搜索图标文件名">
+                <div class="icon-picker">
+                  ${iconOptions.length > 0 ? iconOptions.map((option) => `
+                    <button type="button" class="icon-chip" data-action="pick-icon-path" data-value="${escapeAttr(option.path)}">${escapeHTML(option.name)}</button>
+                  `).join("") : `<div class="helper">没有匹配的图标。</div>`}
+                </div>
+              </div>
+            ` : ""}
+          </div>
+        ` : ""}
       </div>
       <div class="field field--full">
         <label for="site-description">描述</label>
@@ -497,12 +536,18 @@ function handleClick(event) {
   if (action === "set-section") {
     state.section = value;
     state.filter = "";
+    if (state.section === "sites") {
+      state.renameCategorySource = getSelectedSiteCategory();
+    }
     render();
     return;
   }
 
   if (action === "select-item") {
     setSelectedId(id);
+    if (state.section === "sites") {
+      state.renameCategorySource = getSelectedSiteCategory();
+    }
     render();
     return;
   }
@@ -516,6 +561,38 @@ function handleClick(event) {
   if (action === "delete-item") {
     deleteItem();
     render();
+    return;
+  }
+
+  if (action === "rename-category") {
+    renameCategory(button.dataset.fromCategory || "").then(() => {
+      render();
+    }).catch((error) => {
+      setStatus("error", error.message);
+      render();
+    });
+    return;
+  }
+
+  if (action === "open-icon-folder") {
+    openIconFolder().catch((error) => {
+      setStatus("error", error.message);
+      render();
+    });
+    return;
+  }
+
+  if (action === "toggle-icon-picker") {
+    state.iconPickerOpen = !state.iconPickerOpen;
+    if (!state.iconPickerOpen) {
+      state.iconQuery = "";
+    }
+    render();
+    return;
+  }
+
+  if (action === "pick-icon-path") {
+    applyPickedIconPath(value);
     return;
   }
 
@@ -587,6 +664,17 @@ function handleClick(event) {
 function handleInput(event) {
   if (event.target.matches('[data-role="search"]')) {
     state.filter = event.target.value.trim();
+    render();
+    return;
+  }
+
+  if (event.target.matches('[data-role="icon-search"]')) {
+    pendingEditorScrollY = window.scrollY;
+    pendingIconSearchSelection = {
+      start: event.target.selectionStart ?? event.target.value.length,
+      end: event.target.selectionEnd ?? event.target.value.length,
+    };
+    state.iconQuery = event.target.value.trim();
     render();
     return;
   }
@@ -697,6 +785,74 @@ function applyPickedCategory(value) {
   render();
 }
 
+async function renameCategory(fromCategory = "") {
+  const item = getSelectedItem();
+  if (!item || state.section !== "sites") {
+    return;
+  }
+
+  const currentCategory = String(fromCategory || state.renameCategorySource || item.category || "").trim();
+  if (!currentCategory) {
+    throw new Error("当前网站还没有分类，不能批量改名。");
+  }
+
+  const input = root.querySelector('[data-field="category"]');
+  const nextCategory = String(input?.value || item.category || "").trim();
+  if (!nextCategory) {
+    throw new Error("新分类名称不能为空。");
+  }
+
+  if (nextCategory === currentCategory) {
+    setStatus("info", "分类名称没有变化。", false);
+    return;
+  }
+
+  const matchedSites = state.sites.filter((site) => String(site.category || "").trim() === currentCategory);
+  if (matchedSites.length === 0) {
+    throw new Error(`没有找到分类“${currentCategory}”下的网站。`);
+  }
+
+  if (!window.confirm(`确定把分类“${currentCategory}”批量改成“${nextCategory}”吗？将影响 ${matchedSites.length} 个网站。`)) {
+    setStatus("info", "已取消批量改名。", false);
+    return;
+  }
+
+  for (const site of matchedSites) {
+    site.category = nextCategory;
+  }
+
+  item.category = nextCategory;
+  state.renameCategorySource = nextCategory;
+  state.dirty.sites = true;
+  resetSiteDiagnostics();
+  await saveSection();
+  setStatus("success", `已把 ${matchedSites.length} 个网站从“${currentCategory}”改到“${nextCategory}”，并保存到本地文件。`, true);
+}
+function applyPickedIconPath(value) {
+  const iconPath = String(value || "").trim();
+  const item = getSelectedItem();
+  if (!item || state.section !== "sites" || !iconPath) {
+    return;
+  }
+
+  item.icon = iconPath;
+  state.dirty.sites = true;
+  state.iconPickerOpen = false;
+  state.iconQuery = "";
+  setStatus("success", `已选择图标：${iconPath}`, true);
+  render();
+}
+
+async function openIconFolder() {
+  const response = await fetch("/api/open-icon-folder", { method: "POST" });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result.error || `打开图标文件夹失败：${response.status}`);
+  }
+
+  setStatus("success", "已打开 public/icon 文件夹。", true);
+}
+
 function appendPickedTag(value) {
   const tag = String(value || "").trim();
   const item = getSelectedItem();
@@ -750,6 +906,7 @@ function getSelectedId() {
 function setSelectedId(id) {
   if (state.section === "sites") {
     state.selectedSiteId = id;
+    state.renameCategorySource = getSelectedSiteCategory(id);
   } else if (state.section === "posts") {
     state.selectedPostId = id;
   } else {
@@ -771,6 +928,7 @@ function createItem() {
     };
     state.sites = [site, ...state.sites];
     state.selectedSiteId = site.id;
+    state.renameCategorySource = site.category;
     state.dirty.sites = true;
     resetSiteDiagnostics();
     setStatus("info", "已创建新网站草稿。", false);
@@ -821,6 +979,7 @@ function deleteItem() {
   if (state.section === "sites") {
     state.sites = state.sites.filter((site) => site.id !== item.id);
     state.selectedSiteId = state.sites[0]?.id || "";
+    state.renameCategorySource = getSelectedSiteCategory();
     state.dirty.sites = true;
     resetSiteDiagnostics();
   } else if (state.section === "posts") {
@@ -1028,6 +1187,7 @@ async function importBookmarkFile(file) {
 
   state.sites = mergeResult.sites;
   state.selectedSiteId = mergeResult.firstAddedId || state.sites[0]?.id || "";
+  state.renameCategorySource = getSelectedSiteCategory();
   state.dirty.sites = true;
   resetSiteDiagnostics();
   setStatus("success", `已导入 ${mergeResult.added} 个书签网站，跳过 ${mergeResult.skipped} 个重复链接，记得保存网站分类。`, true);
@@ -1039,6 +1199,7 @@ function applyImportedSection(section, items) {
     const sites = items.map(normalizeSite);
     validateBeforeSave(sites, "sites");
     state.sites = sites;
+    state.renameCategorySource = getSelectedSiteCategory();
     state.dirty.sites = true;
     resetSiteDiagnostics();
     return;
@@ -1239,6 +1400,42 @@ function syncSelections() {
   }
 }
 
+function restoreEditorStateAfterRender() {
+  if (pendingEditorScrollY === null && !pendingIconSearchSelection) {
+    return;
+  }
+
+  const scrollY = pendingEditorScrollY;
+  const selection = pendingIconSearchSelection;
+  pendingEditorScrollY = null;
+  pendingIconSearchSelection = null;
+
+  requestAnimationFrame(() => {
+    if (typeof scrollY === "number") {
+      window.scrollTo({ top: scrollY, behavior: "auto" });
+    }
+
+    if (!selection) {
+      return;
+    }
+
+    const input = root.querySelector('[data-role="icon-search"]');
+    if (!input) {
+      return;
+    }
+
+    input.focus({ preventScroll: true });
+    const end = Math.min(selection.end, input.value.length);
+    const start = Math.min(selection.start, end);
+    input.setSelectionRange(start, end);
+  });
+}
+
+function getSelectedSiteCategory(siteId = state.selectedSiteId) {
+  const site = state.sites.find((entry) => entry.id === siteId);
+  return String(site?.category || "").trim();
+}
+
 function createUniqueId(base, usedIds) {
   const normalizedBase = slugify(base) || "item";
   let candidate = normalizedBase;
@@ -1398,4 +1595,5 @@ function escapeHTML(value) {
 function escapeAttr(value) {
   return escapeHTML(value).replace(/\n/g, "&#10;");
 }
+
 
