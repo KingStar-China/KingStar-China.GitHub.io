@@ -144,7 +144,7 @@ function createShell() {
         <div class="hero__copy">
           <p class="eyebrow">PERSONAL START PAGE</p>
           <div class="hero__title-row">
-            <h1>少昊导航台</h1>
+            <h1>少昊导航</h1>
             <div class="hero__controls">
               <button type="button" class="command-bar" data-action="open-command" data-role="command-bar">
                 <span class="command-bar__label">全站搜索</span>
@@ -570,7 +570,6 @@ function renderBlogStats() {
 
   return [
     createStatCard("文章", String(posts.length)),
-    createStatCard("命中", String(filteredPosts.length)),
     createStatCard("标签", String(uniqueTags)),
     createStatCard("分页", `${state.blogPage}/${totalPages}`),
     createStatCard("最新发布", latestDate),
@@ -898,40 +897,43 @@ function renderWorkbench() {
   `;
 }
 function renderOverviewDeck(visibleSites) {
-  const favoriteSites = sites.filter((site) => state.favorites.has(site.id));
-  const spotlightSites = (favoriteSites.length > 0 ? favoriteSites : visibleSites).slice(0, 4);
+  const favoriteSites = [...state.favorites].map((id) => siteMap.get(id)).filter(Boolean);
+  const spotlightSites = favoriteSites.slice(-4).reverse();
+  const spotlightSlots = Array.from({ length: 4 }, (_, index) => spotlightSites[index] || null);
   const recentSites = state.recent.map((id) => siteMap.get(id)).filter(Boolean).slice(0, 4);
-  const latestPosts = posts.slice(0, 3);
+  const latestPosts = [...posts].sort((left, right) => right.publishedAt.localeCompare(left.publishedAt)).slice(0, 1);
 
   return `
     <section class="overview-grid">
-      <article class="panel overview-card overview-card--primary">
-        <div class="overview-card__head">
-          <div>
-            <p class="section-head__eyebrow">FOCUS</p>
-            <h2>重点入口</h2>
+      <div class="overview-grid__main">
+        <article class="panel overview-card overview-card--primary">
+          <div class="overview-card__head">
+            <div>
+              <p class="section-head__eyebrow">FOCUS</p>
+              <h2>最近收藏</h2>
+            </div>
+            <span class="section-count">${spotlightSites.length}</span>
           </div>
-          <span class="section-count">${spotlightSites.length}</span>
-        </div>
-        <p class="overview-card__summary">把最常用的网站直接抬到首页第一层，优先服务高频动作，不让核心入口淹没在分类墙里。</p>
-        <div class="overview-link-list">
-          ${spotlightSites.length > 0 ? spotlightSites.map((site) => renderOverviewSiteLink(site)).join("") : '<div class="overview-empty">先收藏几个高频站点，这里会自动变成你的快捷发射台。</div>'}
-        </div>
-      </article>
+          <p class="overview-card__summary">保留最新收藏的4个站点。</p>
+          <div class="overview-link-list">
+            ${spotlightSlots.map((site) => site ? renderOverviewSiteLink(site) : renderOverviewPlaceholder()).join("")}
+          </div>
+        </article>
 
-      <article class="panel overview-card">
-        <div class="overview-card__head">
-          <div>
-            <p class="section-head__eyebrow">FLOW</p>
-            <h2>最近动线</h2>
+        <article class="panel overview-card">
+          <div class="overview-card__head">
+            <div>
+              <p class="section-head__eyebrow">FLOW</p>
+              <h2>最近访问</h2>
+            </div>
+            <span class="section-count">${recentSites.length}</span>
           </div>
-          <span class="section-count">${recentSites.length}</span>
-        </div>
-        <p class="overview-card__summary">刚用过的入口会临时聚成一条工作链，不用回忆，也不用重新搜索。</p>
-        <div class="overview-link-list overview-link-list--stacked">
-          ${recentSites.length > 0 ? recentSites.map((site) => renderOverviewSiteLink(site, true)).join("") : '<div class="overview-empty">打开几个站点后，这里会自动形成当前任务的短期工作台。</div>'}
-        </div>
-      </article>
+          <p class="overview-card__summary">刚用过的入口会临时聚成一条工作链，不用回忆，也不用重新搜索。</p>
+          <div class="overview-link-list overview-link-list--stacked">
+            ${recentSites.length > 0 ? recentSites.map((site) => renderOverviewSiteLink(site, true)).join("") : '<div class="overview-empty">打开几个站点后，这里会自动形成当前任务的短期工作台。</div>'}
+          </div>
+        </article>
+      </div>
 
       <article class="panel overview-card overview-card--posts">
         <div class="overview-card__head">
@@ -965,6 +967,15 @@ function renderOverviewSiteLink(site, compact = false) {
   `;
 }
 
+function renderOverviewPlaceholder() {
+  return `
+    <div class="overview-link overview-link--placeholder" aria-hidden="true">
+      <strong>少昊导航</strong>
+      <span></span>
+    </div>
+  `;
+}
+
 function renderOverviewPost(post) {
   return `
     <button type="button" class="overview-post" data-action="open-post" data-post-id="${escapeHTML(post.id)}">
@@ -982,8 +993,8 @@ function renderSectionRail(groups) {
     <section class="panel section-rail">
       <div class="section-rail__head">
         <div>
-          <p class="section-head__eyebrow">SECTIONS</p>
-          <h2>首页结构</h2>
+          <p class="section-head__eyebrow">CATEGORIES</p>
+          <h2>网站分类</h2>
         </div>
         <p class="section-rail__summary">先处理高频入口，再按分类扫站点，个人工作台单独落在最后一层，避免首页继续变成纯功能堆叠。</p>
       </div>
@@ -1379,17 +1390,18 @@ function renderCommandEmptyState() {
 }
 
 function renderIcon(site) {
+  const initials = getInitials(site.name);
+  const hue = getHue(site.id);
+
   if (site.icon) {
     const src = resolveAsset(site.icon);
     return `
       <div class="site-icon">
-        <img src="${escapeHTML(src)}" alt="${escapeHTML(site.name)}" loading="lazy">
+        <img src="${escapeHTML(src)}" alt="${escapeHTML(site.name)}" loading="lazy" onerror="handleIconError(this)">
+        <span class="site-icon__fallback" hidden style="--icon-hue: ${hue};">${escapeHTML(initials)}</span>
       </div>
     `;
   }
-
-  const initials = getInitials(site.name);
-  const hue = getHue(site.id);
 
   return `
     <div class="site-icon site-icon--fallback" style="--icon-hue: ${hue};">
@@ -2351,6 +2363,16 @@ function formatShortDate(dateString) {
   }).format(date);
 }
 
+function handleIconError(image) {
+  const fallback = image?.nextElementSibling;
+  if (fallback) {
+    fallback.hidden = false;
+  }
+  if (image) {
+    image.hidden = true;
+  }
+}
+
 function resolveAsset(path) {
   if (/^https?:\/\//.test(path)) {
     return path;
@@ -2388,3 +2410,13 @@ function escapeHTML(value) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+
+
+
+
+
+
+
+
+
+
