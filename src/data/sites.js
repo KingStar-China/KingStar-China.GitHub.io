@@ -29,7 +29,7 @@ export const sites = [
     "id": "google",
     "name": "Google",
     "url": "https://www.google.com/",
-    "category": "翻墙",
+    "category": "外网",
     "tags": [
       "搜索",
       "工具"
@@ -46,7 +46,7 @@ export const sites = [
     "id": "x",
     "name": "X",
     "url": "https://x.com/",
-    "category": "翻墙",
+    "category": "外网",
     "tags": [
       "社交",
       "资讯"
@@ -62,7 +62,7 @@ export const sites = [
     "id": "youtube",
     "name": "YouTube",
     "url": "https://www.youtube.com/",
-    "category": "翻墙",
+    "category": "外网",
     "tags": [
       "视频",
       "学习"
@@ -78,7 +78,7 @@ export const sites = [
     "id": "instagram",
     "name": "Instagram",
     "url": "https://www.instagram.com/",
-    "category": "翻墙",
+    "category": "外网",
     "tags": [
       "社交",
       "灵感"
@@ -94,7 +94,7 @@ export const sites = [
     "id": "github",
     "name": "GitHub",
     "url": "https://github.com/",
-    "category": "翻墙",
+    "category": "外网",
     "tags": [
       "代码",
       "协作"

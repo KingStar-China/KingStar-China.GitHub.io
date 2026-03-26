@@ -204,6 +204,96 @@ button {
   border: 1px solid rgba(249, 115, 115, 0.18);
 }
 
+.primary-button,
+.ghost-button,
+.danger-button,
+.mini-button {
+  transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+
+.primary-button:hover,
+.ghost-button:hover,
+.danger-button:hover,
+.mini-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+}
+
+.ghost-button:hover,
+.mini-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(158, 192, 214, 0.28);
+}
+
+.primary-button:hover {
+  filter: brightness(1.04);
+}
+
+.danger-button:hover {
+  background: rgba(249, 115, 115, 0.18);
+}
+
+.primary-button:active,
+.ghost-button:active,
+.danger-button:active,
+.mini-button:active {
+  transform: translateY(0);
+}
+
+.primary-button:focus-visible,
+.ghost-button:focus-visible,
+.danger-button:focus-visible,
+.mini-button:focus-visible {
+  outline: 2px solid rgba(110, 231, 200, 0.8);
+  outline-offset: 2px;
+}
+
+.icon-picker-panel {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.icon-picker-panel__head {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.icon-picker-panel__body {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.icon-picker-panel__search {
+  margin: 0;
+}
+
+.icon-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-height: 220px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.icon-chip {
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+}
+
+.icon-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(158, 192, 214, 0.28);
+}
+
 .list {
   margin-top: 16px;
   display: grid;
