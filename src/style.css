@@ -479,6 +479,27 @@ a {
   object-fit: contain;
 }
 
+.site-icon__fallback {
+  display: none;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  place-items: center;
+  background: hsl(var(--icon-hue) 70% 90%);
+  color: hsl(var(--icon-hue) 58% 22%);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.site-icon__fallback:not([hidden]) {
+  display: grid;
+}
+
+[data-theme="dark"] .site-icon__fallback {
+  background: hsl(var(--icon-hue) 44% 22%);
+  color: hsl(var(--icon-hue) 78% 82%);
+}
+
 .site-icon--fallback {
   background: hsl(var(--icon-hue) 70% 90%);
   color: hsl(var(--icon-hue) 58% 22%);
@@ -1681,8 +1702,17 @@ body,
 
 .overview-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.95fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.92fr);
   gap: 16px;
+  align-items: stretch;
+}
+
+.overview-grid__main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr);
+  gap: 16px;
+  align-items: stretch;
+  height: 100%;
 }
 
 .overview-card,
@@ -1718,6 +1748,7 @@ body,
   display: grid;
   gap: 14px;
   align-content: start;
+  height: 100%;
 }
 
 .overview-card__head {
@@ -1792,6 +1823,32 @@ body,
 .overview-post span {
   line-height: 1.55;
   font-size: 0.84rem;
+}
+
+.overview-link--placeholder {
+  min-height: 118px;
+  align-content: end;
+  border-style: dashed;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+[data-theme="dark"] .overview-link--placeholder {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.overview-link--placeholder:hover {
+  transform: none;
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.28);
+}
+
+[data-theme="dark"] .overview-link--placeholder:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.overview-link--placeholder strong,
+.overview-link--placeholder span {
+  color: var(--muted);
 }
 
 .overview-link.is-compact {
@@ -1939,12 +1996,13 @@ body,
 }
 
 @media (max-width: 1100px) {
-  .overview-grid {
-    grid-template-columns: 1fr 1fr;
+  .overview-grid,
+  .overview-grid__main {
+    grid-template-columns: 1fr;
   }
 
   .overview-card--posts {
-    grid-column: 1 / -1;
+    grid-column: auto;
   }
 
   .workbench {
@@ -2228,3 +2286,6 @@ body.is-command-open {
     backdrop-filter: blur(8px);
   }
 }
+
+
+
