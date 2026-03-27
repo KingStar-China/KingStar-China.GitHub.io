@@ -1,4 +1,4 @@
-import { sites as rawSites } from "./data/sites.js";
+﻿import { sites as rawSites } from "./data/sites.js";
 import { posts as rawPosts } from "./data/posts.js";
 import { siteMeta } from "./data/site.js";
 import { searchEngines as rawSearchEngines } from "./data/search-engines.js";
@@ -212,6 +212,19 @@ function handleInput(event) {
     syncCommandPaletteResults({ maintainFocus: true });
   }
 }
+function handlePointerDown(event) {
+  const actionButton = event.target.closest("button[data-action=\"run-command\"]");
+
+  if (!actionButton) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const { commandKind, commandId } = actionButton.dataset;
+  runCommandResult({ kind: commandKind, id: commandId });
+}
 function handleClick(event) {
   const actionButton = event.target.closest("button[data-action]");
   const siteLink = event.target.closest("a[data-site-id]");
@@ -245,10 +258,6 @@ function handleClick(event) {
       return;
     }
 
-    if (action === "run-command") {
-      runCommandResult({ kind: commandKind, id: commandId });
-      return;
-    }
 
     if (action === "toggle-theme") {
       syncTheme(state.theme === "dark" ? "light" : "dark");
@@ -372,6 +381,9 @@ function handleClick(event) {
 
   if (siteLink) {
     trackRecent(siteLink.dataset.siteId);
+    if (state.commandOpen) {
+      closeCommandPalette();
+    }
     render();
   }
 }
@@ -898,10 +910,10 @@ function renderWorkbench() {
 }
 function renderOverviewDeck(visibleSites) {
   const favoriteSites = [...state.favorites].map((id) => siteMap.get(id)).filter(Boolean);
-  const spotlightSites = favoriteSites.slice(-4).reverse();
-  const spotlightSlots = Array.from({ length: 4 }, (_, index) => spotlightSites[index] || null);
+  const spotlightSites = favoriteSites.slice(-6).reverse();
+  const spotlightSlots = Array.from({ length: 6 }, (_, index) => spotlightSites[index] || null);
   const recentSites = state.recent.map((id) => siteMap.get(id)).filter(Boolean).slice(0, 4);
-  const latestPosts = [...posts].sort((left, right) => right.publishedAt.localeCompare(left.publishedAt)).slice(0, 1);
+  const latestPosts = [...posts].sort((left, right) => right.publishedAt.localeCompare(left.publishedAt)).slice(0, 2);
 
   return `
     <section class="overview-grid">
@@ -914,7 +926,7 @@ function renderOverviewDeck(visibleSites) {
             </div>
             <span class="section-count">${spotlightSites.length}</span>
           </div>
-          <p class="overview-card__summary">保留最新收藏的4个站点。</p>
+          <p class="overview-card__summary">保留最新收藏的6个站点。<br>优先放常用入口，减少重复查找。</p>
           <div class="overview-link-list">
             ${spotlightSlots.map((site) => site ? renderOverviewSiteLink(site) : renderOverviewPlaceholder()).join("")}
           </div>
@@ -967,9 +979,9 @@ function renderOverviewSiteLink(site, compact = false) {
   `;
 }
 
-function renderOverviewPlaceholder() {
+function renderOverviewPlaceholder(compact = false) {
   return `
-    <div class="overview-link overview-link--placeholder" aria-hidden="true">
+    <div class="overview-link overview-link--placeholder ${compact ? "is-compact" : ""}" aria-hidden="true">
       <strong>少昊导航</strong>
       <span></span>
     </div>
@@ -1351,6 +1363,30 @@ function renderCommandItem(item, absoluteIndex) {
   const isActive = state.commandIndex === absoluteIndex;
   const badgeClass = item.kind === "site" ? "is-site" : item.kind === "post" ? "is-post" : "is-action";
 
+  if (item.kind === "site") {
+    const site = siteMap.get(item.id);
+    if (!site) {
+      return "";
+    }
+
+    return `
+      <a
+        class="command-item ${isActive ? "is-active" : ""}"
+        href="${escapeHTML(site.url)}"
+        target="_blank"
+        rel="noreferrer noopener"
+        data-site-id="${escapeHTML(site.id)}"
+      >
+        <span class="command-item__badge ${badgeClass}">${escapeHTML(item.badge)}</span>
+        <div class="command-item__body">
+          <strong>${escapeHTML(item.title)}</strong>
+          <span>${escapeHTML(item.subtitle)}</span>
+        </div>
+        <span class="command-item__meta">${escapeHTML(item.meta)}</span>
+      </a>
+    `;
+  }
+
   return `
     <button
       type="button"
@@ -1375,7 +1411,7 @@ function renderCommandEmptyState() {
   if (!query) {
     return `
       <div class="command-empty">
-        <strong>这里会显示快捷操作、最近访问和最新文章。</strong>
+        <strong>这里会显示最近访问和最新文章。</strong>
         <span>直接输入关键词，就会开始搜网站名、文章标题、标签和描述。</span>
       </div>
     `;
@@ -1716,7 +1752,6 @@ function getDefaultCommandSections() {
   const latestPosts = posts.slice(0, 4).map((post) => createPostCommandResult(post));
 
   return [
-    { title: "快捷操作", items: getCommandActions() },
     recentSites.length > 0 ? { title: "最近访问", items: recentSites } : null,
     latestPosts.length > 0 ? { title: "最新文章", items: latestPosts } : null,
   ].filter(Boolean);
@@ -1796,10 +1831,20 @@ function runCommandResult(result) {
       return;
     }
 
+    const openedWindow = window.open("", "_blank");
+    if (!openedWindow) {
+      return;
+    }
+
+    try {
+      openedWindow.opener = null;
+    } catch {}
+
     trackRecent(site.id);
     closeCommandPalette();
     render();
-    window.open(site.url, "_blank", "noopener,noreferrer");
+
+    openedWindow.location.href = site.url;
     return;
   }
 
