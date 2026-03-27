@@ -926,8 +926,8 @@ function renderOverviewDeck(visibleSites) {
             </div>
             <span class="section-count">${spotlightSites.length}</span>
           </div>
-          <p class="overview-card__summary">保留最新收藏的6个站点。<br>优先放常用入口，减少重复查找。</p>
-          <div class="overview-link-list">
+          <p class="overview-card__summary">保留最新收藏的6个站点。<br>优先放常用入口，<br>减少重复查找。</p>
+          <div class="overview-link-list overview-link-list--primary">
             ${spotlightSlots.map((site) => site ? renderOverviewSiteLink(site) : renderOverviewPlaceholder()).join("")}
           </div>
         </article>
