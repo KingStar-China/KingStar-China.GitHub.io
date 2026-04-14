@@ -1,5 +1,25 @@
 export const sites = [
   {
+    "id": "site-1776138307301",
+    "name": "云赏HIFI",
+    "url": "https://m.imusic.cn/h5v/yunting/",
+    "category": "音乐",
+    "tags": [],
+    "icon": "",
+    "description": "天翼旗下音乐网盘",
+    "aliases": []
+  },
+  {
+    "id": "site-1776137425581",
+    "name": "无损音乐下载",
+    "url": "https://flac.music.hi.cn/",
+    "category": "音乐",
+    "tags": [],
+    "icon": "",
+    "description": "酷我、网易云音乐解析下载",
+    "aliases": []
+  },
+  {
     "id": "site-1774434612228",
     "name": "mureka.cn",
     "url": "https://www.mureka.cn/",
