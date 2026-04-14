@@ -28,6 +28,7 @@ const state = {
     type: "info",
     text: "正在读取本地内容文件...",
   },
+  publishing: false,
 };
 
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "::1"]);
@@ -103,6 +104,7 @@ function createShell() {
             <button type="button" class="ghost-button" data-action="export-backup">导出整站备份</button>
             <button type="button" class="ghost-button" data-action="import-json">导入 JSON</button>
             <button type="button" class="ghost-button" data-action="import-bookmarks">导入书签 HTML</button>
+            <button type="button" class="primary-button" data-action="publish-github">提交 GitHub</button>
           </div>
           <p class="helper hero__helper">JSON 可恢复站点和博客；书签 HTML 只会导入网站，并且默认跳过重复链接。</p>
         </div>
@@ -169,6 +171,11 @@ function render() {
   refs.search.value = state.filter;
   refs.status.className = `status-bar ${state.status.type === "error" ? "is-error" : state.status.type === "success" ? "is-success" : ""}`.trim();
   refs.status.textContent = state.status.text;
+  const publishButton = root.querySelector('[data-action="publish-github"]');
+  if (publishButton) {
+    publishButton.disabled = state.publishing;
+    publishButton.textContent = state.publishing ? "正在提交..." : "提交 GitHub";
+  }
   root.querySelector('[data-role="editor-title"]').textContent = state.section === "sites"
     ? "网站编辑器"
     : state.section === "posts"
@@ -640,6 +647,15 @@ function handleClick(event) {
     return;
   }
 
+  if (action === "publish-github") {
+    publishToGitHub().catch((error) => {
+      state.publishing = false;
+      setStatus("error", error.message);
+      render();
+    });
+    return;
+  }
+
   if (action === "scan-duplicates") {
     runDuplicateScan();
     render();
@@ -1009,10 +1025,16 @@ function generateId() {
 }
 
 async function saveSection() {
-  const target = state.section === "sites" ? "/api/sites" : state.section === "posts" ? "/api/posts" : "/api/search-engines";
-  const payload = state.section === "sites" ? state.sites : state.section === "posts" ? state.posts : state.searchEngines;
+  await saveSectionByName(state.section);
+  setStatus("success", `已保存${state.section === "sites" ? "网站" : state.section === "posts" ? "博客文章" : "搜索引擎"}到本地文件。`, true);
+  render();
+}
 
-  validateBeforeSave(payload, state.section);
+async function saveSectionByName(section) {
+  const target = section === "sites" ? "/api/sites" : section === "posts" ? "/api/posts" : "/api/search-engines";
+  const payload = section === "sites" ? state.sites : section === "posts" ? state.posts : state.searchEngines;
+
+  validateBeforeSave(payload, section);
 
   const response = await fetch(target, {
     method: "PUT",
@@ -1027,8 +1049,49 @@ async function saveSection() {
     throw new Error(result.error || `保存失败：${response.status}`);
   }
 
-  state.dirty[state.section] = false;
-  setStatus("success", `已保存${state.section === "sites" ? "网站" : state.section === "posts" ? "博客文章" : "搜索引擎"}到本地文件。`, true);
+  state.dirty[section] = false;
+}
+
+async function saveDirtySections() {
+  const sections = ["sites", "posts", "searchEngines"].filter((section) => state.dirty[section]);
+  for (const section of sections) {
+    await saveSectionByName(section);
+  }
+}
+
+async function publishToGitHub() {
+  if (state.publishing) {
+    return;
+  }
+
+  const message = String(window.prompt("输入这次提交的 Git commit message：", `content: update ${formatFileDate(new Date())}`) || "").trim();
+  if (!message) {
+    setStatus("info", "已取消提交 GitHub。", false);
+    render();
+    return;
+  }
+
+  state.publishing = true;
+  setStatus("info", "正在保存内容并提交到 GitHub...", true);
+  render();
+
+  await saveDirtySections();
+
+  const response = await fetch("/api/publish-github", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ message }),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result.error || `提交失败：${response.status}`);
+  }
+
+  state.publishing = false;
+  setStatus("success", `已推送到 GitHub：${result.branch || "main"} · ${result.summary || message}`, true);
   render();
 }
 

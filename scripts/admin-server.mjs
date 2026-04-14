@@ -85,6 +85,13 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "POST" && url.pathname === "/api/publish-github") {
+      const payload = await readJsonBody(req);
+      const result = await publishToGitHub(payload);
+      sendJson(res, 200, result);
+      return;
+    }
+
     if (req.method === "GET" && routes[url.pathname]) {
       await sendStatic(res, routes[url.pathname]);
       return;
@@ -313,3 +320,68 @@ function assertString(value, label) {
   }
 }
 
+
+
+async function publishToGitHub(payload) {
+  const message = String(payload?.message || "").trim();
+  if (!message) {
+    throw new Error("提交说明不能为空");
+  }
+
+  const branch = (await runGitCommand(["branch", "--show-current"])).trim() || "main";
+  const statusOutput = (await runGitCommand(["status", "--porcelain", "--", "src/data", "public/icon"])).trim();
+  if (!statusOutput) {
+    throw new Error("当前没有 src/data 或 public/icon 的可提交变更");
+  }
+
+  await runGitCommand(["add", "--", "src/data", "public/icon"]);
+
+  try {
+    await runGitCommand(["commit", "-m", message, "--", "src/data", "public/icon"]);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    if (!/nothing to commit/i.test(detail)) {
+      throw error;
+    }
+  }
+
+  await runGitCommand(["push", "origin", branch]);
+
+  return {
+    ok: true,
+    branch,
+    summary: message,
+    files: statusOutput.split(/\r?\n/).filter(Boolean),
+  };
+}
+
+async function runGitCommand(args) {
+  return await new Promise((resolve, reject) => {
+    const child = spawn("git", args, {
+      cwd: rootDir,
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (chunk) => {
+      stdout += String(chunk);
+    });
+
+    child.stderr.on("data", (chunk) => {
+      stderr += String(chunk);
+    });
+
+    child.once("error", reject);
+    child.once("close", (code) => {
+      if (code === 0) {
+        resolve(stdout.trim());
+        return;
+      }
+
+      reject(new Error((stderr || stdout || ("git " + args.join(" ") + " 执行失败")).trim()));
+    });
+  });
+}
