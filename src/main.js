@@ -128,7 +128,6 @@ function init() {
   refs.stats = root.querySelector('[data-role="stats"]');
   refs.toolbar = root.querySelector('[data-role="toolbar"]');
   refs.content = root.querySelector('[data-role="content"]');
-  refs.footerMeta = root.querySelector('[data-role="footer-meta"]');
   refs.commandPalette = root.querySelector('[data-role="command-palette"]');
 
   root.addEventListener("input", handleInput);
@@ -171,10 +170,6 @@ function createShell() {
 
       <main class="content" data-role="content"></main>
 
-      <footer class="footer">
-        <span>由 GitHub Pages 托管</span>
-        <span data-role="footer-meta"></span>
-      </footer>
       <button type="button" class="scroll-top-button" data-action="scroll-top">回到顶部</button>
     </div>
 
@@ -485,7 +480,6 @@ function render() {
   refs.stats.innerHTML = state.section === "nav" ? renderNavStats() : renderBlogStats();
   refs.toolbar.innerHTML = renderToolbar();
   refs.content.innerHTML = renderContent();
-  refs.footerMeta.textContent = buildFooterMeta();
   renderCommandPaletteState({ maintainFocus: state.commandOpen });
 
   refs.searchInput = refs.toolbar.querySelector('[data-role="search"]');
@@ -784,7 +778,6 @@ function renderNavSearchState() {
     activeState.innerHTML = renderActiveState();
   }
   refs.content.innerHTML = renderNavContent();
-  refs.footerMeta.textContent = buildFooterMeta();
   syncRoute();
   updateSeo();
 }
@@ -800,7 +793,6 @@ function renderBlogSearchState() {
   refs.stats.innerHTML = renderBlogStats();
   refs.toolbar.innerHTML = renderBlogToolbar();
   refs.content.innerHTML = renderBlogList();
-  refs.footerMeta.textContent = buildFooterMeta();
   syncRoute();
   updateSeo();
 
@@ -1786,14 +1778,6 @@ function buildSummary() {
   }
 
   return `当前命中 ${filteredCount} 个站点。你可以继续按分类、标签或收藏状态继续收窄范围。`;
-}
-
-function buildFooterMeta() {
-  if (state.section === "nav") {
-    return `站点数据：src/data/sites.js · 共 ${sites.length} 个站点`;
-  }
-
-  return `文章数据：src/data/posts.js · 共 ${posts.length} 篇文章 · RSS: ${siteMeta.rssPath}`;
 }
 
 function getEmptyMessage() {

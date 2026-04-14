@@ -91,7 +91,7 @@ a {
 }
 
 #app {
-  padding: 32px 20px 40px;
+  padding: 32px 20px 112px;
 }
 
 .app-shell {
@@ -2221,6 +2221,10 @@ body,
   .scroll-top-button {
     right: 14px;
     bottom: 14px;
+  }
+
+  #app {
+    padding-bottom: 124px;
   }
 
   .hero-search-panel {
