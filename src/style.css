@@ -1237,6 +1237,30 @@ a {
   color: var(--heading);
 }
 
+.scroll-top-button {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 30;
+  padding: 12px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  background: var(--panel-strong);
+  color: var(--heading);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(18px);
+}
+
+.scroll-top-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(15, 118, 110, 0.34);
+}
+
+.scroll-top-button:focus-visible {
+  outline: 2px solid rgba(15, 118, 110, 0.75);
+  outline-offset: 2px;
+}
+
 @media (max-width: 960px) {
   .hero__controls {
     width: 100%;
@@ -2192,6 +2216,11 @@ body,
   .hero__summary {
     max-width: none;
     font-size: 0.98rem;
+  }
+
+  .scroll-top-button {
+    right: 14px;
+    bottom: 14px;
   }
 
   .hero-search-panel {
