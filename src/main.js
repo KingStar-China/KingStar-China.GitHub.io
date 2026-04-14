@@ -1276,7 +1276,7 @@ function renderCommandPalette() {
         </div>
         <div class="command-palette__meta">
           <span>网站和博客统一入口</span>
-          <span class="command-palette__meta-highlight">再点 Ctrl + K 把焦点移到输入框</span>
+          <span class="command-palette__meta-highlight">再按 Ctrl + K 把焦点移到输入框</span>
           <span>↑ ↓ 选择</span>
           <span>Enter 打开</span>
           <span>Esc 关闭</span>
