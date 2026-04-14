@@ -1,5 +1,15 @@
 export const sites = [
   {
+    "id": "site-1776152887896",
+    "name": "png转ico",
+    "url": "https://www.png2ico.com/",
+    "category": "图片",
+    "tags": [],
+    "icon": "",
+    "description": "png转ico，免费无水印。",
+    "aliases": []
+  },
+  {
     "id": "site-1776150293612",
     "name": "Cloudflare",
     "url": "https://dash.cloudflare.com/",
