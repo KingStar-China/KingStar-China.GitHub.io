@@ -140,6 +140,7 @@ function createShell() {
 
       <input type="file" hidden data-role="backup-input" accept=".json,application/json">
       <input type="file" hidden data-role="bookmark-input" accept=".html,text/html">
+      <button type="button" class="scroll-top-button" data-action="scroll-top">回到顶部</button>
     </div>
   `;
 }
@@ -654,6 +655,11 @@ function handleClick(event) {
       setStatus("error", error.message);
       render();
     });
+    return;
+  }
+
+  if (action === "scroll-top") {
+    window.scrollTo({ top: 0, behavior: "smooth" });
     return;
   }
 

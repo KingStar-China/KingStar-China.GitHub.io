@@ -175,6 +175,7 @@ function createShell() {
         <span>由 GitHub Pages 托管</span>
         <span data-role="footer-meta"></span>
       </footer>
+      <button type="button" class="scroll-top-button" data-action="scroll-top">回到顶部</button>
     </div>
 
     <div data-role="command-palette"></div>
@@ -264,6 +265,11 @@ function handleClick(event) {
       refs.heroSearch.innerHTML = renderHeroSearch();
       refs.engineSearchInput = refs.heroSearch.querySelector('[data-role="engine-search"]');
       syncHeroSearchBox();
+      return;
+    }
+
+    if (action === "scroll-top") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
