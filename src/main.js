@@ -1,8 +1,10 @@
-﻿import { sites as rawSites } from "./data/sites.js";
+import { sites as rawSites } from "./data/sites.js";
 import { posts as rawPosts } from "./data/posts.js";
 import { siteMeta } from "./data/site.js";
 import { searchEngines as rawSearchEngines } from "./data/search-engines.js";
 import { getPostSearchScore, getSiteSearchScore, matchesPostQuery, matchesSiteQuery } from "./lib/search.js";
+import { getCommandSections as getCommandSectionsState, getFlatCommandResults as getFlatCommandResultsState, runCommandResult as executeCommandResult, openCommandPalette as openCommandPaletteState, closeCommandPalette as closeCommandPaletteState } from "./lib/command-palette.js";
+import { renderOverviewDeck as renderOverviewSection } from "./lib/overview.js";
 
 /**
  * @typedef {Object} SiteItem
@@ -57,6 +59,7 @@ const defaultSearchEngine = searchEngines[0]?.id || "baidu";
 
 const POSTS_PER_PAGE = 5;
 const COMMAND_RESULT_LIMIT = 8;
+const RECENT_HISTORY_LIMIT = 20;
 
 /** @type {SiteItem[]} */
 const sites = rawSites.map((site) => ({
@@ -111,6 +114,7 @@ const state = {
 
 const root = document.querySelector("#app");
 const refs = {};
+let commandFocusRetryId = 0;
 
 init();
 
@@ -128,6 +132,7 @@ function init() {
   refs.commandPalette = root.querySelector('[data-role="command-palette"]');
 
   root.addEventListener("input", handleInput);
+  root.addEventListener("pointerdown", handlePointerDown, true);
   root.addEventListener("click", handleClick);
   window.addEventListener("keydown", handleKeydown);
   window.addEventListener("popstate", handlePopState);
@@ -213,16 +218,28 @@ function handleInput(event) {
   }
 }
 function handlePointerDown(event) {
-  const actionButton = event.target.closest("button[data-action=\"run-command\"]");
+  const actionButton = event.target.closest("button[data-action]");
 
   if (!actionButton) {
     return;
   }
 
+  const { action, commandKind, commandId } = actionButton.dataset;
+
+  if (action === "open-command") {
+    event.preventDefault();
+    event.stopPropagation();
+    openCommandPalette();
+    syncCommandPaletteResults({ maintainFocus: true });
+    return;
+  }
+
+  if (action !== "run-command") {
+    return;
+  }
+
   event.preventDefault();
   event.stopPropagation();
-
-  const { commandKind, commandId } = actionButton.dataset;
   runCommandResult({ kind: commandKind, id: commandId });
 }
 function handleClick(event) {
@@ -233,11 +250,14 @@ function handleClick(event) {
     const { action, value, siteId, postId, commandKind, commandId } = actionButton.dataset;
 
     if (action === "open-command") {
+      if (event.detail !== 0) {
+        return;
+      }
+
       openCommandPalette();
       syncCommandPaletteResults({ maintainFocus: true });
       return;
     }
-
     if (action === "set-search-engine") {
       state.searchEngine = getSearchEngineId(value);
       localStorage.setItem(STORAGE_KEYS.searchEngine, state.searchEngine);
@@ -500,15 +520,7 @@ function renderCommandPaletteState({ maintainFocus = false } = {}) {
     return;
   }
 
-  requestAnimationFrame(() => {
-    if (!refs.commandInput) {
-      return;
-    }
-
-    refs.commandInput.focus({ preventScroll: true });
-    refs.commandInput.setSelectionRange(state.commandQuery.length, state.commandQuery.length);
-    refs.commandPalette.querySelector('.command-item.is-active')?.scrollIntoView({ block: 'nearest' });
-  });
+  focusCommandInput();
 }
 
 function syncCommandPaletteResults({ maintainFocus = false } = {}) {
@@ -533,11 +545,45 @@ function syncCommandPaletteResults({ maintainFocus = false } = {}) {
     return;
   }
 
-  requestAnimationFrame(() => {
-    refs.commandInput?.focus({ preventScroll: true });
-    refs.commandInput?.setSelectionRange(state.commandQuery.length, state.commandQuery.length);
+  focusCommandInput();
+}
+function focusCommandInput() {
+  clearCommandFocusRetry();
+
+  const deadline = performance.now() + 400;
+
+  const applyFocus = () => {
+    const input = refs.commandPalette.querySelector('[data-role="command-search"]');
+    if (!state.commandOpen || !input) {
+      clearCommandFocusRetry();
+      return;
+    }
+
+    refs.commandInput = input;
+    if (document.activeElement !== input) {
+      input.focus({ preventScroll: true });
+    }
+    input.setSelectionRange(state.commandQuery.length, state.commandQuery.length);
     refs.commandPalette.querySelector('.command-item.is-active')?.scrollIntoView({ block: 'nearest' });
-  });
+
+    if (document.activeElement === input || performance.now() >= deadline) {
+      clearCommandFocusRetry();
+      return;
+    }
+
+    commandFocusRetryId = window.setTimeout(applyFocus, 16);
+  };
+
+  requestAnimationFrame(applyFocus);
+}
+
+function clearCommandFocusRetry() {
+  if (!commandFocusRetryId) {
+    return;
+  }
+
+  window.clearTimeout(commandFocusRetryId);
+  commandFocusRetryId = 0;
 }
 function renderSectionTabs() {
   const items = [
@@ -600,7 +646,7 @@ function renderHeroSearch() {
           class="hero-search-panel__input"
           inputmode="search"
           autocomplete="off"
-          spellcheck="false"
+              spellcheck="false"
           placeholder="${escapeHTML(activeEngine.placeholder)}"
         >
         <button type="button" class="hero-search-panel__submit" data-action="submit-engine-search">搜索</button>
@@ -659,7 +705,7 @@ function renderNavToolbar() {
             type="search"
             inputmode="search"
             autocomplete="off"
-            spellcheck="false"
+              spellcheck="false"
             placeholder="搜站点名、标签、描述，例如 GPT / 文档 / 视频"
           >
         </label>
@@ -909,95 +955,16 @@ function renderWorkbench() {
   `;
 }
 function renderOverviewDeck(visibleSites) {
-  const favoriteSites = [...state.favorites].map((id) => siteMap.get(id)).filter(Boolean);
-  const spotlightSites = favoriteSites.slice(-6).reverse();
-  const spotlightSlots = Array.from({ length: 6 }, (_, index) => spotlightSites[index] || null);
-  const recentSites = state.recent.map((id) => siteMap.get(id)).filter(Boolean).slice(0, 4);
-  const latestPosts = [...posts].sort((left, right) => right.publishedAt.localeCompare(left.publishedAt)).slice(0, 2);
-
-  return `
-    <section class="overview-grid">
-      <div class="overview-grid__main">
-        <article class="panel overview-card overview-card--primary">
-          <div class="overview-card__head">
-            <div>
-              <p class="section-head__eyebrow">FOCUS</p>
-              <h2>最近收藏</h2>
-            </div>
-            <span class="section-count">${spotlightSites.length}</span>
-          </div>
-          <p class="overview-card__summary">保留最新收藏的6个站点。<br>优先放常用入口，<br>减少重复查找。</p>
-          <div class="overview-link-list overview-link-list--primary">
-            ${spotlightSlots.map((site) => site ? renderOverviewSiteLink(site) : renderOverviewPlaceholder()).join("")}
-          </div>
-        </article>
-
-        <article class="panel overview-card">
-          <div class="overview-card__head">
-            <div>
-              <p class="section-head__eyebrow">FLOW</p>
-              <h2>最近访问</h2>
-            </div>
-            <span class="section-count">${recentSites.length}</span>
-          </div>
-          <p class="overview-card__summary">刚用过的入口会临时聚成一条工作链，不用回忆，也不用重新搜索。</p>
-          <div class="overview-link-list overview-link-list--stacked">
-            ${recentSites.length > 0 ? recentSites.map((site) => renderOverviewSiteLink(site, true)).join("") : '<div class="overview-empty">打开几个站点后，这里会自动形成当前任务的短期工作台。</div>'}
-          </div>
-        </article>
-      </div>
-
-      <article class="panel overview-card overview-card--posts">
-        <div class="overview-card__head">
-          <div>
-            <p class="section-head__eyebrow">WRITING</p>
-            <h2>最新文章</h2>
-          </div>
-          <button type="button" class="inline-reset" data-action="set-section" data-value="blog-list">去博客</button>
-        </div>
-        <p class="overview-card__summary">导航和内容放在同一站内，入口之外还能顺手记录方法、问题和维护经验。</p>
-        <div class="overview-post-list">
-          ${latestPosts.map((post) => renderOverviewPost(post)).join("")}
-        </div>
-      </article>
-    </section>
-  `;
+  void visibleSites;
+  return renderOverviewSection({
+    favorites: state.favorites,
+    recent: state.recent,
+    posts,
+    siteMap,
+    escapeHTML,
+    formatShortDate,
+  });
 }
-
-function renderOverviewSiteLink(site, compact = false) {
-  return `
-    <a
-      class="overview-link ${compact ? "is-compact" : ""}"
-      href="${escapeHTML(site.url)}"
-      target="_blank"
-      rel="noreferrer noopener"
-      data-site-id="${escapeHTML(site.id)}"
-    >
-      <strong>${escapeHTML(site.name)}</strong>
-      <span>${escapeHTML(site.category)}</span>
-    </a>
-  `;
-}
-
-function renderOverviewPlaceholder(compact = false) {
-  return `
-    <div class="overview-link overview-link--placeholder ${compact ? "is-compact" : ""}" aria-hidden="true">
-      <strong>少昊导航</strong>
-      <span></span>
-    </div>
-  `;
-}
-
-function renderOverviewPost(post) {
-  return `
-    <button type="button" class="overview-post" data-action="open-post" data-post-id="${escapeHTML(post.id)}">
-      <span class="overview-post__date">${formatShortDate(post.publishedAt)}</span>
-      <strong>${escapeHTML(post.title)}</strong>
-      <span>${escapeHTML(post.summary)}</span>
-    </button>
-  `;
-}
-
 function renderSectionRail(groups) {
   const pendingCount = state.workbenchTodos.filter((item) => !item.done).length;
 
@@ -1303,6 +1270,7 @@ function renderCommandPalette() {
               class="command-search"
               autocomplete="off"
               spellcheck="false"
+              autofocus
               placeholder="搜网站、文章、标签、分类，例如 GPT / Cloudflare / 博客"
             >
           </div>
@@ -1715,188 +1683,46 @@ function getCategorySummary(category, count) {
 
   return `当前分类下共有 ${count} 个站点，适合成组浏览和连续切换。`;
 }
-function getCommandSections() {
-  const query = state.commandQuery.trim();
-
-  if (!query) {
-    return getDefaultCommandSections();
-  }
-
-  const siteResults = sites
-    .map((site) => ({ site, score: getSiteSearchScore(site, query) }))
-    .filter((entry) => entry.score > 0)
-    .sort((left, right) => right.score - left.score || left.site.name.localeCompare(right.site.name, "zh-CN"))
-    .slice(0, COMMAND_RESULT_LIMIT)
-    .map((entry) => createSiteCommandResult(entry.site));
-
-  const postResults = posts
-    .map((post) => ({ post, score: getPostSearchScore(post, query) }))
-    .filter((entry) => entry.score > 0)
-    .sort((left, right) => right.score - left.score || new Date(right.post.publishedAt).getTime() - new Date(left.post.publishedAt).getTime())
-    .slice(0, COMMAND_RESULT_LIMIT)
-    .map((entry) => createPostCommandResult(entry.post));
-
-  return [
-    siteResults.length > 0 ? { title: "网站结果", items: siteResults } : null,
-    postResults.length > 0 ? { title: "博客结果", items: postResults } : null,
-  ].filter(Boolean);
+function getCommandPaletteDeps() {
+  return {
+    state,
+    sites,
+    posts,
+    siteMap,
+    getSiteSearchScore,
+    getPostSearchScore,
+    commandResultLimit: COMMAND_RESULT_LIMIT,
+    getHost,
+    formatShortDate,
+  };
 }
 
-function getDefaultCommandSections() {
-  const recentSites = state.recent
-    .map((id) => siteMap.get(id))
-    .filter(Boolean)
-    .slice(0, 4)
-    .map((site) => createSiteCommandResult(site));
-
-  const latestPosts = posts.slice(0, 4).map((post) => createPostCommandResult(post));
-
-  return [
-    recentSites.length > 0 ? { title: "最近访问", items: recentSites } : null,
-    latestPosts.length > 0 ? { title: "最新文章", items: latestPosts } : null,
-  ].filter(Boolean);
+function getCommandSections() {
+  return getCommandSectionsState(getCommandPaletteDeps());
 }
 
 function getFlatCommandResults() {
-  return getCommandSections().flatMap((section) => section.items);
-}
-
-function getCommandActions() {
-  return [
-    {
-      kind: "action",
-      id: "nav-home",
-      badge: "导航",
-      title: "打开导航首页",
-      subtitle: "回到全部网站视图",
-      meta: "全部站点",
-    },
-    {
-      kind: "action",
-      id: "nav-favorites",
-      badge: "收藏",
-      title: "查看收藏站点",
-      subtitle: "快速进入你的高频入口",
-      meta: `${sites.filter((site) => state.favorites.has(site.id)).length} 个`,
-    },
-    {
-      kind: "action",
-      id: "nav-recent",
-      badge: "最近",
-      title: "查看最近访问",
-      subtitle: "回到最近点开的站点列表",
-      meta: `${state.recent.filter((id) => siteIds.has(id)).length} 个`,
-    },
-    {
-      kind: "action",
-      id: "blog-list",
-      badge: "博客",
-      title: "打开博客列表",
-      subtitle: "查看最新文章和分页列表",
-      meta: `${posts.length} 篇`,
-    },
-  ];
-}
-
-function createSiteCommandResult(site) {
-  return {
-    kind: "site",
-    id: site.id,
-    badge: site.category || "网站",
-    title: site.name,
-    subtitle: site.description || site.url,
-    meta: site.tags.slice(0, 3).join(" / ") || getHost(site.url),
-  };
-}
-
-function createPostCommandResult(post) {
-  return {
-    kind: "post",
-    id: post.id,
-    badge: "博客",
-    title: post.title,
-    subtitle: post.summary,
-    meta: `${formatShortDate(post.publishedAt)} · ${post.tags.slice(0, 2).join(" / ") || "文章"}`,
-  };
+  return getFlatCommandResultsState(getCommandPaletteDeps());
 }
 
 function runCommandResult(result) {
-  if (!result) {
-    return;
-  }
-
-  if (result.kind === "site") {
-    const site = siteMap.get(result.id);
-    if (!site) {
-      return;
-    }
-
-    const openedWindow = window.open("", "_blank");
-    if (!openedWindow) {
-      return;
-    }
-
-    try {
-      openedWindow.opener = null;
-    } catch {}
-
-    trackRecent(site.id);
-    closeCommandPalette();
-    render();
-
-    openedWindow.location.href = site.url;
-    return;
-  }
-
-  if (result.kind === "post") {
-    openPost(result.id);
-    closeCommandPalette();
-    render();
-    return;
-  }
-
-  if (result.kind === "action") {
-    runCommandAction(result.id);
-    closeCommandPalette();
-    render();
-  }
-}
-
-function runCommandAction(actionId) {
-  if (actionId === "nav-home") {
-    state.section = "nav";
-    resetNavFilters();
-    return;
-  }
-
-  if (actionId === "nav-favorites") {
-    state.section = "nav";
-    resetNavFilters();
-    state.view = "favorites";
-    return;
-  }
-
-  if (actionId === "nav-recent") {
-    state.section = "nav";
-    resetNavFilters();
-    state.view = "recent";
-    return;
-  }
-
-  if (actionId === "blog-list") {
-    state.section = "blog-list";
-  }
+  executeCommandResult(result, {
+    ...getCommandPaletteDeps(),
+    trackRecent,
+    closeCommandPalette,
+    render,
+    openPost,
+    resetNavFilters,
+  });
 }
 
 function openCommandPalette() {
-  state.commandOpen = true;
-  state.commandIndex = 0;
+  openCommandPaletteState(state);
 }
 
 function closeCommandPalette() {
-  state.commandOpen = false;
-  state.commandQuery = "";
-  state.commandIndex = 0;
+  clearCommandFocusRetry();
+  closeCommandPaletteState(state);
 }
 
 function openPost(postId) {
@@ -2032,7 +1858,7 @@ function trackRecent(siteId) {
     return;
   }
 
-  state.recent = [siteId, ...state.recent.filter((id) => id !== siteId)].slice(0, 8);
+  state.recent = [siteId, ...state.recent.filter((id) => id !== siteId)].slice(0, RECENT_HISTORY_LIMIT);
   localStorage.setItem(STORAGE_KEYS.recent, JSON.stringify(state.recent));
 }
 
@@ -2455,8 +2281,6 @@ function escapeHTML(value) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
-
-
 
 
 
