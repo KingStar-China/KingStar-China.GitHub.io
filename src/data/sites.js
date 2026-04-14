@@ -6,7 +6,7 @@ export const sites = [
     "category": "外网",
     "tags": [],
     "icon": "",
-    "description": "Cloudflare（NYSE:NET）是全球领先的边缘云服务平台，依托全球分布式智能网络，为网站、应用、企业提供 CDN 加速、DDoS 防护、DNS 解析、边缘计算、静态托管等一站式网络服务，核心使命是帮助构建更快、更安全、更可靠的互联网。",
+    "description": "CDN 加速、DDoS 防护、DNS 解析、边缘计算、静态托管!",
     "aliases": []
   },
   {
