@@ -215,7 +215,7 @@ export const sites = [
       "AI",
       "对话"
     ],
-    "icon": "icon/doubao.png",
+    "icon": "https://lf-flow-web-cdn.doubao.com/obj/flow-doubao/doubao/web/doubao_avatar.png",
     "description": "中文对话和轻量创作场景的常用入口。",
     "aliases": [
       "doubao",
