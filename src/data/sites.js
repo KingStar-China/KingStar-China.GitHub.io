@@ -1,5 +1,19 @@
 export const sites = [
   {
+    "id": "site-1776156292964",
+    "name": "天翼云盘",
+    "url": "https://cloud.189.cn/",
+    "category": "网盘",
+    "tags": [],
+    "icon": "",
+    "description": "电信旗下天翼云盘",
+    "aliases": [
+      "tyyp",
+      "tianyiyunpan",
+      "cloud189"
+    ]
+  },
+  {
     "id": "site-1776152887896",
     "name": "png转ico",
     "url": "https://www.png2ico.com/",
