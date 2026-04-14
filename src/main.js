@@ -170,7 +170,10 @@ function createShell() {
 
       <main class="content" data-role="content"></main>
 
-      <button type="button" class="scroll-top-button" data-action="scroll-top">回到顶部</button>
+      <div class="scroll-action-group" aria-label="页面滚动快捷按钮">
+        <button type="button" class="scroll-action-button" data-action="scroll-bottom">直达底部</button>
+        <button type="button" class="scroll-action-button" data-action="scroll-top">回到顶部</button>
+      </div>
     </div>
 
     <div data-role="command-palette"></div>
@@ -260,6 +263,11 @@ function handleClick(event) {
       refs.heroSearch.innerHTML = renderHeroSearch();
       refs.engineSearchInput = refs.heroSearch.querySelector('[data-role="engine-search"]');
       syncHeroSearchBox();
+      return;
+    }
+
+    if (action === "scroll-bottom") {
+      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
       return;
     }
 
