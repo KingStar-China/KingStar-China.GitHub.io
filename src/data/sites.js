@@ -35,9 +35,11 @@ export const sites = [
     "url": "https://flac.music.hi.cn/",
     "category": "音乐",
     "tags": [],
-    "icon": "",
+    "icon": "icon/wushunyinyuexiazai.png",
     "description": "酷我、网易云音乐解析下载",
-    "aliases": []
+    "aliases": [
+      "wsyyxz"
+    ]
   },
   {
     "id": "site-1774434612228",
