@@ -93,6 +93,8 @@ function createShell() {
         <div>
           <h1>本地内容管理器</h1>
           <p>这个页面只在你本机运行，用来编辑站点条目和博客文章。保存后会直接改写 <code>src/data/sites.js</code> 和 <code>src/data/posts.js</code>。</p>
+          <p class="helper hero__helper">“提交 GitHub”只会提交 <code>src/data</code> 的内容变更，以及 <code>public/icon</code> 里的图标文件。</p>
+          <p class="helper hero__helper">JSON 可恢复站点和博客；书签 HTML 只会导入网站，并且默认跳过重复链接。</p>
         </div>
         <div class="hero__aside">
           <div class="hero__meta">
@@ -106,7 +108,6 @@ function createShell() {
             <button type="button" class="ghost-button" data-action="import-bookmarks">导入书签 HTML</button>
             <button type="button" class="primary-button" data-action="publish-github">提交 GitHub</button>
           </div>
-          <p class="helper hero__helper">JSON 可恢复站点和博客；书签 HTML 只会导入网站，并且默认跳过重复链接。</p>
         </div>
       </header>
 

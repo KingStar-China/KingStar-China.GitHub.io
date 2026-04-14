@@ -1396,10 +1396,7 @@ function renderCommandEmptyState() {
 function renderIcon(site) {
   const initials = getInitials(site.name);
   const hue = getHue(site.id);
-  const siteIconSrc = getSiteFaviconUrl(site.url);
-  const uploadedIconSrc = site.icon ? resolveAsset(site.icon) : "";
-  const src = siteIconSrc || uploadedIconSrc;
-  const fallbackSrc = uploadedIconSrc && uploadedIconSrc !== src ? uploadedIconSrc : "";
+  const src = site.icon ? resolveAsset(site.icon) : getSiteFaviconUrl(site.url);
 
   if (src) {
     return `
@@ -1408,8 +1405,6 @@ function renderIcon(site) {
           src="${escapeHTML(src)}"
           alt="${escapeHTML(site.name)}"
           loading="lazy"
-          data-fallback-src="${escapeHTML(fallbackSrc)}"
-          data-icon-stage="${fallbackSrc ? "primary" : "fallback"}"
           onerror="handleIconError(this)"
         >
         <span class="site-icon__fallback" hidden style="--icon-hue: ${hue};">${escapeHTML(initials)}</span>
@@ -2249,19 +2244,14 @@ function handleIconError(image) {
     return;
   }
 
-  const fallbackSrc = String(image.dataset.fallbackSrc || "").trim();
-  if (fallbackSrc && image.dataset.iconStage !== "fallback") {
-    image.dataset.iconStage = "fallback";
-    image.src = fallbackSrc;
-    return;
-  }
-
   const fallback = image?.nextElementSibling;
   if (fallback) {
     fallback.hidden = false;
   }
   image.hidden = true;
 }
+
+window.handleIconError = handleIconError;
 
 function getSiteFaviconUrl(url) {
   try {
