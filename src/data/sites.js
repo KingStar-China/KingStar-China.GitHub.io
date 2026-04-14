@@ -123,7 +123,7 @@ export const sites = [
       "社交",
       "灵感"
     ],
-    "icon": "",
+    "icon": "icon/instagram.png",
     "description": "看视觉内容、品牌账号和创作者更新。",
     "aliases": [
       "ins",
