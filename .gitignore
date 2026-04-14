@@ -3,4 +3,6 @@ dist/
 .DS_Store
 .preview.log
 .preview.err.log
+.admin.log
+.admin.err.log
 
