@@ -182,7 +182,7 @@ function render() {
       ? "博客编辑器"
       : "搜索引擎编辑器";
   root.querySelector('[data-role="editor-subtitle"]').textContent = state.section === "sites"
-    ? "维护导航站里的网站条目，图标路径填 public/icon 下的相对路径。"
+      ? "维护导航站里的网站条目，图标路径会作为网站 favicon 失败时的后备图标。"
     : state.section === "posts"
       ? "维护站内博客文章。正文用空行分段保存。"
       : "维护首页搜索框里的搜索引擎。搜索链接模板必须包含 {query}。";
@@ -416,7 +416,7 @@ function renderSiteEditor(site) {
           <input id="site-icon" data-field="icon" value="${escapeAttr(site.icon || "")}" placeholder="icon/example.png 或 https://...">
           <button type="button" class="mini-button" data-action="open-icon-folder">打开ICON文件夹</button>
         </div>
-        <span class="helper">支持 public/icon 下的相对路径，也支持直接填网络图片地址。</span>
+        <span class="helper">支持 public/icon 下的相对路径，也支持直接填网络图片地址；前台会优先使用网站自身 favicon，失败时再回退到这里。</span>
         ${state.iconFiles.length > 0 ? `
           <div class="icon-picker-panel">
             <div class="icon-picker-panel__head">
@@ -453,7 +453,7 @@ function renderSiteEditor(site) {
         <input id="site-aliases" data-field="aliases" value="${escapeAttr((site.aliases || []).join(", "))}">
       </div>
       <div class="field field--full">
-        <span class="helper">icon 为空时，页面会自动生成占位图标。ID 建议只用英文、数字和短横线。</span>
+        <span class="helper">icon 为空时，页面会先尝试网站自身 favicon，再不行才自动生成占位图标。ID 建议只用英文、数字和短横线。</span>
       </div>
     </div>
   `;
