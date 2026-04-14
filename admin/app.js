@@ -140,7 +140,10 @@ function createShell() {
 
       <input type="file" hidden data-role="backup-input" accept=".json,application/json">
       <input type="file" hidden data-role="bookmark-input" accept=".html,text/html">
-      <button type="button" class="scroll-top-button" data-action="scroll-top">回到顶部</button>
+      <div class="scroll-action-group" aria-label="页面滚动快捷按钮">
+        <button type="button" class="scroll-action-button" data-action="scroll-bottom">直达底部</button>
+        <button type="button" class="scroll-action-button" data-action="scroll-top">回到顶部</button>
+      </div>
     </div>
   `;
 }
@@ -655,6 +658,11 @@ function handleClick(event) {
       setStatus("error", error.message);
       render();
     });
+    return;
+  }
+
+  if (action === "scroll-bottom") {
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
     return;
   }
 
