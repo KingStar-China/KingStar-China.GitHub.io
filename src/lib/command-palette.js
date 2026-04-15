@@ -54,10 +54,7 @@ export function runCommandResult(result, deps) {
       return;
     }
 
-    const openedWindow = window.open("", "_blank");
-    if (!openedWindow) {
-      return;
-    }
+    const openedWindow = window.open(site.url, "_blank", "noopener,noreferrer");
 
     try {
       openedWindow.opener = null;
@@ -66,8 +63,6 @@ export function runCommandResult(result, deps) {
     trackRecent(site.id);
     closeCommandPalette();
     render();
-
-    openedWindow.location.href = site.url;
     return;
   }
 
