@@ -5,7 +5,7 @@ export const sites = [
     "url": "https://cloud.189.cn/",
     "category": "网盘",
     "tags": [],
-    "icon": "",
+    "icon": "icon/tianyiyunpan.png",
     "description": "电信旗下天翼云盘",
     "aliases": [
       "tyyp",
