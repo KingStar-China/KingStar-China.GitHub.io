@@ -1,4 +1,4 @@
-import { normalizeStringArray as normalizeStringList, validatePostsPayload, validateSearchEnginesPayload, validateSitesPayload } from "./content-validation.js";
+import { isValidHttpUrl, normalizeStringArray as normalizeStringList, validatePostsPayload, validateSearchEnginesPayload, validateSitesPayload } from "./content-validation.js";
 
 const state = {
   section: "sites",
@@ -24,6 +24,7 @@ const state = {
     posts: false,
     searchEngines: false,
   },
+  siteMetaLoading: false,
   status: {
     type: "info",
     text: "正在读取本地内容文件...",
@@ -187,7 +188,7 @@ function render() {
       ? "博客编辑器"
       : "搜索引擎编辑器";
   root.querySelector('[data-role="editor-subtitle"]').textContent = state.section === "sites"
-      ? "维护导航站里的网站条目，图标路径会作为网站 favicon 失败时的后备图标。"
+      ? "维护导航站里的网站条目。填写图标路径时前台优先使用这里；留空时才会尝试网站 favicon。"
     : state.section === "posts"
       ? "维护站内博客文章。正文用空行分段保存。"
       : "维护首页搜索框里的搜索引擎。搜索链接模板必须包含 {query}。";
@@ -401,7 +402,11 @@ function renderSiteEditor(site) {
       </div>
       <div class="field field--full">
         <label for="site-url">网站链接</label>
-        <input id="site-url" data-field="url" value="${escapeAttr(site.url)}">
+        <div class="meta-row">
+          <input id="site-url" data-field="url" value="${escapeAttr(site.url)}">
+          <button type="button" class="mini-button" data-action="fetch-site-metadata" ${state.siteMetaLoading ? "disabled" : ""}>${state.siteMetaLoading ? "抓取中..." : "抓取站点信息"}</button>
+        </div>
+        <span class="helper">这一步只在本地内容管理器里执行，不依赖 GitHub Pages。会抓标题、描述和 favicon 建议。</span>
       </div>
       <div class="field">
         <label for="site-category">分类</label>
@@ -421,7 +426,7 @@ function renderSiteEditor(site) {
           <input id="site-icon" data-field="icon" value="${escapeAttr(site.icon || "")}" placeholder="icon/example.png 或 https://...">
           <button type="button" class="mini-button" data-action="open-icon-folder">打开ICON文件夹</button>
         </div>
-        <span class="helper">支持 public/icon 下的相对路径，也支持直接填网络图片地址；前台会优先使用网站自身 favicon，失败时再回退到这里。</span>
+        <span class="helper">支持 public/icon 下的相对路径，也支持直接填网络图片地址；这里有值时前台优先使用这里，留空时才会尝试网站自身 favicon。</span>
         ${state.iconFiles.length > 0 ? `
           <div class="icon-picker-panel">
             <div class="icon-picker-panel__head">
@@ -588,6 +593,15 @@ function handleClick(event) {
 
   if (action === "open-icon-folder") {
     openIconFolder().catch((error) => {
+      setStatus("error", error.message);
+      render();
+    });
+    return;
+  }
+
+  if (action === "fetch-site-metadata") {
+    fetchSelectedSiteMetadata().catch((error) => {
+      state.siteMetaLoading = false;
       setStatus("error", error.message);
       render();
     });
@@ -882,6 +896,81 @@ async function openIconFolder() {
   }
 
   setStatus("success", "已打开 public/icon 文件夹。", true);
+}
+
+async function fetchSelectedSiteMetadata() {
+  const item = getSelectedItem();
+  if (!item || state.section !== "sites") {
+    return;
+  }
+
+  const siteUrl = String(item.url || "").trim();
+  if (!isValidHttpUrl(siteUrl)) {
+    throw new Error("请先填写有效的网站链接，再抓取站点信息。");
+  }
+
+  state.siteMetaLoading = true;
+  setStatus("info", "正在抓取站点标题、描述和图标建议...", true);
+  render();
+
+  try {
+    const metadata = await requestSiteMetadata(siteUrl);
+    const updatedFields = [];
+
+    if (metadata.name && metadata.name !== item.name) {
+      item.name = metadata.name;
+      updatedFields.push("名称");
+    }
+
+    if (metadata.description && metadata.description !== item.description) {
+      item.description = metadata.description;
+      updatedFields.push("描述");
+    }
+
+    if (!item.icon && metadata.icon) {
+      item.icon = metadata.icon;
+      updatedFields.push("图标");
+    }
+
+    const mergedAliases = Array.from(new Set([...(item.aliases || []), ...(metadata.aliases || [])].filter(Boolean)));
+    if (mergedAliases.length !== (item.aliases || []).length) {
+      item.aliases = mergedAliases;
+      updatedFields.push("别名");
+    }
+
+    if (updatedFields.length === 0) {
+      setStatus("info", "已抓取站点信息，但没有需要更新的字段。", true);
+      return;
+    }
+
+    state.dirty.sites = true;
+    setStatus("success", `已更新：${updatedFields.join("、")}。记得保存网站分类。`, true);
+  } finally {
+    state.siteMetaLoading = false;
+    render();
+  }
+}
+
+async function requestSiteMetadata(url) {
+  const response = await fetch("/api/site-metadata", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+    },
+    body: JSON.stringify({ url }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result.error || `抓取站点信息失败：${response.status}`);
+  }
+
+  return {
+    name: String(result.name || "").trim(),
+    description: String(result.description || "").trim(),
+    icon: String(result.icon || "").trim(),
+    aliases: normalizeStringList(result.aliases),
+    finalUrl: String(result.finalUrl || "").trim(),
+  };
 }
 
 function appendPickedTag(value) {

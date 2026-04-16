@@ -5,6 +5,7 @@ import path from "node:path";
 import { runInNewContext } from "node:vm";
 import { fileURLToPath } from "node:url";
 import { validatePostsPayload, validateSearchEnginesPayload, validateSitesPayload } from "../admin/content-validation.js";
+import { fetchSiteMetadata as fetchRemoteSiteMetadata } from "./site-metadata.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -71,6 +72,14 @@ const server = createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/api/open-icon-folder") {
       await openIconFolder();
       sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/site-metadata") {
+      const payload = await readJsonBody(req);
+      const targetUrl = assertString(payload?.url, "站点链接");
+      const metadata = await fetchRemoteSiteMetadata(targetUrl);
+      sendJson(res, 200, metadata);
       return;
     }
 

@@ -179,6 +179,10 @@ button {
   flex-wrap: wrap;
 }
 
+.meta-row > :first-child {
+  flex: 1 1 260px;
+}
+
 .primary-button,
 .ghost-button,
 .danger-button,
@@ -246,6 +250,16 @@ button {
 .mini-button:focus-visible {
   outline: 2px solid rgba(110, 231, 200, 0.8);
   outline-offset: 2px;
+}
+
+.primary-button:disabled,
+.ghost-button:disabled,
+.danger-button:disabled,
+.mini-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+  box-shadow: none;
 }
 
 .icon-picker-panel {
