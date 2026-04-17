@@ -1115,17 +1115,17 @@ function deleteItem() {
 
   if (state.section === "sites") {
     state.sites = state.sites.filter((site) => site.id !== item.id);
-    state.selectedSiteId = state.sites[0]?.id || "";
+    state.selectedSiteId = "";
     state.renameCategorySource = getSelectedSiteCategory();
     state.dirty.sites = true;
     resetSiteDiagnostics();
   } else if (state.section === "posts") {
     state.posts = state.posts.filter((post) => post.id !== item.id);
-    state.selectedPostId = state.posts[0]?.id || "";
+    state.selectedPostId = "";
     state.dirty.posts = true;
   } else {
     state.searchEngines = state.searchEngines.filter((engine) => engine.id !== item.id);
-    state.selectedSearchEngineId = state.searchEngines[0]?.id || "";
+    state.selectedSearchEngineId = "";
     state.dirty.searchEngines = true;
   }
 
