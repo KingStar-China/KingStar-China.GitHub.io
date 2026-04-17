@@ -1210,14 +1210,18 @@ async function publishToGitHub() {
   if (!response.ok) {
     const detail = String(result.detail || "").trim();
     const fallback = result.error || `提交失败：${response.status}`;
-    if (result.code === "push_failed_after_commit") {
+    if (result.code === "push_failed_after_commit" || result.code === "push_failed_pending_commits") {
       throw new Error(`${fallback}${detail ? `\n\nGit 输出：${detail}` : ""}`);
     }
     throw new Error(detail ? `${fallback}\n\nGit 输出：${detail}` : fallback);
   }
 
   state.publishing = false;
-  setStatus("success", `已推送到 GitHub：${result.branch || "main"} · ${result.summary || message}`, true);
+  if (result.pushedOnly) {
+    setStatus("success", `已重试推送到 GitHub：${result.branch || "main"} · ${result.summary || "已推送待同步提交"}`, true);
+  } else {
+    setStatus("success", `已推送到 GitHub：${result.branch || "main"} · ${result.summary || message}`, true);
+  }
   render();
 }
 
