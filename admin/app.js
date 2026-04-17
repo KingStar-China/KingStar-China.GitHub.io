@@ -56,7 +56,6 @@ async function init() {
   refs.status = root.querySelector('[data-role="status"]');
   refs.backupInput = root.querySelector('[data-role="backup-input"]');
   refs.bookmarkInput = root.querySelector('[data-role="bookmark-input"]');
-  refs.postMarkdownInput = root.querySelector('[data-role="post-markdown-input"]');
 
   root.addEventListener("click", handleClick);
   root.addEventListener("input", handleInput);
@@ -142,7 +141,6 @@ function createShell() {
 
       <input type="file" hidden data-role="backup-input" accept=".json,application/json">
       <input type="file" hidden data-role="bookmark-input" accept=".html,text/html">
-      <input type="file" hidden data-role="post-markdown-input" accept=".md,.markdown,text/markdown,text/plain">
       <div class="scroll-action-group" aria-label="页面滚动快捷按钮">
         <button type="button" class="scroll-action-button" data-action="scroll-bottom">直达底部</button>
         <button type="button" class="scroll-action-button" data-action="scroll-top">回到顶部</button>
@@ -541,7 +539,7 @@ function renderPostEditor(post) {
         <textarea id="post-content" data-field="content" style="min-height: 320px;">${escapeHTML(post.content || "")}</textarea>
       </div>
       <div class="field field--full">
-        <span class="helper">支持 Markdown。可直接导入本地 .md 文件；若文件带 front matter，会顺手填充标题、摘要、发布日期和标签。正文会保存到单独的 .md 文件，并在前台按 Markdown 渲染。</span>
+        <span class="helper">支持 Markdown。导入本地 .md 文件时，会顺手填充 front matter，并把正文里的本地图片、base64 图片和外链图片统一复制到 <code>public/post-image</code>。</span>
       </div>
     </div>
   `;
@@ -678,8 +676,10 @@ function handleClick(event) {
       render();
       return;
     }
-    refs.postMarkdownInput.value = "";
-    refs.postMarkdownInput.click();
+    importPostMarkdown().catch((error) => {
+      setStatus(error.message === "已取消导入 Markdown 文件。" ? "info" : "error", error.message, false);
+      render();
+    });
     return;
   }
 
@@ -782,16 +782,6 @@ function handleChange(event) {
 
   if (event.target === refs.bookmarkInput) {
     importBookmarkFile(event.target.files?.[0]).catch((error) => {
-      setStatus("error", error.message);
-      render();
-    }).finally(() => {
-      event.target.value = "";
-    });
-    return;
-  }
-
-  if (event.target === refs.postMarkdownInput) {
-    importPostMarkdownFile(event.target.files?.[0]).catch((error) => {
       setStatus("error", error.message);
       render();
     }).finally(() => {
@@ -1388,11 +1378,7 @@ async function importBookmarkFile(file) {
   render();
 }
 
-async function importPostMarkdownFile(file) {
-  if (!file) {
-    return;
-  }
-
+async function importPostMarkdown() {
   if (state.section !== "posts") {
     throw new Error("只有博客分类支持导入 Markdown 文件。");
   }
@@ -1402,8 +1388,18 @@ async function importPostMarkdownFile(file) {
     throw new Error("请先选择一篇文章，再导入 Markdown 文件。");
   }
 
-  const text = await file.text();
-  const imported = parseImportedMarkdownDocument(text);
+  setStatus("info", "正在读取 Markdown 文件并处理图片...", false);
+  render();
+
+  const response = await fetch("/api/import-post-markdown", {
+    method: "POST",
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result.error || `导入失败：${response.status}`);
+  }
+
+  const imported = normalizeImportedMarkdownPayload(result);
   const importedFields = [];
 
   post.content = imported.content;
@@ -1439,8 +1435,8 @@ async function importPostMarkdownFile(file) {
   setStatus(
     "success",
     importedFields.length > 0
-      ? `已导入 Markdown 文件，并更新${importedFields.join("、")}。记得保存博客分类。`
-      : "已导入 Markdown 正文，记得保存博客分类。",
+      ? `已导入 Markdown 文件，并更新${importedFields.join("、")}；已处理 ${imported.assetCount} 张图片。记得保存博客分类。`
+      : `已导入 Markdown 正文；已处理 ${imported.assetCount} 张图片。记得保存博客分类。`,
     true,
   );
   render();
@@ -1580,95 +1576,16 @@ function validateBeforeSave(payload, section) {
   validateSearchEnginesPayload(payload);
 }
 
-function parseImportedMarkdownDocument(source) {
-  const normalized = String(source || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  const match = normalized.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
-  const fileBaseName = getImportFileBaseName();
-
-  if (!match) {
-    return {
-      title: "",
-      summary: "",
-      publishedAt: "",
-      tags: [],
-      content: normalizePostContent(normalized),
-      fileBaseName,
-    };
-  }
-
-  const metadata = parseImportedMarkdownFrontMatter(match[1]);
+function normalizeImportedMarkdownPayload(payload) {
   return {
-    ...metadata,
-    content: normalizePostContent(match[2]),
-    fileBaseName,
+    title: String(payload?.title || "").trim(),
+    summary: String(payload?.summary || "").trim(),
+    publishedAt: String(payload?.publishedAt || "").trim(),
+    tags: normalizeStringList(payload?.tags),
+    content: normalizePostContent(payload?.content),
+    fileBaseName: String(payload?.fileBaseName || "").trim(),
+    assetCount: Number.isFinite(payload?.assetCount) ? payload.assetCount : 0,
   };
-}
-
-function parseImportedMarkdownFrontMatter(block) {
-  const metadata = {
-    title: "",
-    summary: "",
-    publishedAt: "",
-    tags: [],
-  };
-  const lines = String(block || "").split("\n");
-
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index].trimEnd();
-    if (!line.trim()) {
-      continue;
-    }
-
-    if (/^tags\s*:\s*$/.test(line)) {
-      const tags = [];
-      while (index + 1 < lines.length && /^\s*-\s+/.test(lines[index + 1])) {
-        index += 1;
-        tags.push(parseImportedMarkdownScalar(lines[index].replace(/^\s*-\s+/, "")));
-      }
-      metadata.tags = normalizeStringList(tags);
-      continue;
-    }
-
-    const scalarMatch = line.match(/^([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*)$/);
-    if (!scalarMatch) {
-      continue;
-    }
-
-    const [, key, value] = scalarMatch;
-    if (!(key in metadata)) {
-      continue;
-    }
-
-    metadata[key] = parseImportedMarkdownScalar(value);
-  }
-
-  return metadata;
-}
-
-function parseImportedMarkdownScalar(value) {
-  const text = String(value || "").trim();
-  if (!text) {
-    return "";
-  }
-
-  if ((text.startsWith("\"") && text.endsWith("\"")) || (text.startsWith("'") && text.endsWith("'"))) {
-    try {
-      return JSON.parse(text.startsWith("'") ? `"${text.slice(1, -1).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"` : text);
-    } catch {
-      return text.slice(1, -1);
-    }
-  }
-
-  return text;
-}
-
-function getImportFileBaseName() {
-  const name = String(refs.postMarkdownInput?.files?.[0]?.name || "").trim();
-  if (!name) {
-    return "导入文章";
-  }
-
-  return name.replace(/\.[^.]+$/, "") || "导入文章";
 }
 
 function normalizeSite(site = {}) {

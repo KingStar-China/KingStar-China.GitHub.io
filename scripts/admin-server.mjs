@@ -5,6 +5,7 @@ import path from "node:path";
 import { runInNewContext } from "node:vm";
 import { fileURLToPath } from "node:url";
 import { validatePostsPayload, validateSearchEnginesPayload, validateSiteIconReferences, validateSitesPayload } from "../admin/content-validation.js";
+import { importMarkdownDocumentFromFile } from "./import-post-markdown.mjs";
 import { loadPostsFromMarkdown, writePostsToMarkdown } from "./posts-content.mjs";
 import { fetchSiteMetadata as fetchRemoteSiteMetadata } from "./site-metadata.mjs";
 
@@ -96,6 +97,13 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "POST" && url.pathname === "/api/import-post-markdown") {
+      const filePath = await pickMarkdownFile();
+      const imported = await importMarkdownDocumentFromFile(filePath);
+      sendJson(res, 200, imported);
+      return;
+    }
+
     if (req.method === "POST" && url.pathname === "/api/publish-github") {
       const payload = await readJsonBody(req);
       const result = await publishToGitHub(payload);
@@ -163,6 +171,54 @@ async function openIconFolder() {
     child.once("spawn", () => {
       child.unref();
       resolve();
+    });
+  });
+}
+
+async function pickMarkdownFile() {
+  const script = [
+    "Add-Type -AssemblyName System.Windows.Forms",
+    "$dialog = New-Object System.Windows.Forms.OpenFileDialog",
+    '$dialog.Title = "选择要导入的 Markdown 文件"',
+    '$dialog.Filter = "Markdown 文件 (*.md;*.markdown)|*.md;*.markdown|所有文件 (*.*)|*.*"',
+    "$dialog.Multiselect = $false",
+    "if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {",
+    "  [Console]::OutputEncoding = [System.Text.Encoding]::UTF8",
+    "  Write-Output $dialog.FileName",
+    "}",
+  ].join("; ");
+
+  const output = await runPowerShell(script);
+  const filePath = String(output || "").trim();
+  if (!filePath) {
+    throw new Error("已取消导入 Markdown 文件。");
+  }
+  return filePath;
+}
+
+async function runPowerShell(script) {
+  return await new Promise((resolve, reject) => {
+    const child = spawn("powershell.exe", ["-NoProfile", "-STA", "-Command", script], {
+      cwd: rootDir,
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString("utf8");
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString("utf8");
+    });
+    child.once("error", reject);
+    child.once("close", (code) => {
+      if (code === 0) {
+        resolve(stdout);
+        return;
+      }
+      reject(new Error(stderr.trim() || `PowerShell 执行失败：${code}`));
     });
   });
 }
