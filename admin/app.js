@@ -1139,7 +1139,7 @@ function generateId() {
   }
 
   const source = state.section === "sites" ? item.name : state.section === "posts" ? item.title : item.label;
-  const slug = slugify(source);
+  const slug = state.section === "posts" ? slugifyPostId(source) : slugify(source);
   item.id = slug || `${state.section === "sites" ? "site" : state.section === "posts" ? "post" : "engine"}-${Date.now()}`;
   state.dirty[state.section] = true;
   setStatus("info", "已根据当前标题生成 ID。", false);
@@ -1421,7 +1421,7 @@ async function importPostMarkdown() {
     importedFields.push("标签");
   }
 
-  const importedId = slugify(imported.fileBaseName);
+  const importedId = slugifyPostId(imported.fileBaseName);
   if (importedId && (!post.id || /^post-\d+$/.test(post.id))) {
     post.id = importedId;
     importedFields.push("ID");
@@ -1774,6 +1774,16 @@ function slugify(value) {
     .replace(/-+/g, "-");
 
   return slug;
+}
+
+function slugifyPostId(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 function compareText(left, right) {

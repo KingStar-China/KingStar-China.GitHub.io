@@ -1,4 +1,5 @@
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -22,7 +23,14 @@ export async function importMarkdownDocumentFromFile(filePath) {
   const source = await readFile(absoluteFilePath, "utf8");
   const parsed = parseImportedMarkdownDocument(source, fileBaseName);
   const assetContext = createAssetContext({ markdownDir, fileBaseName });
-  const content = await rewriteMarkdownImages(parsed.content, assetContext);
+  let content = parsed.content;
+
+  try {
+    content = await rewriteMarkdownImages(parsed.content, assetContext);
+  } catch (error) {
+    await cleanupCreatedAssets(assetContext);
+    throw error;
+  }
 
   return {
     ...parsed,
@@ -35,22 +43,22 @@ export async function importMarkdownDocumentFromFile(filePath) {
 export function parseImportedMarkdownDocument(source, fileBaseName = "导入文章") {
   const normalized = String(source || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   const match = normalized.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  const content = normalizeMarkdownContent(match ? match[2] : normalized);
 
-  if (!match) {
-    return {
-      title: "",
-      summary: "",
-      publishedAt: "",
-      tags: [],
-      content: normalizeMarkdownContent(normalized),
-      fileBaseName,
-    };
-  }
+  const metadata = match
+    ? parseImportedMarkdownFrontMatter(match[1])
+    : {
+        title: "",
+        summary: "",
+        publishedAt: "",
+        tags: [],
+      };
 
-  const metadata = parseImportedMarkdownFrontMatter(match[1]);
   return {
     ...metadata,
-    content: normalizeMarkdownContent(match[2]),
+    summary: metadata.summary || createSummaryFromMarkdown(content),
+    publishedAt: metadata.publishedAt || getTodayDateString(),
+    content,
     fileBaseName,
   };
 }
@@ -120,6 +128,36 @@ function normalizeMarkdownContent(value) {
     .trim();
 }
 
+function createSummaryFromMarkdown(content) {
+  const plainText = String(content || "")
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`[^`]*`/g, " ")
+    .replace(/!\[[^\]]*\]\(([^)]+)\)/g, " ")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+    .replace(/^>\s*/gm, "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*\d+\.\s+/gm, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!plainText) {
+    return "";
+  }
+
+  const maxLength = 120;
+  if (plainText.length <= maxLength) {
+    return plainText;
+  }
+
+  return `${plainText.slice(0, maxLength).trim()}...`;
+}
+
+function getTodayDateString() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function normalizeStringList(values) {
   if (!Array.isArray(values)) {
     return [];
@@ -135,6 +173,7 @@ function createAssetContext({ markdownDir, fileBaseName }) {
     markdownDir,
     fileBaseName: slugify(fileBaseName) || "post-image",
     importedAssets: new Map(),
+    createdFiles: new Set(),
     assetCount: 0,
   };
 }
@@ -251,26 +290,19 @@ async function saveImportedImage(buffer, extension, context) {
   await mkdir(postImageDir, { recursive: true });
 
   const normalizedExtension = normalizeExtension(extension) || ".png";
-  const filePath = await getNextAvailableImagePath(context.fileBaseName, normalizedExtension);
-  await writeFile(filePath, buffer);
+  const fileHash = createHash("sha256").update(buffer).digest("hex").slice(0, 16);
+  const fileName = `${context.fileBaseName}-${fileHash}${normalizedExtension}`;
+  const filePath = path.join(postImageDir, fileName);
+
+  if (!(await fileExists(filePath))) {
+    await writeFile(filePath, buffer);
+    context.createdFiles.add(filePath);
+  }
 
   return {
     filePath,
     publicPath: `/post-image/${path.basename(filePath)}`,
   };
-}
-
-async function getNextAvailableImagePath(baseName, extension) {
-  let index = 1;
-
-  while (true) {
-    const fileName = `${baseName}-${index}${extension}`;
-    const filePath = path.join(postImageDir, fileName);
-    if (!(await fileExists(filePath))) {
-      return filePath;
-    }
-    index += 1;
-  }
 }
 
 async function fileExists(filePath) {
@@ -335,6 +367,11 @@ function slugify(value) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+async function cleanupCreatedAssets(context) {
+  const createdFiles = Array.from(context?.createdFiles || []);
+  await Promise.all(createdFiles.map((filePath) => unlink(filePath).catch(() => {})));
 }
 
 async function replaceAsync(input, pattern, replacer) {

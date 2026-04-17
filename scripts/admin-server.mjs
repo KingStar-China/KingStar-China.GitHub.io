@@ -200,7 +200,6 @@ async function runPowerShell(script) {
   return await new Promise((resolve, reject) => {
     const child = spawn("powershell.exe", ["-NoProfile", "-STA", "-Command", script], {
       cwd: rootDir,
-      windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
     });
     let stdout = "";
