@@ -327,6 +327,8 @@ function assertString(value, label) {
   if (typeof value !== "string" || !value.trim()) {
     throw new Error(`${label}不能为空`);
   }
+
+  return value.trim();
 }
 
 
