@@ -990,6 +990,48 @@ a {
   line-height: 1.75;
 }
 
+.article__body .hljs-comment,
+.article__body .hljs-quote {
+  color: #7b8b9c;
+}
+
+.article__body .hljs-keyword,
+.article__body .hljs-selector-tag,
+.article__body .hljs-literal,
+.article__body .hljs-section,
+.article__body .hljs-link {
+  color: #f59e0b;
+}
+
+.article__body .hljs-string,
+.article__body .hljs-attr,
+.article__body .hljs-template-tag,
+.article__body .hljs-template-variable {
+  color: #8ee39a;
+}
+
+.article__body .hljs-number,
+.article__body .hljs-symbol,
+.article__body .hljs-bullet,
+.article__body .hljs-variable,
+.article__body .hljs-meta,
+.article__body .hljs-title.class_ {
+  color: #7dd3fc;
+}
+
+.article__body .hljs-title,
+.article__body .hljs-function,
+.article__body .hljs-property,
+.article__body .hljs-subst {
+  color: #f8fafc;
+}
+
+.article__body .hljs-params,
+.article__body .hljs-type,
+.article__body .hljs-built_in {
+  color: #c4b5fd;
+}
+
 [data-theme="dark"] .article__body code {
   background: rgba(255, 255, 255, 0.08);
 }

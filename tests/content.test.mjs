@@ -15,7 +15,7 @@ import {
   validateSiteIconReferences,
   validateSitesPayload,
 } from "../admin/content-validation.js";
-import { loadPostsFromMarkdown } from "../scripts/posts-content.mjs";
+import { decoratePost, loadPostsFromMarkdown } from "../scripts/posts-content.mjs";
 import { extractSiteMetadata } from "../scripts/site-metadata.mjs";
 import { readdir } from "node:fs/promises";
 
@@ -111,6 +111,21 @@ test("博客派生数据包含 Markdown 渲染结果和内容块统计", () => {
   assert.ok(posts[0]?.contentHtml);
   assert.equal(typeof posts[0]?.contentHtml, "string");
   assert.ok(posts[0]?.blockCount > 0);
+});
+
+test("Markdown 代码块会生成高亮 HTML", () => {
+  const post = decoratePost({
+    id: "code-sample",
+    title: "Code",
+    summary: "Code",
+    publishedAt: "2026-04-17",
+    tags: ["测试"],
+    content: "```js\nconst answer = 42;\n```",
+  });
+
+  assert.match(post.contentHtml, /article-code-block/);
+  assert.match(post.contentHtml, /class="hljs language-js"/);
+  assert.match(post.contentHtml, /hljs-keyword|hljs-variable|hljs-number/);
 });
 
 test("本地管理校验会拒绝归一化后重复的站点链接和错误图标路径", () => {
