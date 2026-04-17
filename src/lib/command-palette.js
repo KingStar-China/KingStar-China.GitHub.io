@@ -55,6 +55,9 @@ export function runCommandResult(result, deps) {
     }
 
     const openedWindow = window.open(site.url, "_blank", "noopener,noreferrer");
+    if (!openedWindow) {
+      return;
+    }
 
     try {
       openedWindow.opener = null;
