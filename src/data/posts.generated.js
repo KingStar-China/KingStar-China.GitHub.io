@@ -2,6 +2,128 @@
 // Do not edit manually. Source files live in src/content/posts/*.md.
 export const posts = [
   {
+    "id": "post-1776411444439",
+    "title": "熬夜缺觉危害有多可怕？全身炎症悄悄爆发，损伤难以逆转！",
+    "summary": "**导读** 熬夜最直观的后果，是第二天困、累、注意力差。更隐蔽的代价，是身体会出现一系列“炎症相关”变化：交感神经过度兴奋、应激激素紊乱、炎症信号分子上升、血糖调节变差、免疫功能受影响。 但也要讲清楚：**并不是熬一晚夜，就必然造成永久、...",
+    "publishedAt": "2026-04-17",
+    "tags": [],
+    "content": "# \n\n> **导读**  \n> 熬夜最直观的后果，是第二天困、累、注意力差。更隐蔽的代价，是身体会出现一系列“炎症相关”变化：交感神经过度兴奋、应激激素紊乱、炎症信号分子上升、血糖调节变差、免疫功能受影响。  \n> 但也要讲清楚：**并不是熬一晚夜，就必然造成永久、不可逆损伤**。更准确的说法是：**短期缺觉可引发可测量的炎症和代谢异常；如果长期、反复缺觉，这些异常会累积，相关风险可能不容易靠一两天补觉完全抹平。**\n\n![睡眠不足的常见影响示意图](/post-image/post-image-494e8e2f0d76f4ac.png)\n\n*图 1｜睡眠不足的常见影响示意图。来源：Wikimedia Commons。*\n\n---\n\n## 一、为什么熬夜会把“炎症开关”拧高？\n\n睡眠不是单纯“关机休息”，而是身体做系统维护的时间。正常睡眠会帮助神经、内分泌和免疫系统维持平衡；而熬夜、睡眠不足或睡眠质量差，会打乱这个平衡。\n\n大致会发生三件事：\n\n### 1）生物钟被打乱，身体开始“错峰运行”\n昼夜节律决定了体温、激素分泌、代谢、免疫活动和睡眠—觉醒节律。熬夜会让大脑和外周组织的节律不同步，等于让身体“每个部门都在不同时间上班”。\n\n![人体昼夜节律示意图](/post-image/post-image-13a045aee6ffba65.png)\n\n*图 2｜人体昼夜节律与多种生理活动相关。来源：Wikimedia Commons / NIGMS。*\n\n### 2）交感神经和应激轴被激活\n当你硬撑着不睡，身体并不会认为你“很努力”，而更像是在经历一种应激状态。研究显示，睡眠剥夺会影响皮质醇节律、自主神经活动和情绪调节，结果就是心率、血压、焦虑感和反应错误都可能增加。\n\n### 3）炎症信号上升\n实验研究和综述都发现，睡眠不足与多种炎症标志物升高有关，包括 **IL-6、CRP、TNF 相关通路** 等。也就是说，缺觉并不只是“脑子昏”，而是在把身体往**低度慢性炎症**的方向推。[1][2][3]\n\n![炎症过程示意图](/post-image/post-image-d45ba1e85479a738.jpg)\n\n*图 3｜炎症反应是免疫系统的基础过程之一。来源：Wikimedia Commons / OpenStax。*\n\n---\n\n## 二、缺觉以后，身体哪些系统最先遭殃？\n\n## 1. 大脑：注意力、判断力和情绪先崩\n\n这是最容易感受到的一层：\n\n- 注意力下降，容易走神  \n- 反应变慢，出错率上升  \n- 记忆编码和学习效率下降  \n- 情绪波动变大，更易烦躁、焦虑、低落  \n\nNHLBI、CDC 和新加坡 HealthHub 都指出，长期睡眠不足会影响思维、反应、学习和情绪稳定性，还会提高事故风险，尤其是疲劳驾驶风险。[4][5][6]\n\n---\n\n## 2. 免疫系统：不是“变弱”这么简单，而是“失衡”\n\n很多人以为缺觉只是“免疫力下降”。更准确地说，是**免疫调节失衡**：\n\n- 一方面，身体的炎症信号可能升高  \n- 另一方面，抗感染、防御和修复的效率可能下降  \n\n这就是为什么长期缺觉的人，常会觉得“更容易累、容易反复不舒服、恢复慢”。睡眠和免疫系统本来就是双向关系：身体发炎会影响睡眠，而睡眠差又会继续推高炎症。[3][7]\n\n---\n\n## 3. 代谢系统：食欲、血糖、体重都可能被带偏\n\n睡眠不足后，很多人会出现：\n\n- 更想吃高糖、高脂、高热量食物  \n- 更难控制食量  \n- 第二天血糖波动更明显  \n- 长期更容易走向肥胖、胰岛素敏感性下降和 2 型糖尿病风险增加  \n\nNHLBI、CDC 和 HealthHub 都提到，长期睡眠不足与肥胖、糖代谢异常和糖尿病风险升高相关。[4][5][6]\n\n---\n\n## 4. 心血管系统：血压、心率和长期风险一起抬头\n\n长期缺觉与高血压、心脏病、心梗和中风风险增加有关。机制上，至少包括：\n\n- 交感神经过度兴奋  \n- 炎症水平升高  \n- 血糖和脂代谢紊乱  \n- 睡眠呼吸障碍等问题叠加  \n\nCDC 和 NHLBI 都明确提示，长期睡眠不足会伤害心血管健康。[4][8]\n\n---\n\n## 5. 疼痛和恢复：小伤更难好，痛感也可能更强\n\n一些实验研究发现，持续睡眠限制后，受试者炎症指标升高的同时，疼痛体验也会增加。[1]  \n这意味着，缺觉可能让身体对疼痛更敏感，训练恢复、伤病恢复和疾病康复都更不顺利。\n\n---\n\n## 三、“损伤难以逆转”到底该怎么理解？\n\n这是最容易被标题党说过头的地方。\n\n### 先说结论：\n- **短期缺觉造成的部分改变是可恢复的。**  \n  有研究发现，短期睡眠限制后的某些炎症指标在恢复睡眠后可改善。[9]\n- **但长期、反复缺觉，不一定靠周末补觉就能完全抵消。**  \n  NIH 的科普报道提到，一项研究中，周末“补觉”并没有把代谢紊乱完全逆转，胰岛素敏感性仍明显下降。[10]\n- **某些变化可能持续一段时间，尤其是反复缺觉形成慢性模式时。**  \n  近年的综述也提到，睡眠丢失和睡眠干扰对炎症的影响，可能在一晚或几晚恢复睡眠后仍持续存在。[11]\n\n所以，更严谨的表达不是“熬一晚夜，器官就永久报废”，而是：\n\n> **睡眠不足带来的部分影响可以恢复，但如果长期把缺觉当常态，炎症、代谢、心血管和心理健康风险会逐渐累积，而这种累积伤害未必能被零碎补觉完全抵消。**\n\n---\n\n## 四、身体发出的 8 个“缺觉报警信号”\n\n如果你经常出现下面这些情况，就别再把“我只是晚睡”当成小事了：\n\n1. 白天总想睡，开会、坐车时都撑不住  \n2. 需要连续喝咖啡才能维持清醒  \n3. 注意力差、记忆变差、工作失误增多  \n4. 情绪暴躁、焦虑、低落，耐心明显变差  \n5. 夜里明明很晚才睡，第二天还是疲惫  \n6. 明显更想吃甜食、油炸、宵夜  \n7. 体重、血糖、血压开始往坏方向走  \n8. 打鼾严重、夜间憋醒、晨起头痛或白天困到异常  \n\n最后这一条尤其要注意：**如果是睡眠呼吸暂停、失眠障碍、焦虑抑郁或其他疾病导致的睡不好，仅靠“早点睡”往往不够。**\n\n---\n\n## 五、把炎症和伤害拉回去，最有效的不是保健品，而是这 6 件事\n\n## 1）先把睡眠时长拉回底线\n成年人通常建议 **每晚 7–9 小时**；至少不要长期低于 7 小时。[4][12][13]\n\n## 2）固定起床时间，比“偶尔早睡”更重要\n每天固定起床时间，有助于把生物钟重新拉回正轨。晚睡后狂补到中午，往往会让节律更乱。\n\n## 3）晚上少做三件事\n- 睡前长时间刷手机  \n- 晚上大量咖啡因/酒精  \n- 临睡前高强度工作或情绪刺激  \n\n## 4）别把卧室变成“第二办公室”\n卧室尽量只留给睡眠和放松：暗一点、安静一点、凉一点。\n\n## 5）连续几周都睡不好，就别硬扛\n如果失眠、早醒、打鼾、憋醒、晨起头痛、白天极度嗜睡已经持续 **数周到一个月左右**，并明显影响学习、工作或情绪，应该尽快就医评估。[6]\n\n## 6）别迷信“周末补觉可以一笔勾销”\n补觉当然比继续缺觉好，但它更像“止损”，不是“完全复原键”。真正有效的，是把睡眠重新变成稳定习惯。[10][11]\n\n---\n\n## 六、结语\n\n熬夜最危险的地方，不是第二天困，而是你会误以为“扛一扛没事”。  \n事实上，睡眠不足会悄悄影响炎症、代谢、心血管、免疫和情绪系统。一次熬夜未必立刻造成不可逆后果，但**长期、反复、习惯性缺觉**，确实会把身体一步步推向更高风险状态。\n\n**别等到体检异常、情绪失控、记忆变差、血压血糖都出问题时，才意识到睡眠是在给全身“做维修”。**  \n你不是在省时间，你是在透支身体的修复窗口。\n\n---\n\n## 参考资料\n\n[1]: https://pmc.ncbi.nlm.nih.gov/articles/PMC1978405/  \nHaack M, et al. Elevated inflammatory markers in response to prolonged sleep restriction are associated with increased pain experience in healthy volunteers.\n\n[2]: https://pmc.ncbi.nlm.nih.gov/articles/PMC3548567/  \nMullington JM, et al. Sleep Loss and Inflammation.\n\n[3]: https://www.nature.com/articles/s42003-021-02825-4  \nGarbarino S, et al. Role of sleep deprivation in immune-related disease risk and outcomes.\n\n[4]: https://www.nhlbi.nih.gov/health/sleep/why-sleep-important  \nNHLBI. How Sleep Works – Why Is Sleep Important?\n\n[5]: https://www.cdc.gov/cdi/indicator-definitions/sleep.html  \nCDC. Sleep | Chronic Disease Indicators.\n\n[6]: https://www.healthhub.sg/programmes/mindsg/caring-for-ourselves/sleeping-well-adults  \nHealthHub Singapore. Sleeping Well (Adults).\n\n[7]: https://pmc.ncbi.nlm.nih.gov/articles/PMC6689741/  \nBesedovsky L, et al. The Sleep-Immune Crosstalk in Health and Disease.\n\n[8]: https://www.cdc.gov/heart-disease/about/sleep-and-heart-health.html  \nCDC. About Sleep and Your Heart Health.\n\n[9]: https://pmc.ncbi.nlm.nih.gov/articles/PMC3798707/  \nPejovic S, et al. Effects of recovery sleep after one work week of mild sleep restriction on IL-6 and cortisol secretion and daytime sleepiness and performance.\n\n[10]: https://newsinhealth.nih.gov/2019/05/making-up-sleep-may-not-help  \nNIH News in Health. Making Up Sleep May Not Help.\n\n[11]: https://link.springer.com/article/10.1007/s11818-025-00495-6  \nEngert LC, et al. Sleep and inflammation: a bidirectional relationship.\n\n[12]: https://www.nhlbi.nih.gov/health/sleep/how-much-sleep  \nNHLBI. How Much Sleep Is Enough?\n\n[13]: https://aasm.org/advocacy/position-statements/adult-sleep-duration-health-advisory/  \nAASM. Adult Sleep Duration Health Advisory.",
+    "contentHtml": "<h1 id=\"section\"></h1><blockquote>\n<p><strong>导读</strong><br>熬夜最直观的后果，是第二天困、累、注意力差。更隐蔽的代价，是身体会出现一系列“炎症相关”变化：交感神经过度兴奋、应激激素紊乱、炎症信号分子上升、血糖调节变差、免疫功能受影响。<br>但也要讲清楚：<strong>并不是熬一晚夜，就必然造成永久、不可逆损伤</strong>。更准确的说法是：<strong>短期缺觉可引发可测量的炎症和代谢异常；如果长期、反复缺觉，这些异常会累积，相关风险可能不容易靠一两天补觉完全抹平。</strong></p>\n</blockquote>\n<p><img src=\"/post-image/post-image-494e8e2f0d76f4ac.png\" alt=\"睡眠不足的常见影响示意图\"></p>\n<p><em>图 1｜睡眠不足的常见影响示意图。来源：Wikimedia Commons。</em></p>\n<hr>\n<h2 id=\"一为什么熬夜会把炎症开关拧高\">一、为什么熬夜会把“炎症开关”拧高？</h2><p>睡眠不是单纯“关机休息”，而是身体做系统维护的时间。正常睡眠会帮助神经、内分泌和免疫系统维持平衡；而熬夜、睡眠不足或睡眠质量差，会打乱这个平衡。</p>\n<p>大致会发生三件事：</p>\n<h3 id=\"1生物钟被打乱身体开始错峰运行\">1）生物钟被打乱，身体开始“错峰运行”</h3><p>昼夜节律决定了体温、激素分泌、代谢、免疫活动和睡眠—觉醒节律。熬夜会让大脑和外周组织的节律不同步，等于让身体“每个部门都在不同时间上班”。</p>\n<p><img src=\"/post-image/post-image-13a045aee6ffba65.png\" alt=\"人体昼夜节律示意图\"></p>\n<p><em>图 2｜人体昼夜节律与多种生理活动相关。来源：Wikimedia Commons / NIGMS。</em></p>\n<h3 id=\"2交感神经和应激轴被激活\">2）交感神经和应激轴被激活</h3><p>当你硬撑着不睡，身体并不会认为你“很努力”，而更像是在经历一种应激状态。研究显示，睡眠剥夺会影响皮质醇节律、自主神经活动和情绪调节，结果就是心率、血压、焦虑感和反应错误都可能增加。</p>\n<h3 id=\"3炎症信号上升\">3）炎症信号上升</h3><p>实验研究和综述都发现，睡眠不足与多种炎症标志物升高有关，包括 <strong>IL-6、CRP、TNF 相关通路</strong> 等。也就是说，缺觉并不只是“脑子昏”，而是在把身体往<strong>低度慢性炎症</strong>的方向推。<a href=\"https://pmc.ncbi.nlm.nih.gov/articles/PMC3548567/\">1</a><a href=\"https://www.nature.com/articles/s42003-021-02825-4\">3</a></p>\n<p><img src=\"/post-image/post-image-d45ba1e85479a738.jpg\" alt=\"炎症过程示意图\"></p>\n<p><em>图 3｜炎症反应是免疫系统的基础过程之一。来源：Wikimedia Commons / OpenStax。</em></p>\n<hr>\n<h2 id=\"二缺觉以后身体哪些系统最先遭殃\">二、缺觉以后，身体哪些系统最先遭殃？</h2><h2 id=\"1-大脑注意力判断力和情绪先崩\">1. 大脑：注意力、判断力和情绪先崩</h2><p>这是最容易感受到的一层：</p>\n<ul>\n<li>注意力下降，容易走神  </li>\n<li>反应变慢，出错率上升  </li>\n<li>记忆编码和学习效率下降  </li>\n<li>情绪波动变大，更易烦躁、焦虑、低落</li>\n</ul>\n<p>NHLBI、CDC 和新加坡 HealthHub 都指出，长期睡眠不足会影响思维、反应、学习和情绪稳定性，还会提高事故风险，尤其是疲劳驾驶风险。<a href=\"https://www.cdc.gov/cdi/indicator-definitions/sleep.html\">4</a><a href=\"https://www.healthhub.sg/programmes/mindsg/caring-for-ourselves/sleeping-well-adults\">6</a></p>\n<hr>\n<h2 id=\"2-免疫系统不是变弱这么简单而是失衡\">2. 免疫系统：不是“变弱”这么简单，而是“失衡”</h2><p>很多人以为缺觉只是“免疫力下降”。更准确地说，是<strong>免疫调节失衡</strong>：</p>\n<ul>\n<li>一方面，身体的炎症信号可能升高  </li>\n<li>另一方面，抗感染、防御和修复的效率可能下降</li>\n</ul>\n<p>这就是为什么长期缺觉的人，常会觉得“更容易累、容易反复不舒服、恢复慢”。睡眠和免疫系统本来就是双向关系：身体发炎会影响睡眠，而睡眠差又会继续推高炎症。<a href=\"https://pmc.ncbi.nlm.nih.gov/articles/PMC6689741/\">3</a></p>\n<hr>\n<h2 id=\"3-代谢系统食欲血糖体重都可能被带偏\">3. 代谢系统：食欲、血糖、体重都可能被带偏</h2><p>睡眠不足后，很多人会出现：</p>\n<ul>\n<li>更想吃高糖、高脂、高热量食物  </li>\n<li>更难控制食量  </li>\n<li>第二天血糖波动更明显  </li>\n<li>长期更容易走向肥胖、胰岛素敏感性下降和 2 型糖尿病风险增加</li>\n</ul>\n<p>NHLBI、CDC 和 HealthHub 都提到，长期睡眠不足与肥胖、糖代谢异常和糖尿病风险升高相关。<a href=\"https://www.cdc.gov/cdi/indicator-definitions/sleep.html\">4</a><a href=\"https://www.healthhub.sg/programmes/mindsg/caring-for-ourselves/sleeping-well-adults\">6</a></p>\n<hr>\n<h2 id=\"4-心血管系统血压心率和长期风险一起抬头\">4. 心血管系统：血压、心率和长期风险一起抬头</h2><p>长期缺觉与高血压、心脏病、心梗和中风风险增加有关。机制上，至少包括：</p>\n<ul>\n<li>交感神经过度兴奋  </li>\n<li>炎症水平升高  </li>\n<li>血糖和脂代谢紊乱  </li>\n<li>睡眠呼吸障碍等问题叠加</li>\n</ul>\n<p>CDC 和 NHLBI 都明确提示，长期睡眠不足会伤害心血管健康。<a href=\"https://www.cdc.gov/heart-disease/about/sleep-and-heart-health.html\">4</a></p>\n<hr>\n<h2 id=\"5-疼痛和恢复小伤更难好痛感也可能更强\">5. 疼痛和恢复：小伤更难好，痛感也可能更强</h2><p>一些实验研究发现，持续睡眠限制后，受试者炎症指标升高的同时，疼痛体验也会增加。<a href=\"https://pmc.ncbi.nlm.nih.gov/articles/PMC1978405/\">1</a><br>这意味着，缺觉可能让身体对疼痛更敏感，训练恢复、伤病恢复和疾病康复都更不顺利。</p>\n<hr>\n<h2 id=\"三损伤难以逆转到底该怎么理解\">三、“损伤难以逆转”到底该怎么理解？</h2><p>这是最容易被标题党说过头的地方。</p>\n<h3 id=\"先说结论\">先说结论：</h3><ul>\n<li><strong>短期缺觉造成的部分改变是可恢复的。</strong><br>有研究发现，短期睡眠限制后的某些炎症指标在恢复睡眠后可改善。<a href=\"https://pmc.ncbi.nlm.nih.gov/articles/PMC3798707/\">9</a></li>\n<li><strong>但长期、反复缺觉，不一定靠周末补觉就能完全抵消。</strong><br>NIH 的科普报道提到，一项研究中，周末“补觉”并没有把代谢紊乱完全逆转，胰岛素敏感性仍明显下降。<a href=\"https://newsinhealth.nih.gov/2019/05/making-up-sleep-may-not-help\">10</a></li>\n<li><strong>某些变化可能持续一段时间，尤其是反复缺觉形成慢性模式时。</strong><br>近年的综述也提到，睡眠丢失和睡眠干扰对炎症的影响，可能在一晚或几晚恢复睡眠后仍持续存在。<a href=\"https://link.springer.com/article/10.1007/s11818-025-00495-6\">11</a></li>\n</ul>\n<p>所以，更严谨的表达不是“熬一晚夜，器官就永久报废”，而是：</p>\n<blockquote>\n<p><strong>睡眠不足带来的部分影响可以恢复，但如果长期把缺觉当常态，炎症、代谢、心血管和心理健康风险会逐渐累积，而这种累积伤害未必能被零碎补觉完全抵消。</strong></p>\n</blockquote>\n<hr>\n<h2 id=\"四身体发出的-8-个缺觉报警信号\">四、身体发出的 8 个“缺觉报警信号”</h2><p>如果你经常出现下面这些情况，就别再把“我只是晚睡”当成小事了：</p>\n<ol>\n<li>白天总想睡，开会、坐车时都撑不住  </li>\n<li>需要连续喝咖啡才能维持清醒  </li>\n<li>注意力差、记忆变差、工作失误增多  </li>\n<li>情绪暴躁、焦虑、低落，耐心明显变差  </li>\n<li>夜里明明很晚才睡，第二天还是疲惫  </li>\n<li>明显更想吃甜食、油炸、宵夜  </li>\n<li>体重、血糖、血压开始往坏方向走  </li>\n<li>打鼾严重、夜间憋醒、晨起头痛或白天困到异常</li>\n</ol>\n<p>最后这一条尤其要注意：<strong>如果是睡眠呼吸暂停、失眠障碍、焦虑抑郁或其他疾病导致的睡不好，仅靠“早点睡”往往不够。</strong></p>\n<hr>\n<h2 id=\"五把炎症和伤害拉回去最有效的不是保健品而是这-6-件事\">五、把炎症和伤害拉回去，最有效的不是保健品，而是这 6 件事</h2><h2 id=\"1先把睡眠时长拉回底线\">1）先把睡眠时长拉回底线</h2><p>成年人通常建议 <strong>每晚 7–9 小时</strong>；至少不要长期低于 7 小时。<a href=\"https://www.nhlbi.nih.gov/health/sleep/how-much-sleep\">4</a><a href=\"https://aasm.org/advocacy/position-statements/adult-sleep-duration-health-advisory/\">13</a></p>\n<h2 id=\"2固定起床时间比偶尔早睡更重要\">2）固定起床时间，比“偶尔早睡”更重要</h2><p>每天固定起床时间，有助于把生物钟重新拉回正轨。晚睡后狂补到中午，往往会让节律更乱。</p>\n<h2 id=\"3晚上少做三件事\">3）晚上少做三件事</h2><ul>\n<li>睡前长时间刷手机  </li>\n<li>晚上大量咖啡因/酒精  </li>\n<li>临睡前高强度工作或情绪刺激</li>\n</ul>\n<h2 id=\"4别把卧室变成第二办公室\">4）别把卧室变成“第二办公室”</h2><p>卧室尽量只留给睡眠和放松：暗一点、安静一点、凉一点。</p>\n<h2 id=\"5连续几周都睡不好就别硬扛\">5）连续几周都睡不好，就别硬扛</h2><p>如果失眠、早醒、打鼾、憋醒、晨起头痛、白天极度嗜睡已经持续 <strong>数周到一个月左右</strong>，并明显影响学习、工作或情绪，应该尽快就医评估。<a href=\"https://www.healthhub.sg/programmes/mindsg/caring-for-ourselves/sleeping-well-adults\">6</a></p>\n<h2 id=\"6别迷信周末补觉可以一笔勾销\">6）别迷信“周末补觉可以一笔勾销”</h2><p>补觉当然比继续缺觉好，但它更像“止损”，不是“完全复原键”。真正有效的，是把睡眠重新变成稳定习惯。<a href=\"https://link.springer.com/article/10.1007/s11818-025-00495-6\">10</a></p>\n<hr>\n<h2 id=\"六结语\">六、结语</h2><p>熬夜最危险的地方，不是第二天困，而是你会误以为“扛一扛没事”。<br>事实上，睡眠不足会悄悄影响炎症、代谢、心血管、免疫和情绪系统。一次熬夜未必立刻造成不可逆后果，但<strong>长期、反复、习惯性缺觉</strong>，确实会把身体一步步推向更高风险状态。</p>\n<p><strong>别等到体检异常、情绪失控、记忆变差、血压血糖都出问题时，才意识到睡眠是在给全身“做维修”。</strong><br>你不是在省时间，你是在透支身体的修复窗口。</p>\n<hr>\n<h2 id=\"参考资料\">参考资料</h2><p>Haack M, et al. Elevated inflammatory markers in response to prolonged sleep restriction are associated with increased pain experience in healthy volunteers.</p>\n<p>Mullington JM, et al. Sleep Loss and Inflammation.</p>\n<p>Garbarino S, et al. Role of sleep deprivation in immune-related disease risk and outcomes.</p>\n<p>NHLBI. How Sleep Works – Why Is Sleep Important?</p>\n<p>CDC. Sleep | Chronic Disease Indicators.</p>\n<p>HealthHub Singapore. Sleeping Well (Adults).</p>\n<p>Besedovsky L, et al. The Sleep-Immune Crosstalk in Health and Disease.</p>\n<p>CDC. About Sleep and Your Heart Health.</p>\n<p>Pejovic S, et al. Effects of recovery sleep after one work week of mild sleep restriction on IL-6 and cortisol secretion and daytime sleepiness and performance.</p>\n<p>NIH News in Health. Making Up Sleep May Not Help.</p>\n<p>Engert LC, et al. Sleep and inflammation: a bidirectional relationship.</p>\n<p>NHLBI. How Much Sleep Is Enough?</p>\n<p>AASM. Adult Sleep Duration Health Advisory.</p>",
+    "blockCount": 77,
+    "toc": [
+      {
+        "id": "一为什么熬夜会把炎症开关拧高",
+        "text": "一、为什么熬夜会把“炎症开关”拧高？",
+        "depth": 2
+      },
+      {
+        "id": "1生物钟被打乱身体开始错峰运行",
+        "text": "1）生物钟被打乱，身体开始“错峰运行”",
+        "depth": 3
+      },
+      {
+        "id": "2交感神经和应激轴被激活",
+        "text": "2）交感神经和应激轴被激活",
+        "depth": 3
+      },
+      {
+        "id": "3炎症信号上升",
+        "text": "3）炎症信号上升",
+        "depth": 3
+      },
+      {
+        "id": "二缺觉以后身体哪些系统最先遭殃",
+        "text": "二、缺觉以后，身体哪些系统最先遭殃？",
+        "depth": 2
+      },
+      {
+        "id": "1-大脑注意力判断力和情绪先崩",
+        "text": "1. 大脑：注意力、判断力和情绪先崩",
+        "depth": 2
+      },
+      {
+        "id": "2-免疫系统不是变弱这么简单而是失衡",
+        "text": "2. 免疫系统：不是“变弱”这么简单，而是“失衡”",
+        "depth": 2
+      },
+      {
+        "id": "3-代谢系统食欲血糖体重都可能被带偏",
+        "text": "3. 代谢系统：食欲、血糖、体重都可能被带偏",
+        "depth": 2
+      },
+      {
+        "id": "4-心血管系统血压心率和长期风险一起抬头",
+        "text": "4. 心血管系统：血压、心率和长期风险一起抬头",
+        "depth": 2
+      },
+      {
+        "id": "5-疼痛和恢复小伤更难好痛感也可能更强",
+        "text": "5. 疼痛和恢复：小伤更难好，痛感也可能更强",
+        "depth": 2
+      },
+      {
+        "id": "三损伤难以逆转到底该怎么理解",
+        "text": "三、“损伤难以逆转”到底该怎么理解？",
+        "depth": 2
+      },
+      {
+        "id": "先说结论",
+        "text": "先说结论：",
+        "depth": 3
+      },
+      {
+        "id": "四身体发出的-8-个缺觉报警信号",
+        "text": "四、身体发出的 8 个“缺觉报警信号”",
+        "depth": 2
+      },
+      {
+        "id": "五把炎症和伤害拉回去最有效的不是保健品而是这-6-件事",
+        "text": "五、把炎症和伤害拉回去，最有效的不是保健品，而是这 6 件事",
+        "depth": 2
+      },
+      {
+        "id": "1先把睡眠时长拉回底线",
+        "text": "1）先把睡眠时长拉回底线",
+        "depth": 2
+      },
+      {
+        "id": "2固定起床时间比偶尔早睡更重要",
+        "text": "2）固定起床时间，比“偶尔早睡”更重要",
+        "depth": 2
+      },
+      {
+        "id": "3晚上少做三件事",
+        "text": "3）晚上少做三件事",
+        "depth": 2
+      },
+      {
+        "id": "4别把卧室变成第二办公室",
+        "text": "4）别把卧室变成“第二办公室”",
+        "depth": 2
+      },
+      {
+        "id": "5连续几周都睡不好就别硬扛",
+        "text": "5）连续几周都睡不好，就别硬扛",
+        "depth": 2
+      },
+      {
+        "id": "6别迷信周末补觉可以一笔勾销",
+        "text": "6）别迷信“周末补觉可以一笔勾销”",
+        "depth": 2
+      },
+      {
+        "id": "六结语",
+        "text": "六、结语",
+        "depth": 2
+      },
+      {
+        "id": "参考资料",
+        "text": "参考资料",
+        "depth": 2
+      }
+    ]
+  },
+  {
     "id": "why-build-a-start-page",
     "title": "为什么我把常用网站做成自己的起始页",
     "summary": "把常用入口收拢到一个可搜索、可筛选、可沉淀习惯的页面里，能明显减少每天的切换成本。",
