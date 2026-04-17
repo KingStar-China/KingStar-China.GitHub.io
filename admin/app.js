@@ -1208,7 +1208,12 @@ async function publishToGitHub() {
 
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(result.error || `提交失败：${response.status}`);
+    const detail = String(result.detail || "").trim();
+    const fallback = result.error || `提交失败：${response.status}`;
+    if (result.code === "push_failed_after_commit") {
+      throw new Error(`${fallback}${detail ? `\n\nGit 输出：${detail}` : ""}`);
+    }
+    throw new Error(detail ? `${fallback}\n\nGit 输出：${detail}` : fallback);
   }
 
   state.publishing = false;

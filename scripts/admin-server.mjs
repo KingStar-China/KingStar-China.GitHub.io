@@ -405,8 +405,10 @@ async function publishToGitHub(payload) {
 
   await runGitCommand(["add", "--", ...trackedPaths]);
 
+  let committed = false;
   try {
     await runGitCommand(["commit", "-m", message, "--", ...trackedPaths]);
+    committed = true;
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     if (!/nothing to commit/i.test(detail)) {
@@ -414,7 +416,23 @@ async function publishToGitHub(payload) {
     }
   }
 
-  await runGitCommand(["push", "origin", branch]);
+  try {
+    await runGitCommand(["push", "origin", branch]);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw createPublishError(
+      committed ? "push_failed_after_commit" : "push_failed",
+      committed
+        ? "内容已在本地提交，但推送到 GitHub 失败。请稍后重试，或手动执行 git push origin main。"
+        : "推送到 GitHub 失败，请稍后重试。",
+      {
+        branch,
+        summary: message,
+        files: statusOutput.split(/\r?\n/).filter(Boolean),
+        detail,
+      },
+    );
+  }
 
   return {
     ok: true,
@@ -422,6 +440,13 @@ async function publishToGitHub(payload) {
     summary: message,
     files: statusOutput.split(/\r?\n/).filter(Boolean),
   };
+}
+
+function createPublishError(code, message, meta = {}) {
+  const error = new Error(message);
+  error.code = code;
+  error.meta = meta;
+  return error;
 }
 
 async function runGitCommand(args) {
