@@ -82,7 +82,7 @@ function createPost(overrides = {}) {
     summary: "摘要",
     tags: [],
     publishedAt: "2026-04-17",
-    content: ["正文"],
+    content: "正文",
     ...overrides,
   };
 }

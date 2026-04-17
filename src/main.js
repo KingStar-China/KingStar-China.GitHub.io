@@ -26,7 +26,9 @@ import { renderOverviewDeck as renderOverviewSection } from "./lib/overview.js";
  * @property {string} summary
  * @property {string} publishedAt
  * @property {string[]} tags
- * @property {string[]} content
+ * @property {string} content
+ * @property {string=} contentHtml
+ * @property {number=} blockCount
  */
 
 /**
@@ -74,7 +76,9 @@ const posts = rawPosts
   .map((post) => ({
     ...post,
     tags: Array.isArray(post.tags) ? post.tags : [],
-    content: Array.isArray(post.content) ? post.content : [String(post.content || "")],
+    content: typeof post.content === "string" ? post.content : String(post.content || ""),
+    contentHtml: typeof post.contentHtml === "string" ? post.contentHtml : "",
+    blockCount: Number.isFinite(post.blockCount) ? post.blockCount : getMarkdownBlockCount(post.content),
   }))
   .sort((left, right) => new Date(right.publishedAt).getTime() - new Date(left.publishedAt).getTime());
 
@@ -1201,7 +1205,7 @@ function renderBlogDetail() {
         <div class="article__meta">
           <span>${formatDate(post.publishedAt)}</span>
           <span>${formatPostReadingTime(post)}</span>
-          <span>${post.content.length} 段正文</span>
+          <span>${post.blockCount} 个内容块</span>
           <span>${sourceLabel}</span>
         </div>
         <div class="tag-list">
@@ -1209,7 +1213,7 @@ function renderBlogDetail() {
         </div>
       </div>
       <div class="article__body">
-        ${post.content.map((paragraph) => `<p>${escapeHTML(paragraph)}</p>`).join("")}
+        ${renderPostBody(post)}
       </div>
       <div class="article__footer">
         <div class="article__nav">
@@ -1657,6 +1661,34 @@ function getFilteredPosts(options = {}) {
 function getPostPageSource(postId) {
   const filteredPosts = getFilteredPosts();
   return filteredPosts.some((post) => post.id === postId) ? filteredPosts : posts;
+}
+
+function renderPostBody(post) {
+  if (post.contentHtml) {
+    return post.contentHtml;
+  }
+
+  return normalizePostMarkdown(post.content)
+    .split(/\n\s*\n/g)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .map((paragraph) => `<p>${escapeHTML(paragraph)}</p>`)
+    .join("");
+}
+
+function getMarkdownBlockCount(content) {
+  return normalizePostMarkdown(content)
+    .split(/\n\s*\n/g)
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .length;
+}
+
+function normalizePostMarkdown(value) {
+  return String(value || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .trim();
 }
 
 function getViewScopedSites() {

@@ -4,14 +4,15 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "node ./scripts/generate-seo.mjs && vite build",
-    "test": "node --test --experimental-test-isolation=none tests/content.test.mjs tests/search.test.mjs tests/seo.test.mjs tests/command-palette.test.mjs tests/blog.test.mjs",
+    "sync:posts": "node ./scripts/generate-posts-data.mjs",
+    "dev": "node ./scripts/generate-posts-data.mjs && vite",
+    "build": "node ./scripts/generate-posts-data.mjs && node ./scripts/generate-seo.mjs && vite build",
+    "test": "node ./scripts/generate-posts-data.mjs && node --test --experimental-test-isolation=none tests/content.test.mjs tests/search.test.mjs tests/seo.test.mjs tests/command-palette.test.mjs tests/blog.test.mjs",
     "preview": "vite preview",
-    "admin": "node ./scripts/admin-server.mjs"
+    "admin": "node ./scripts/generate-posts-data.mjs && node ./scripts/admin-server.mjs"
   },
   "devDependencies": {
+    "marked": "^18.0.0",
     "vite": "^8.0.2"
   }
 }
-

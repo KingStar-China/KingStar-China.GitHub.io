@@ -41,7 +41,8 @@ export function getRelatedPosts(postId, posts = [], limit = 3) {
 }
 
 export function getPostReadingMinutes(post) {
-  const text = [post.title, post.summary, ...post.content].join(" ");
+  const content = Array.isArray(post.content) ? post.content.join(" ") : String(post.content || "");
+  const text = [post.title, post.summary, content].join(" ");
   const latinWords = text.match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g)?.length || 0;
   const cjkChars = text.match(/[\u3400-\u9fff]/g)?.length || 0;
   const estimatedUnits = latinWords + cjkChars;
