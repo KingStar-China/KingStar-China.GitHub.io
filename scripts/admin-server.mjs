@@ -5,6 +5,7 @@ import path from "node:path";
 import { runInNewContext } from "node:vm";
 import { fileURLToPath } from "node:url";
 import { validatePostsPayload, validateSearchEnginesPayload, validateSiteIconReferences, validateSitesPayload } from "../admin/content-validation.js";
+import { loadPostsFromMarkdown, writePostsToMarkdown } from "./posts-content.mjs";
 import { fetchSiteMetadata as fetchRemoteSiteMetadata } from "./site-metadata.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -37,7 +38,7 @@ const server = createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/api/content") {
       const [sites, posts, searchEngines, iconFiles] = await Promise.all([
         readModuleExport("sites.js", "sites"),
-        readModuleExport("posts.js", "posts"),
+        loadPostsFromMarkdown(),
         readModuleExport("search-engines.js", "searchEngines"),
         listIconFiles(),
       ]);
@@ -57,7 +58,7 @@ const server = createServer(async (req, res) => {
     if (req.method === "PUT" && url.pathname === "/api/posts") {
       const payload = await readJsonBody(req);
       validatePostsPayload(payload);
-      await writeModuleExport("posts.js", "posts", payload);
+      await writePostsToMarkdown(payload);
       sendJson(res, 200, { ok: true });
       return;
     }
@@ -341,15 +342,16 @@ async function publishToGitHub(payload) {
   }
 
   const branch = (await runGitCommand(["branch", "--show-current"])).trim() || "main";
-  const statusOutput = (await runGitCommand(["status", "--porcelain", "--", "src/data", "public/icon"])).trim();
+  const trackedPaths = ["src/data", "src/content", "public/icon"];
+  const statusOutput = (await runGitCommand(["status", "--porcelain", "--", ...trackedPaths])).trim();
   if (!statusOutput) {
-    throw new Error("当前没有 src/data 或 public/icon 的可提交变更");
+    throw new Error("当前没有 src/data、src/content 或 public/icon 的可提交变更");
   }
 
-  await runGitCommand(["add", "--", "src/data", "public/icon"]);
+  await runGitCommand(["add", "--", ...trackedPaths]);
 
   try {
-    await runGitCommand(["commit", "-m", message, "--", "src/data", "public/icon"]);
+    await runGitCommand(["commit", "-m", message, "--", ...trackedPaths]);
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     if (!/nothing to commit/i.test(detail)) {

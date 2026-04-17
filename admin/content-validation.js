@@ -1,4 +1,5 @@
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const POST_ID_PATTERN = /^[a-z0-9-]+$/;
 
 export function normalizeStringArray(value) {
   if (Array.isArray(value)) {
@@ -94,9 +95,13 @@ export function validatePostsPayload(posts) {
     assertString(post.title, "文章标题");
     assertString(post.summary, "文章摘要");
     const publishedAt = assertString(post.publishedAt, "发布日期");
+    const content = normalizePostContent(post.content);
 
     if (!isValidDateString(publishedAt)) {
       throw new Error(`文章 ${id} 的发布日期无效，必须是 YYYY-MM-DD`);
+    }
+    if (!POST_ID_PATTERN.test(id)) {
+      throw new Error(`文章 ${id} 的 id 无效，只支持小写字母、数字和连字符`);
     }
     if (ids.has(id)) {
       throw new Error(`文章 id 重复: ${id}`);
@@ -104,8 +109,8 @@ export function validatePostsPayload(posts) {
 
     ids.add(id);
     post.tags = normalizeStringArray(post.tags);
-    post.content = normalizeStringArray(post.content);
-    if (post.content.length === 0) {
+    post.content = content;
+    if (!post.content) {
       throw new Error(`文章 ${id} 的正文不能为空`);
     }
   }
@@ -204,6 +209,20 @@ function validateSiteIcon(icon, siteId) {
   if (!/^icon\/[^\\]+$/i.test(icon) || icon.includes("..")) {
     throw new Error(`站点 ${siteId} 的图标路径无效，只支持 http/https 或 icon/文件名`);
   }
+}
+
+export function normalizePostContent(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item || "").trim())
+      .filter(Boolean)
+      .join("\n\n");
+  }
+
+  return String(value || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .trim();
 }
 
 function dedupeStrings(values) {

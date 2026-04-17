@@ -1,4 +1,4 @@
-import { isValidHttpUrl, normalizeStringArray as normalizeStringList, validatePostsPayload, validateSearchEnginesPayload, validateSitesPayload } from "./content-validation.js";
+import { isValidHttpUrl, normalizePostContent, normalizeStringArray as normalizeStringList, validatePostsPayload, validateSearchEnginesPayload, validateSitesPayload } from "./content-validation.js";
 
 const state = {
   section: "sites",
@@ -190,7 +190,7 @@ function render() {
   root.querySelector('[data-role="editor-subtitle"]').textContent = state.section === "sites"
       ? "维护导航站里的网站条目。填写图标路径时前台优先使用这里；留空时才会尝试网站 favicon。"
     : state.section === "posts"
-      ? "维护站内博客文章。正文用空行分段保存。"
+      ? "维护站内博客文章。正文使用 Markdown 保存，支持标题、列表、引用和代码块。"
       : "维护首页搜索框里的搜索引擎。搜索链接模板必须包含 {query}。";
 
   restoreEditorStateAfterRender();
@@ -532,11 +532,11 @@ function renderPostEditor(post) {
         <span class="helper">输入框可自定义，下面可把已有标签追加到当前文章。</span>
       </div>
       <div class="field field--full">
-        <label for="post-content">正文（空行分段）</label>
-        <textarea id="post-content" data-field="content" style="min-height: 320px;">${escapeHTML((post.content || []).join("\n\n"))}</textarea>
+        <label for="post-content">正文（Markdown）</label>
+        <textarea id="post-content" data-field="content" style="min-height: 320px;">${escapeHTML(post.content || "")}</textarea>
       </div>
       <div class="field field--full">
-        <span class="helper">每个空行会被保存成一个段落。第一版不支持 Markdown，正文会按纯文本段落渲染。</span>
+        <span class="helper">支持 Markdown。正文会保存到单独的 .md 文件，并在前台按 Markdown 渲染。</span>
       </div>
     </div>
   `;
@@ -809,7 +809,7 @@ function applyPostField(post, field, value) {
   }
 
   if (field === "content") {
-    post.content = splitParagraphs(value);
+    post.content = normalizePostContent(value);
     return;
   }
 
@@ -1007,7 +1007,7 @@ function getFilteredItems() {
     const source = state.section === "sites"
       ? [item.name, item.category, item.description, ...(item.tags || []), ...(item.aliases || [])]
       : state.section === "posts"
-        ? [item.title, item.summary, item.publishedAt, ...(item.tags || []), ...(item.content || [])]
+        ? [item.title, item.summary, item.publishedAt, ...(item.tags || []), item.content || ""]
         : [item.label, item.id, item.placeholder, item.urlTemplate];
     return source.join(" ").toLowerCase().includes(keyword);
   });
@@ -1063,7 +1063,7 @@ function createItem() {
       summary: "",
       publishedAt: today,
       tags: [],
-      content: [],
+      content: "",
     };
     state.posts = [post, ...state.posts];
     state.selectedPostId = post.id;
@@ -1515,7 +1515,7 @@ function normalizePost(post = {}) {
     summary: String(post.summary || "").trim(),
     publishedAt: String(post.publishedAt || "").trim(),
     tags: normalizeStringList(post.tags),
-    content: normalizeStringList(post.content),
+    content: normalizePostContent(post.content),
   };
 }
 
@@ -1668,13 +1668,6 @@ function getHost(url) {
 function splitCommaList(value) {
   return String(value || "")
     .split(/[，,]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function splitParagraphs(value) {
-  return value
-    .split(/\n\s*\n/g)
     .map((item) => item.trim())
     .filter(Boolean);
 }
