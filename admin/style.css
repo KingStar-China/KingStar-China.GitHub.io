@@ -166,9 +166,21 @@ button {
   gap: 8px;
 }
 
+.field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .field label {
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.field-head__action {
+  padding: 8px 12px;
 }
 
 .sidebar__actions,

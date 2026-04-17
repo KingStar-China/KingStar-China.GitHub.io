@@ -56,6 +56,7 @@ async function init() {
   refs.status = root.querySelector('[data-role="status"]');
   refs.backupInput = root.querySelector('[data-role="backup-input"]');
   refs.bookmarkInput = root.querySelector('[data-role="bookmark-input"]');
+  refs.postMarkdownInput = root.querySelector('[data-role="post-markdown-input"]');
 
   root.addEventListener("click", handleClick);
   root.addEventListener("input", handleInput);
@@ -141,6 +142,7 @@ function createShell() {
 
       <input type="file" hidden data-role="backup-input" accept=".json,application/json">
       <input type="file" hidden data-role="bookmark-input" accept=".html,text/html">
+      <input type="file" hidden data-role="post-markdown-input" accept=".md,.markdown,text/markdown,text/plain">
       <div class="scroll-action-group" aria-label="页面滚动快捷按钮">
         <button type="button" class="scroll-action-button" data-action="scroll-bottom">直达底部</button>
         <button type="button" class="scroll-action-button" data-action="scroll-top">回到顶部</button>
@@ -532,11 +534,14 @@ function renderPostEditor(post) {
         <span class="helper">输入框可自定义，下面可把已有标签追加到当前文章。</span>
       </div>
       <div class="field field--full">
-        <label for="post-content">正文（Markdown）</label>
+        <div class="field-head">
+          <label for="post-content">正文（Markdown）</label>
+          <button type="button" class="ghost-button field-head__action" data-action="import-post-markdown">导入 Markdown 文件</button>
+        </div>
         <textarea id="post-content" data-field="content" style="min-height: 320px;">${escapeHTML(post.content || "")}</textarea>
       </div>
       <div class="field field--full">
-        <span class="helper">支持 Markdown。正文会保存到单独的 .md 文件，并在前台按 Markdown 渲染。</span>
+        <span class="helper">支持 Markdown。可直接导入本地 .md 文件；若文件带 front matter，会顺手填充标题、摘要、发布日期和标签。正文会保存到单独的 .md 文件，并在前台按 Markdown 渲染。</span>
       </div>
     </div>
   `;
@@ -666,6 +671,18 @@ function handleClick(event) {
     return;
   }
 
+  if (action === "import-post-markdown") {
+    const item = getSelectedItem();
+    if (!item || state.section !== "posts") {
+      setStatus("error", "请先在博客分类里选中一篇文章。");
+      render();
+      return;
+    }
+    refs.postMarkdownInput.value = "";
+    refs.postMarkdownInput.click();
+    return;
+  }
+
   if (action === "publish-github") {
     publishToGitHub().catch((error) => {
       state.publishing = false;
@@ -765,6 +782,16 @@ function handleChange(event) {
 
   if (event.target === refs.bookmarkInput) {
     importBookmarkFile(event.target.files?.[0]).catch((error) => {
+      setStatus("error", error.message);
+      render();
+    }).finally(() => {
+      event.target.value = "";
+    });
+    return;
+  }
+
+  if (event.target === refs.postMarkdownInput) {
+    importPostMarkdownFile(event.target.files?.[0]).catch((error) => {
       setStatus("error", error.message);
       render();
     }).finally(() => {
@@ -1361,6 +1388,64 @@ async function importBookmarkFile(file) {
   render();
 }
 
+async function importPostMarkdownFile(file) {
+  if (!file) {
+    return;
+  }
+
+  if (state.section !== "posts") {
+    throw new Error("只有博客分类支持导入 Markdown 文件。");
+  }
+
+  const post = getSelectedItem();
+  if (!post) {
+    throw new Error("请先选择一篇文章，再导入 Markdown 文件。");
+  }
+
+  const text = await file.text();
+  const imported = parseImportedMarkdownDocument(text);
+  const importedFields = [];
+
+  post.content = imported.content;
+
+  if (imported.title) {
+    post.title = imported.title;
+    importedFields.push("标题");
+  }
+  if (imported.summary) {
+    post.summary = imported.summary;
+    importedFields.push("摘要");
+  }
+  if (imported.publishedAt) {
+    post.publishedAt = imported.publishedAt;
+    importedFields.push("发布日期");
+  }
+  if (imported.tags.length > 0) {
+    post.tags = imported.tags;
+    importedFields.push("标签");
+  }
+
+  const importedId = slugify(imported.fileBaseName);
+  if (importedId && (!post.id || /^post-\d+$/.test(post.id))) {
+    post.id = importedId;
+    importedFields.push("ID");
+  }
+
+  if (!post.title) {
+    post.title = imported.fileBaseName;
+  }
+
+  state.dirty.posts = true;
+  setStatus(
+    "success",
+    importedFields.length > 0
+      ? `已导入 Markdown 文件，并更新${importedFields.join("、")}。记得保存博客分类。`
+      : "已导入 Markdown 正文，记得保存博客分类。",
+    true,
+  );
+  render();
+}
+
 function applyImportedSection(section, items) {
   if (section === "sites") {
     const sites = items.map(normalizeSite);
@@ -1493,6 +1578,97 @@ function validateBeforeSave(payload, section) {
   }
 
   validateSearchEnginesPayload(payload);
+}
+
+function parseImportedMarkdownDocument(source) {
+  const normalized = String(source || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const match = normalized.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  const fileBaseName = getImportFileBaseName();
+
+  if (!match) {
+    return {
+      title: "",
+      summary: "",
+      publishedAt: "",
+      tags: [],
+      content: normalizePostContent(normalized),
+      fileBaseName,
+    };
+  }
+
+  const metadata = parseImportedMarkdownFrontMatter(match[1]);
+  return {
+    ...metadata,
+    content: normalizePostContent(match[2]),
+    fileBaseName,
+  };
+}
+
+function parseImportedMarkdownFrontMatter(block) {
+  const metadata = {
+    title: "",
+    summary: "",
+    publishedAt: "",
+    tags: [],
+  };
+  const lines = String(block || "").split("\n");
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index].trimEnd();
+    if (!line.trim()) {
+      continue;
+    }
+
+    if (/^tags\s*:\s*$/.test(line)) {
+      const tags = [];
+      while (index + 1 < lines.length && /^\s*-\s+/.test(lines[index + 1])) {
+        index += 1;
+        tags.push(parseImportedMarkdownScalar(lines[index].replace(/^\s*-\s+/, "")));
+      }
+      metadata.tags = normalizeStringList(tags);
+      continue;
+    }
+
+    const scalarMatch = line.match(/^([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*)$/);
+    if (!scalarMatch) {
+      continue;
+    }
+
+    const [, key, value] = scalarMatch;
+    if (!(key in metadata)) {
+      continue;
+    }
+
+    metadata[key] = parseImportedMarkdownScalar(value);
+  }
+
+  return metadata;
+}
+
+function parseImportedMarkdownScalar(value) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return "";
+  }
+
+  if ((text.startsWith("\"") && text.endsWith("\"")) || (text.startsWith("'") && text.endsWith("'"))) {
+    try {
+      return JSON.parse(text.startsWith("'") ? `"${text.slice(1, -1).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"` : text);
+    } catch {
+      return text.slice(1, -1);
+    }
+  }
+
+  return text;
+}
+
+function getImportFileBaseName() {
+  const name = String(refs.postMarkdownInput?.files?.[0]?.name || "").trim();
+  if (!name) {
+    return "导入文章";
+  }
+
+  return name.replace(/\.[^.]+$/, "") || "导入文章";
 }
 
 function normalizeSite(site = {}) {
