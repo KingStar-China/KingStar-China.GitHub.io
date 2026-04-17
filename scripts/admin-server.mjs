@@ -399,8 +399,36 @@ async function publishToGitHub(payload) {
   const branch = (await runGitCommand(["branch", "--show-current"])).trim() || "main";
   const trackedPaths = ["src/data", "src/content", "public/icon", "public/post-image"];
   const statusOutput = (await runGitCommand(["status", "--porcelain", "--", ...trackedPaths])).trim();
+  const aheadCount = await getAheadCount(branch);
+
   if (!statusOutput) {
-    throw new Error("当前没有 src/data、src/content、public/icon 或 public/post-image 的可提交变更");
+    if (aheadCount > 0) {
+      try {
+        await runGitCommand(["push", "origin", branch]);
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error);
+        throw createPublishError(
+          "push_failed_pending_commits",
+          `本地已有 ${aheadCount} 个未推送提交，但推送到 GitHub 失败。请稍后重试，或手动执行 git push origin ${branch}。`,
+          {
+            branch,
+            pendingCommits: aheadCount,
+            detail,
+          },
+        );
+      }
+
+      return {
+        ok: true,
+        branch,
+        summary: `已推送本地待同步提交（${aheadCount} 个）`,
+        files: [],
+        pushedOnly: true,
+        pendingCommits: aheadCount,
+      };
+    }
+
+    throw new Error("当前没有 src/data、src/content、public/icon 或 public/post-image 的可提交变更，也没有待推送提交");
   }
 
   await runGitCommand(["add", "--", ...trackedPaths]);
@@ -440,6 +468,16 @@ async function publishToGitHub(payload) {
     summary: message,
     files: statusOutput.split(/\r?\n/).filter(Boolean),
   };
+}
+
+async function getAheadCount(branch) {
+  const trackingBranch = `origin/${branch}`;
+  try {
+    const output = await runGitCommand(["rev-list", "--count", `${trackingBranch}..HEAD`]);
+    return Number.parseInt(output || "0", 10) || 0;
+  } catch {
+    return 0;
+  }
 }
 
 function createPublishError(code, message, meta = {}) {
