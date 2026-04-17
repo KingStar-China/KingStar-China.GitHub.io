@@ -397,10 +397,10 @@ async function publishToGitHub(payload) {
   }
 
   const branch = (await runGitCommand(["branch", "--show-current"])).trim() || "main";
-  const trackedPaths = ["src/data", "src/content", "public/icon"];
+  const trackedPaths = ["src/data", "src/content", "public/icon", "public/post-image"];
   const statusOutput = (await runGitCommand(["status", "--porcelain", "--", ...trackedPaths])).trim();
   if (!statusOutput) {
-    throw new Error("当前没有 src/data、src/content 或 public/icon 的可提交变更");
+    throw new Error("当前没有 src/data、src/content、public/icon 或 public/post-image 的可提交变更");
   }
 
   await runGitCommand(["add", "--", ...trackedPaths]);
