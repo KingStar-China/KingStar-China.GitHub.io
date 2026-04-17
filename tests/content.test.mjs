@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import os from "node:os";
+import path from "node:path";
 import { sites } from "../src/data/sites.js";
 import { posts } from "../src/data/posts.js";
 import { siteMeta } from "../src/data/site.js";
@@ -16,8 +18,10 @@ import {
   validateSitesPayload,
 } from "../admin/content-validation.js";
 import { decoratePost, loadPostsFromMarkdown } from "../scripts/posts-content.mjs";
+import { importMarkdownDocumentFromFile } from "../scripts/import-post-markdown.mjs";
 import { extractSiteMetadata } from "../scripts/site-metadata.mjs";
-import { readdir } from "node:fs/promises";
+import { createServer } from "node:http";
+import { mkdtemp, readdir, rm, unlink, writeFile } from "node:fs/promises";
 
 test("站点数据结构有效", () => {
   const ids = new Set();
@@ -261,4 +265,79 @@ test("站点信息抓取在缺少 link icon 时会回退到 favicon.ico", () => 
   const metadata = extractSiteMetadata(html, "https://sub.example.com/path");
   assert.equal(metadata.name, "Fallback Site");
   assert.equal(metadata.icon, "https://sub.example.com/favicon.ico");
+});
+
+test("重复导入同一份 Markdown 不会重复保存图片", async () => {
+  const postImageDir = new URL("../public/post-image/", import.meta.url);
+  const before = new Set(await readdir(postImageDir));
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "md-import-"));
+  const localImagePath = path.join(tempDir, "local.png");
+  const markdownPath = path.join(tempDir, "repeat-import.md");
+  await writeFile(localImagePath, Buffer.from("89504e470d0a1a0a", "hex"));
+  await writeFile(markdownPath, "![本地](./local.png)\n");
+
+  let createdFiles = [];
+  try {
+    const first = await importMarkdownDocumentFromFile(markdownPath);
+    const afterFirst = new Set(await readdir(postImageDir));
+    const firstCreated = [...afterFirst].filter((name) => !before.has(name));
+    const second = await importMarkdownDocumentFromFile(markdownPath);
+    const afterSecond = new Set(await readdir(postImageDir));
+    const secondCreated = [...afterSecond].filter((name) => !before.has(name));
+
+    createdFiles = secondCreated;
+
+    assert.equal(first.assetCount, 1);
+    assert.equal(second.assetCount, 1);
+    assert.equal(first.content, second.content);
+    assert.equal(firstCreated.length, 1);
+    assert.deepEqual(secondCreated, firstCreated);
+  } finally {
+    await Promise.all(createdFiles.map((name) => unlink(new URL(`../public/post-image/${name}`, import.meta.url)).catch(() => {})));
+    await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+  }
+});
+
+test("导入中途失败会回滚本次新写入的图片", async () => {
+  const postImageDir = new URL("../public/post-image/", import.meta.url);
+  const before = new Set(await readdir(postImageDir));
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "md-import-"));
+  const localImagePath = path.join(tempDir, "local.png");
+  const markdownPath = path.join(tempDir, "rollback-import.md");
+  await writeFile(localImagePath, Buffer.from("89504e470d0a1a0a", "hex"));
+
+  const remoteBuffer = Buffer.from("47494638396101000100000000ffffff21f90401000000002c00000000010001000002024401003b", "hex");
+  const server = createServer((req, res) => {
+    if (req.url === "/ok.gif") {
+      res.writeHead(200, { "Content-Type": "image/gif" });
+      res.end(remoteBuffer);
+      return;
+    }
+
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    res.end("<html>not image</html>");
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  const port = typeof address === "object" && address ? address.port : 0;
+
+  await writeFile(markdownPath, [
+    "![本地](./local.png)",
+    "",
+    `![外链](http://127.0.0.1:${port}/bad)`,
+  ].join("\n"));
+
+  try {
+    await assert.rejects(
+      () => importMarkdownDocumentFromFile(markdownPath),
+      /外链资源不是图片/,
+    );
+
+    const after = new Set(await readdir(postImageDir));
+    const created = [...after].filter((name) => !before.has(name));
+    assert.deepEqual(created, []);
+  } finally {
+    server.close();
+    await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+  }
 });
