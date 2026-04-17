@@ -117,6 +117,7 @@ const state = {
   commandOpen: false,
   commandQuery: "",
   commandIndex: 0,
+  nextRouteMode: "replace",
 };
 
 const root = document.querySelector("#app");
@@ -142,6 +143,7 @@ function init() {
   root.addEventListener("click", handleClick);
   window.addEventListener("keydown", handleKeydown);
   window.addEventListener("popstate", handlePopState);
+  window.addEventListener("hashchange", handlePopState);
 
   hydrateFromLocation();
   syncTheme(state.theme);
@@ -303,6 +305,7 @@ function handleClick(event) {
 
     if (action === "set-section") {
       state.section = value === "nav" ? "nav" : "blog-list";
+      state.nextRouteMode = "push";
       render();
       return;
     }
@@ -346,6 +349,7 @@ function handleClick(event) {
       state.blogTag = value;
       state.blogPage = 1;
       state.section = "blog-list";
+      state.nextRouteMode = "push";
       render();
       return;
     }
@@ -359,6 +363,7 @@ function handleClick(event) {
     if (action === "reset-blog-filters") {
       resetBlogFilters();
       state.section = "blog-list";
+      state.nextRouteMode = "push";
       render();
       return;
     }
@@ -403,6 +408,7 @@ function handleClick(event) {
 
     if (action === "back-to-blog") {
       state.section = "blog-list";
+      state.nextRouteMode = "push";
       render();
       return;
     }
@@ -410,6 +416,7 @@ function handleClick(event) {
     if (action === "set-blog-page") {
       state.blogPage = clampPage(Number(value));
       state.section = "blog-list";
+      state.nextRouteMode = "push";
       render();
       return;
     }
@@ -516,7 +523,8 @@ function render() {
   }
 
   syncWorkbenchClock();
-  syncRoute();
+  syncRoute(state.nextRouteMode);
+  state.nextRouteMode = "replace";
   updateSeo();
 }
 
@@ -609,14 +617,12 @@ function renderSectionTabs() {
   return items
     .map(
       (item) => `
-        <button
-          type="button"
+        <a
           class="section-tab ${isSectionActive(item.value) ? "is-active" : ""}"
-          data-action="set-section"
-          data-value="${escapeHTML(item.value)}"
+          href="${escapeHTML(getSectionHref(item.value))}"
         >
           ${escapeHTML(item.label)}
-        </button>
+        </a>
       `,
     )
     .join("");
@@ -873,7 +879,7 @@ function renderBlogDetailToolbar() {
 
   return `
     <div class="toolbar--detail">
-      <button type="button" class="article-back" data-action="back-to-blog">返回博客列表</button>
+      <a class="article-back" href="${escapeHTML(getBlogListHref())}">返回博客列表</a>
       <div class="toolbar__heading">
         <span class="field-label">BLOG POST</span>
         <h2>${escapeHTML(post.title)}</h2>
@@ -1120,9 +1126,9 @@ function renderBlogCard(post) {
         </div>
       </div>
       <div class="blog-card__actions">
-        <button type="button" class="site-card__link blog-card__button" data-action="open-post" data-post-id="${escapeHTML(post.id)}">
+        <a class="site-card__link blog-card__button" href="${escapeHTML(getPostHref(post.id))}">
           阅读全文
-        </button>
+        </a>
       </div>
     </article>
   `;
@@ -1189,7 +1195,7 @@ function renderBlogDetail() {
       <section class="panel empty-state">
         <h2>文章不存在</h2>
         <p>当前选择的文章没有找到，你可以返回博客列表重新选择。</p>
-        <button type="button" class="empty-state__button" data-action="back-to-blog">返回博客列表</button>
+        <a class="empty-state__button" href="${escapeHTML(getBlogListHref())}">返回博客列表</a>
       </section>
     `;
   }
@@ -1223,20 +1229,20 @@ function renderBlogDetail() {
           ${
             previousPost
               ? `
-                <button type="button" class="article__nav-link" data-action="open-post" data-post-id="${escapeHTML(previousPost.id)}">
+                <a class="article__nav-link" href="${escapeHTML(getPostHref(previousPost.id))}">
                   <span class="article__nav-label">上一篇</span>
                   <strong class="article__nav-title">${escapeHTML(previousPost.title)}</strong>
-                </button>
+                </a>
               `
               : '<div class="article__nav-placeholder" aria-hidden="true"></div>'
           }
           ${
             nextPost
               ? `
-                <button type="button" class="article__nav-link article__nav-link--next" data-action="open-post" data-post-id="${escapeHTML(nextPost.id)}">
+                <a class="article__nav-link article__nav-link--next" href="${escapeHTML(getPostHref(nextPost.id))}">
                   <span class="article__nav-label">下一篇</span>
                   <strong class="article__nav-title">${escapeHTML(nextPost.title)}</strong>
-                </button>
+                </a>
               `
               : '<div class="article__nav-placeholder" aria-hidden="true"></div>'
           }
@@ -1253,16 +1259,14 @@ function renderBlogDetail() {
                   ${relatedPosts
                     .map(
                       (relatedPost) => `
-                        <button
-                          type="button"
+                        <a
                           class="article__related-card"
-                          data-action="open-post"
-                          data-post-id="${escapeHTML(relatedPost.id)}"
+                          href="${escapeHTML(getPostHref(relatedPost.id))}"
                         >
                           <span class="article__related-date">${formatDate(relatedPost.publishedAt)}</span>
                           <strong class="article__related-title">${escapeHTML(relatedPost.title)}</strong>
                           <span class="article__related-summary">${escapeHTML(relatedPost.summary)}</span>
-                        </button>
+                        </a>
                       `,
                     )
                     .join("")}
@@ -1271,7 +1275,7 @@ function renderBlogDetail() {
             `
             : ""
         }
-        <button type="button" class="site-card__link article__back-button" data-action="back-to-blog">返回博客列表</button>
+        <a class="site-card__link article__back-button" href="${escapeHTML(getBlogListHref())}">返回博客列表</a>
       </div>
     </article>
   `;
@@ -1864,6 +1868,7 @@ function openPost(postId) {
   state.selectedPostId = postId;
   state.blogPage = getBlogPageForPost(postId, pageSource);
   state.section = "blog-detail";
+  state.nextRouteMode = "push";
 }
 
 function getBlogPageForPost(postId, sourcePosts = posts) {
@@ -2120,56 +2125,156 @@ function handlePopState() {
 
 function hydrateFromLocation() {
   const url = new URL(window.location.href);
-  const params = url.searchParams;
   const allBlogTags = new Set(posts.flatMap((post) => post.tags));
+  const route = parseHashRoute(url.hash);
 
-  state.blogQuery = params.get("blogSearch") || "";
-  state.blogTag = allBlogTags.has(params.get("blogTag") || "") ? params.get("blogTag") : "all";
-  state.blogPage = clampPage(Number(params.get("page") || 1), getTotalBlogPages(getFilteredPosts()));
+  state.blogQuery = route.blogSearch || "";
+  state.blogTag = allBlogTags.has(route.blogTag || "") ? route.blogTag : "all";
+  state.blogPage = clampPage(Number(route.page || 1), getTotalBlogPages(getFilteredPosts()));
 
-  const postId = params.get("post");
-  if (postId && postMap.has(postId)) {
-    state.selectedPostId = postId;
-    state.blogPage = getBlogPageForPost(postId, getPostPageSource(postId));
+  if (route.type === "post" && route.postId && postMap.has(route.postId)) {
+    state.selectedPostId = route.postId;
+    state.blogPage = getBlogPageForPost(route.postId, getPostPageSource(route.postId));
     state.section = "blog-detail";
     return;
   }
 
-  state.section = params.get("section") === "blog" ? "blog-list" : "nav";
+  state.section = route.type === "blog-list" ? "blog-list" : "nav";
 }
 
-function syncRoute() {
+function syncRoute(mode = "replace") {
   const nextPath = buildRoutePath();
   const currentPath = `${window.location.pathname}${window.location.search}`;
   if (nextPath !== currentPath) {
-    window.history.replaceState(null, "", nextPath);
+    const nextUrl = new URL(nextPath, window.location.href).toString();
+
+    if (mode === "push") {
+      try {
+        window.history.pushState(null, "", nextUrl);
+      } catch {
+        window.location.assign(nextUrl);
+        return;
+      }
+
+      if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+        window.location.assign(nextUrl);
+      }
+      return;
+    }
+
+    try {
+      window.history.replaceState(null, "", nextUrl);
+    } catch {
+      window.location.replace(nextUrl);
+      return;
+    }
+
+    if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+      window.location.replace(nextUrl);
+    }
   }
 }
 
 function buildRoutePath() {
-  const params = new URLSearchParams();
-
   if (state.section === "blog-detail") {
     const post = getSelectedPost();
     if (post) {
-      params.set("post", post.id);
+      return buildHashRoute("post", {
+        postId: post.id,
+      });
     }
-  } else if (state.section === "blog-list") {
-    params.set("section", "blog");
-    if (state.blogQuery.trim()) {
-      params.set("blogSearch", state.blogQuery.trim());
-    }
-    if (state.blogTag !== "all") {
-      params.set("blogTag", state.blogTag);
-    }
-    if (state.blogPage > 1) {
-      params.set("page", String(state.blogPage));
-    }
+    return `${window.location.pathname || "/"}`;
+  }
+
+  if (state.section === "blog-list") {
+    return buildHashRoute("blog-list", {
+      blogSearch: state.blogQuery.trim(),
+      blogTag: state.blogTag !== "all" ? state.blogTag : "",
+      page: state.blogPage > 1 ? String(state.blogPage) : "",
+    });
+  }
+
+  return `${window.location.pathname || "/"}`;
+}
+
+function buildHashRoute(type, { postId = "", blogSearch = "", blogTag = "", page = "" } = {}) {
+  const params = new URLSearchParams();
+
+  if (blogSearch) {
+    params.set("blogSearch", blogSearch);
+  }
+
+  if (blogTag) {
+    params.set("blogTag", blogTag);
+  }
+
+  if (page) {
+    params.set("page", page);
   }
 
   const pathname = window.location.pathname || "/";
   const query = params.toString();
-  return query ? `${pathname}?${query}` : pathname;
+
+  if (type === "post" && postId) {
+    return query ? `${pathname}#/post/${encodeURIComponent(postId)}?${query}` : `${pathname}#/post/${encodeURIComponent(postId)}`;
+  }
+
+  if (type === "blog-list") {
+    return query ? `${pathname}#/blog?${query}` : `${pathname}#/blog`;
+  }
+
+  return pathname;
+}
+
+function getSectionHref(section) {
+  return section === "blog-list" ? getBlogListHref() : `${window.location.pathname || "/"}`;
+}
+
+function getBlogListHref() {
+  return buildHashRoute("blog-list", {
+    blogSearch: state.blogQuery.trim(),
+    blogTag: state.blogTag !== "all" ? state.blogTag : "",
+    page: state.blogPage > 1 ? String(state.blogPage) : "",
+  });
+}
+
+function getPostHref(postId) {
+  return buildHashRoute("post", { postId });
+}
+
+function parseHashRoute(hash) {
+  const rawHash = String(hash || "").replace(/^#/, "");
+  const [routePath, rawQuery = ""] = rawHash.split("?");
+  const normalizedPath = routePath.startsWith("/") ? routePath : `/${routePath}`;
+  const params = new URLSearchParams(rawQuery);
+
+  if (normalizedPath.startsWith("/post/")) {
+    return {
+      type: "post",
+      postId: decodeURIComponent(normalizedPath.slice("/post/".length)),
+      blogSearch: params.get("blogSearch") || "",
+      blogTag: params.get("blogTag") || "",
+      page: params.get("page") || "",
+    };
+  }
+
+  if (normalizedPath === "/blog") {
+    return {
+      type: "blog-list",
+      postId: "",
+      blogSearch: params.get("blogSearch") || "",
+      blogTag: params.get("blogTag") || "",
+      page: params.get("page") || "",
+    };
+  }
+
+  return {
+    type: "nav",
+    postId: "",
+    blogSearch: "",
+    blogTag: "",
+    page: "",
+  };
 }
 
 function updateSeo() {
