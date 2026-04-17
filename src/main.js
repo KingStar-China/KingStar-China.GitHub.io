@@ -420,6 +420,18 @@ function handleClick(event) {
       render();
       return;
     }
+
+    if (action === "jump-heading" && value) {
+      document.getElementById(value)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    if (action === "copy-post-link") {
+      copyCurrentPostLink().catch(() => {
+        setTransientStatus("复制文章链接失败，请手动复制地址。");
+      });
+      return;
+    }
   }
 
   if (siteLink) {
@@ -1220,9 +1232,13 @@ function renderBlogDetail() {
           ${post.tags.map((tag) => `<span class="tag">${escapeHTML(tag)}</span>`).join("")}
         </div>
       </div>
-      <div class="article__body">
-        ${renderPostToc(post)}
-        ${renderPostBody(post)}
+      <div class="article__layout">
+        <div class="article__main">
+          <div class="article__body">
+            ${renderPostBody(post)}
+          </div>
+        </div>
+        ${renderArticleSidebar(post, sourceLabel)}
       </div>
       <div class="article__footer">
         <div class="article__nav">
@@ -1278,6 +1294,51 @@ function renderBlogDetail() {
         <a class="site-card__link article__back-button" href="${escapeHTML(getBlogListHref())}">返回博客列表</a>
       </div>
     </article>
+  `;
+}
+
+function renderArticleSidebar(post, sourceLabel) {
+  const tocMarkup = renderPostToc(post);
+  const infoItems = [
+    ["发布日期", formatDate(post.publishedAt)],
+    ["阅读时长", formatPostReadingTime(post)],
+    ["内容块", `${post.blockCount} 个`],
+    ["来源", sourceLabel],
+  ];
+
+  return `
+    <aside class="article__sidebar">
+      ${tocMarkup}
+      <section class="article__side-card article__info-card" aria-label="文章信息">
+        <div class="article__side-head">
+          <strong>文章信息</strong>
+          <span>${post.tags.length} 个标签</span>
+        </div>
+        <dl class="article__info-list">
+          ${infoItems
+            .map(
+              ([label, value]) => `
+                <div class="article__info-item">
+                  <dt>${escapeHTML(label)}</dt>
+                  <dd>${escapeHTML(value)}</dd>
+                </div>
+              `,
+            )
+            .join("")}
+        </dl>
+        <div class="tag-list">
+          ${post.tags.map((tag) => `<span class="tag">${escapeHTML(tag)}</span>`).join("")}
+        </div>
+      </section>
+      <section class="article__side-card article__side-actions" aria-label="快捷操作">
+        <div class="article__side-head">
+          <strong>快捷操作</strong>
+          <span>桌面端常驻</span>
+        </div>
+        <a class="article__side-link" href="${escapeHTML(getBlogListHref())}">返回博客列表</a>
+        <button type="button" class="article__side-link article__side-link--button" data-action="copy-post-link">复制文章链接</button>
+      </section>
+    </aside>
   `;
 }
 
@@ -1689,8 +1750,8 @@ function renderPostToc(post) {
   }
 
   return `
-    <nav class="article__toc" aria-label="文章目录">
-      <div class="article__toc-head">
+    <nav class="article__side-card article__toc" aria-label="文章目录">
+      <div class="article__side-head article__toc-head">
         <strong>目录</strong>
         <span>${post.toc.length} 个小节</span>
       </div>
@@ -1698,15 +1759,46 @@ function renderPostToc(post) {
         ${post.toc
           .map(
             (item) => `
-              <a class="article__toc-link article__toc-link--depth-${item.depth}" href="#${escapeHTML(item.id)}">
+              <button
+                type="button"
+                class="article__toc-link article__toc-link--depth-${item.depth}"
+                data-action="jump-heading"
+                data-value="${escapeHTML(item.id)}"
+              >
                 ${escapeHTML(item.text)}
-              </a>
+              </button>
             `,
           )
           .join("")}
       </div>
     </nav>
   `;
+}
+
+async function copyCurrentPostLink() {
+  const post = getSelectedPost();
+  if (!post) {
+    return;
+  }
+
+  const url = new URL(getPostHref(post.id), window.location.origin).toString();
+  await navigator.clipboard.writeText(url);
+  setTransientStatus("文章链接已复制。");
+}
+
+function setTransientStatus(text) {
+  const statusNode = root.querySelector('[data-role="summary"]');
+  if (!statusNode) {
+    return;
+  }
+
+  const original = statusNode.textContent;
+  statusNode.textContent = text;
+  window.setTimeout(() => {
+    if (statusNode.textContent === text) {
+      statusNode.textContent = original;
+    }
+  }, 1800);
 }
 
 function getMarkdownBlockCount(content) {
