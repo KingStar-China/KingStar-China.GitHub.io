@@ -3,6 +3,7 @@ import { posts as rawPosts } from "./data/posts.js";
 import { siteMeta } from "./data/site.js";
 import { searchEngines as rawSearchEngines } from "./data/search-engines.js";
 import { getPostSearchScore, getSiteSearchScore, matchesPostQuery, matchesSiteQuery } from "./lib/search.js";
+import { formatPostReadingTime, getAdjacentPosts, getRelatedPosts } from "./lib/blog.js";
 import { getCommandSections as getCommandSectionsState, getFlatCommandResults as getFlatCommandResultsState, runCommandResult as executeCommandResult, openCommandPalette as openCommandPaletteState, closeCommandPalette as closeCommandPaletteState } from "./lib/command-palette.js";
 import { renderOverviewDeck as renderOverviewSection } from "./lib/overview.js";
 
@@ -1656,61 +1657,6 @@ function getFilteredPosts(options = {}) {
 function getPostPageSource(postId) {
   const filteredPosts = getFilteredPosts();
   return filteredPosts.some((post) => post.id === postId) ? filteredPosts : posts;
-}
-
-function getAdjacentPosts(postId, sourcePosts = posts) {
-  const currentIndex = sourcePosts.findIndex((post) => post.id === postId);
-
-  if (currentIndex < 0) {
-    return { previousPost: null, nextPost: null };
-  }
-
-  return {
-    previousPost: sourcePosts[currentIndex - 1] || null,
-    nextPost: sourcePosts[currentIndex + 1] || null,
-  };
-}
-
-function getRelatedPosts(postId, limit = 3) {
-  const currentPost = postMap.get(postId);
-
-  if (!currentPost) {
-    return [];
-  }
-
-  const currentTags = new Set(currentPost.tags.map((tag) => tag.toLowerCase()));
-
-  return posts
-    .filter((post) => post.id !== postId)
-    .map((post) => {
-      const sharedTags = post.tags.reduce(
-        (count, tag) => count + (currentTags.has(tag.toLowerCase()) ? 1 : 0),
-        0,
-      );
-
-      return {
-        post,
-        sharedTags,
-        publishedAt: new Date(post.publishedAt).getTime(),
-      };
-    })
-    .filter(({ sharedTags }) => sharedTags > 0)
-    .sort((left, right) => right.sharedTags - left.sharedTags || right.publishedAt - left.publishedAt)
-    .slice(0, limit)
-    .map(({ post }) => post);
-}
-
-function formatPostReadingTime(post) {
-  return `${getPostReadingMinutes(post)} 分钟阅读`;
-}
-
-function getPostReadingMinutes(post) {
-  const text = [post.title, post.summary, ...post.content].join(" ");
-  const latinWords = text.match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g)?.length || 0;
-  const cjkChars = text.match(/[\u3400-\u9fff]/g)?.length || 0;
-  const estimatedUnits = latinWords + cjkChars;
-
-  return Math.max(1, Math.ceil(estimatedUnits / 280));
 }
 
 function getViewScopedSites() {
