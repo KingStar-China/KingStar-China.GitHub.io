@@ -2,14 +2,14 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export function normalizeStringArray(value) {
   if (Array.isArray(value)) {
-    return value.map((item) => String(item || "").trim()).filter(Boolean);
+    return dedupeStrings(value.map((item) => String(item || "").trim()).filter(Boolean));
   }
 
   if (typeof value === "string") {
-    return value
+    return dedupeStrings(value
       .split(/[，,]/)
       .map((item) => item.trim())
-      .filter(Boolean);
+      .filter(Boolean));
   }
 
   return [];
@@ -45,6 +45,7 @@ export function validateSitesPayload(sites) {
   }
 
   const ids = new Set();
+  const urls = new Map();
   for (const site of sites) {
     if (!site || typeof site !== "object") {
       throw new Error("站点条目格式不正确");
@@ -63,10 +64,18 @@ export function validateSitesPayload(sites) {
       throw new Error(`站点 id 重复: ${id}`);
     }
 
+    const normalizedUrl = normalizeSiteUrlForCompare(url);
+    const duplicateId = urls.get(normalizedUrl);
+    if (duplicateId) {
+      throw new Error(`站点链接重复: ${id} 与 ${duplicateId} 指向同一个地址`);
+    }
+
     ids.add(id);
+    urls.set(normalizedUrl, id);
     site.tags = normalizeStringArray(site.tags);
     site.aliases = normalizeStringArray(site.aliases);
     site.icon = typeof site.icon === "string" ? site.icon.trim() : "";
+    validateSiteIcon(site.icon, id);
   }
 }
 
@@ -139,6 +148,41 @@ export function isValidSearchUrlTemplate(value) {
   return isValidHttpUrl(sample);
 }
 
+export function validateSiteIconReferences(sites, iconFiles) {
+  const knownIcons = new Set((Array.isArray(iconFiles) ? iconFiles : []).map((name) => String(name || "").trim()).filter(Boolean));
+
+  for (const site of sites) {
+    const icon = String(site?.icon || "").trim();
+    if (!icon.startsWith("icon/")) {
+      continue;
+    }
+
+    const iconName = icon.slice("icon/".length);
+    if (!knownIcons.has(iconName)) {
+      throw new Error(`站点 ${site.id} 的图标文件不存在: ${icon}`);
+    }
+  }
+}
+
+export function normalizeSiteUrlForCompare(value) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return "";
+  }
+
+  try {
+    const url = new URL(text);
+    url.hash = "";
+    url.hostname = url.hostname.toLowerCase();
+    if (url.pathname !== "/") {
+      url.pathname = url.pathname.replace(/\/+$/, "");
+    }
+    return url.toString();
+  } catch {
+    return text;
+  }
+}
+
 function assertString(value, label) {
   const text = String(value || "").trim();
   if (!text) {
@@ -146,4 +190,34 @@ function assertString(value, label) {
   }
 
   return text;
+}
+
+function validateSiteIcon(icon, siteId) {
+  if (!icon) {
+    return;
+  }
+
+  if (isValidHttpUrl(icon)) {
+    return;
+  }
+
+  if (!/^icon\/[^\\]+$/i.test(icon) || icon.includes("..")) {
+    throw new Error(`站点 ${siteId} 的图标路径无效，只支持 http/https 或 icon/文件名`);
+  }
+}
+
+function dedupeStrings(values) {
+  const seen = new Set();
+  const result = [];
+
+  for (const value of values) {
+    const key = String(value || "").toLocaleLowerCase();
+    if (!key || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    result.push(value);
+  }
+
+  return result;
 }

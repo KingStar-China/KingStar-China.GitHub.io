@@ -4,7 +4,7 @@ import { readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { runInNewContext } from "node:vm";
 import { fileURLToPath } from "node:url";
-import { validatePostsPayload, validateSearchEnginesPayload, validateSitesPayload } from "../admin/content-validation.js";
+import { validatePostsPayload, validateSearchEnginesPayload, validateSiteIconReferences, validateSitesPayload } from "../admin/content-validation.js";
 import { fetchSiteMetadata as fetchRemoteSiteMetadata } from "./site-metadata.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -48,6 +48,7 @@ const server = createServer(async (req, res) => {
     if (req.method === "PUT" && url.pathname === "/api/sites") {
       const payload = await readJsonBody(req);
       validateSitesPayload(payload);
+      validateSiteIconReferences(payload, await listIconFiles());
       await writeModuleExport("sites.js", "sites", payload);
       sendJson(res, 200, { ok: true });
       return;
