@@ -1190,6 +1190,7 @@ function renderBlogDetail() {
   const pageSource = getPostPageSource(post.id);
   const sourceLabel = pageSource === posts ? "来自博客总列表" : "来自当前筛选列表";
   const { previousPost, nextPost } = getAdjacentPosts(post.id, pageSource);
+  const relatedPosts = getRelatedPosts(post.id);
 
   return `
     <article class="panel article">
@@ -1232,6 +1233,36 @@ function renderBlogDetail() {
               : '<div class="article__nav-placeholder" aria-hidden="true"></div>'
           }
         </div>
+        ${
+          relatedPosts.length > 0
+            ? `
+              <section class="article__related" aria-label="相关文章">
+                <div class="article__related-head">
+                  <strong>相关文章</strong>
+                  <span>按标签相关度推荐</span>
+                </div>
+                <div class="article__related-list">
+                  ${relatedPosts
+                    .map(
+                      (relatedPost) => `
+                        <button
+                          type="button"
+                          class="article__related-card"
+                          data-action="open-post"
+                          data-post-id="${escapeHTML(relatedPost.id)}"
+                        >
+                          <span class="article__related-date">${formatDate(relatedPost.publishedAt)}</span>
+                          <strong class="article__related-title">${escapeHTML(relatedPost.title)}</strong>
+                          <span class="article__related-summary">${escapeHTML(relatedPost.summary)}</span>
+                        </button>
+                      `,
+                    )
+                    .join("")}
+                </div>
+              </section>
+            `
+            : ""
+        }
         <button type="button" class="site-card__link article__back-button" data-action="back-to-blog">返回博客列表</button>
       </div>
     </article>
@@ -1638,6 +1669,35 @@ function getAdjacentPosts(postId, sourcePosts = posts) {
     previousPost: sourcePosts[currentIndex - 1] || null,
     nextPost: sourcePosts[currentIndex + 1] || null,
   };
+}
+
+function getRelatedPosts(postId, limit = 3) {
+  const currentPost = postMap.get(postId);
+
+  if (!currentPost) {
+    return [];
+  }
+
+  const currentTags = new Set(currentPost.tags.map((tag) => tag.toLowerCase()));
+
+  return posts
+    .filter((post) => post.id !== postId)
+    .map((post) => {
+      const sharedTags = post.tags.reduce(
+        (count, tag) => count + (currentTags.has(tag.toLowerCase()) ? 1 : 0),
+        0,
+      );
+
+      return {
+        post,
+        sharedTags,
+        publishedAt: new Date(post.publishedAt).getTime(),
+      };
+    })
+    .filter(({ sharedTags }) => sharedTags > 0)
+    .sort((left, right) => right.sharedTags - left.sharedTags || right.publishedAt - left.publishedAt)
+    .slice(0, limit)
+    .map(({ post }) => post);
 }
 
 function formatPostReadingTime(post) {
