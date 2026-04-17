@@ -128,6 +128,29 @@ test("Markdown 代码块会生成高亮 HTML", () => {
   assert.match(post.contentHtml, /hljs-keyword|hljs-variable|hljs-number/);
 });
 
+test("Markdown 常见结构会生成对应 HTML", () => {
+  const post = decoratePost({
+    id: "rich-sample",
+    title: "Rich",
+    summary: "Rich",
+    publishedAt: "2026-04-17",
+    tags: ["测试"],
+    content: [
+      "| 功能 | 状态 |",
+      "| --- | --- |",
+      "| Table | OK |",
+      "",
+      "---",
+      "",
+      "![Alt](https://example.com/test.png)",
+    ].join("\n"),
+  });
+
+  assert.match(post.contentHtml, /<table>/);
+  assert.match(post.contentHtml, /<hr>/);
+  assert.match(post.contentHtml, /<img src="https:\/\/example\.com\/test\.png" alt="Alt">/);
+});
+
 test("本地管理校验会拒绝归一化后重复的站点链接和错误图标路径", () => {
   const duplicateSites = structuredClone(sites);
   duplicateSites[0].url = "https://github.com/";
