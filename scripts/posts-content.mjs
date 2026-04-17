@@ -1,6 +1,7 @@
 import { mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import hljs from "highlight.js";
 import { marked } from "marked";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -12,6 +13,19 @@ export const generatedPostsFile = path.join(rootDir, "src", "data", "posts.gener
 marked.setOptions({
   gfm: true,
   breaks: true,
+});
+
+marked.use({
+  renderer: {
+    code(token) {
+      const language = String(token.lang || "").trim().toLowerCase();
+      const code = String(token.text || "");
+      const highlightedCode = highlightCode(code, language);
+      const languageClass = language ? ` language-${escapeAttribute(language)}` : "";
+
+      return `<pre class="article-code-block"><code class="hljs${languageClass}">${highlightedCode}</code></pre>`;
+    },
+  },
 });
 
 export async function loadPostsFromMarkdown() {
@@ -194,4 +208,20 @@ function getMarkdownBlockCount(content) {
     .map((block) => block.trim())
     .filter(Boolean)
     .length;
+}
+
+function highlightCode(code, language) {
+  if (language && hljs.getLanguage(language)) {
+    return hljs.highlight(code, { language }).value;
+  }
+
+  return hljs.highlightAuto(code).value;
+}
+
+function escapeAttribute(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
