@@ -9,6 +9,8 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
 export const postsContentDir = path.join(rootDir, "src", "content", "posts");
 export const generatedPostsFile = path.join(rootDir, "src", "data", "posts.generated.js");
+export const postImageDir = path.join(rootDir, "public", "post-image");
+const POST_IMAGE_PATTERN = /\/post-image\/([^)\s>"']+)/g;
 
 export async function loadPostsFromMarkdown() {
   await mkdir(postsContentDir, { recursive: true });
@@ -64,11 +66,15 @@ export async function writePostsToMarkdown(posts) {
       .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".md"))
       .map((entry) => entry.name),
   );
+  const existingPosts = await loadPostsFromMarkdown();
+  const removedPostIds = new Set(existingPosts.map((post) => post.id));
   const nextFiles = new Set();
+  const nextPosts = sortPosts(posts);
 
-  for (const post of sortPosts(posts)) {
+  for (const post of nextPosts) {
     const fileName = `${post.id}.md`;
     nextFiles.add(fileName);
+    removedPostIds.delete(post.id);
     await writeFile(path.join(postsContentDir, fileName), serializePostMarkdown(post), "utf8");
   }
 
@@ -78,6 +84,8 @@ export async function writePostsToMarkdown(posts) {
     }
   }
 
+  await deleteUnusedPostImages(existingPosts, nextPosts, removedPostIds);
+
   return await syncGeneratedPostsData();
 }
 
@@ -86,6 +94,15 @@ export function normalizeMarkdownContent(value) {
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
     .trim();
+}
+
+export function getReferencedPostImageNames(content) {
+  const matches = String(content || "").matchAll(POST_IMAGE_PATTERN);
+  return Array.from(new Set(
+    [...matches]
+      .map((match) => String(match[1] || "").trim())
+      .filter(Boolean),
+  ));
 }
 
 function parsePostMarkdown(source, id) {
@@ -180,6 +197,43 @@ function serializePostMarkdown(post) {
     content,
     "",
   ].join("\n");
+}
+
+async function deleteUnusedPostImages(existingPosts, nextPosts, removedPostIds) {
+  if (removedPostIds.size === 0) {
+    return;
+  }
+
+  const remainingImageNames = new Set(
+    nextPosts.flatMap((post) => getReferencedPostImageNames(post.content)),
+  );
+  const removableImageNames = new Set();
+
+  for (const post of existingPosts) {
+    if (!removedPostIds.has(post.id)) {
+      continue;
+    }
+
+    for (const imageName of getReferencedPostImageNames(post.content)) {
+      if (!remainingImageNames.has(imageName)) {
+        removableImageNames.add(imageName);
+      }
+    }
+  }
+
+  await Promise.all(
+    [...removableImageNames].map(async (imageName) => {
+      const filePath = path.join(postImageDir, imageName);
+      try {
+        await unlink(filePath);
+      } catch (error) {
+        if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+          return;
+        }
+        throw error;
+      }
+    }),
+  );
 }
 
 function sortPosts(posts) {
