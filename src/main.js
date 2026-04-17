@@ -874,6 +874,7 @@ function renderBlogDetailToolbar() {
       </div>
       <div class="active-state">
         <span class="state-pill">${formatDate(post.publishedAt)}</span>
+        <span class="state-pill">${formatPostReadingTime(post)}</span>
         <span class="state-pill">第 ${currentPage} / ${getTotalBlogPages(pageSource)} 页</span>
         <span class="state-pill">${sourceLabel}</span>
         <button type="button" class="inline-reset" data-action="open-command">全站搜 Ctrl + K</button>
@@ -1188,6 +1189,7 @@ function renderBlogDetail() {
 
   const pageSource = getPostPageSource(post.id);
   const sourceLabel = pageSource === posts ? "来自博客总列表" : "来自当前筛选列表";
+  const { previousPost, nextPost } = getAdjacentPosts(post.id, pageSource);
 
   return `
     <article class="panel article">
@@ -1196,6 +1198,7 @@ function renderBlogDetail() {
         <h2>${escapeHTML(post.title)}</h2>
         <div class="article__meta">
           <span>${formatDate(post.publishedAt)}</span>
+          <span>${formatPostReadingTime(post)}</span>
           <span>${post.content.length} 段正文</span>
           <span>${sourceLabel}</span>
         </div>
@@ -1207,6 +1210,28 @@ function renderBlogDetail() {
         ${post.content.map((paragraph) => `<p>${escapeHTML(paragraph)}</p>`).join("")}
       </div>
       <div class="article__footer">
+        <div class="article__nav">
+          ${
+            previousPost
+              ? `
+                <button type="button" class="article__nav-link" data-action="open-post" data-post-id="${escapeHTML(previousPost.id)}">
+                  <span class="article__nav-label">上一篇</span>
+                  <strong class="article__nav-title">${escapeHTML(previousPost.title)}</strong>
+                </button>
+              `
+              : '<div class="article__nav-placeholder" aria-hidden="true"></div>'
+          }
+          ${
+            nextPost
+              ? `
+                <button type="button" class="article__nav-link article__nav-link--next" data-action="open-post" data-post-id="${escapeHTML(nextPost.id)}">
+                  <span class="article__nav-label">下一篇</span>
+                  <strong class="article__nav-title">${escapeHTML(nextPost.title)}</strong>
+                </button>
+              `
+              : '<div class="article__nav-placeholder" aria-hidden="true"></div>'
+          }
+        </div>
         <button type="button" class="site-card__link article__back-button" data-action="back-to-blog">返回博客列表</button>
       </div>
     </article>
@@ -1600,6 +1625,32 @@ function getFilteredPosts(options = {}) {
 function getPostPageSource(postId) {
   const filteredPosts = getFilteredPosts();
   return filteredPosts.some((post) => post.id === postId) ? filteredPosts : posts;
+}
+
+function getAdjacentPosts(postId, sourcePosts = posts) {
+  const currentIndex = sourcePosts.findIndex((post) => post.id === postId);
+
+  if (currentIndex < 0) {
+    return { previousPost: null, nextPost: null };
+  }
+
+  return {
+    previousPost: sourcePosts[currentIndex - 1] || null,
+    nextPost: sourcePosts[currentIndex + 1] || null,
+  };
+}
+
+function formatPostReadingTime(post) {
+  return `${getPostReadingMinutes(post)} 分钟阅读`;
+}
+
+function getPostReadingMinutes(post) {
+  const text = [post.title, post.summary, ...post.content].join(" ");
+  const latinWords = text.match(/[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*/g)?.length || 0;
+  const cjkChars = text.match(/[\u3400-\u9fff]/g)?.length || 0;
+  const estimatedUnits = latinWords + cjkChars;
+
+  return Math.max(1, Math.ceil(estimatedUnits / 280));
 }
 
 function getViewScopedSites() {
