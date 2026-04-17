@@ -17,7 +17,7 @@ import {
   validateSiteIconReferences,
   validateSitesPayload,
 } from "../admin/content-validation.js";
-import { decoratePost, loadPostsFromMarkdown } from "../scripts/posts-content.mjs";
+import { decoratePost, getReferencedPostImageNames, loadPostsFromMarkdown, writePostsToMarkdown } from "../scripts/posts-content.mjs";
 import { importMarkdownDocumentFromFile } from "../scripts/import-post-markdown.mjs";
 import { extractSiteMetadata } from "../scripts/site-metadata.mjs";
 import { createServer } from "node:http";
@@ -340,4 +340,89 @@ test("导入中途失败会回滚本次新写入的图片", async () => {
     server.close();
     await rm(tempDir, { recursive: true, force: true }).catch(() => {});
   }
+});
+
+test("删除文章时会清理该文章独占的 post-image 图片", async () => {
+  const postImageDir = new URL("../public/post-image/", import.meta.url);
+  const imageName = "cleanup-exclusive.png";
+  const postFileName = "cleanup-exclusive-post.md";
+  const imagePath = new URL(`../public/post-image/${imageName}`, import.meta.url);
+  const postPath = new URL(`../src/content/posts/${postFileName}`, import.meta.url);
+  const originalPosts = await loadPostsFromMarkdown();
+
+  await writeFile(imagePath, Buffer.from("89504e470d0a1a0a", "hex"));
+  await writeFile(postPath, [
+    "---",
+    'title: "Cleanup Exclusive"',
+    'summary: "Cleanup Exclusive"',
+    'publishedAt: "2026-04-17"',
+    "tags:",
+    '  - "测试"',
+    "---",
+    "",
+    `![图片](/post-image/${imageName})`,
+    "",
+  ].join("\n"));
+
+  try {
+    const currentPosts = await loadPostsFromMarkdown();
+    const nextPosts = currentPosts.filter((post) => post.id !== "cleanup-exclusive-post");
+    await writePostsToMarkdown(nextPosts);
+
+    const files = await readdir(postImageDir);
+    assert.equal(files.includes(imageName), false);
+  } finally {
+    await writePostsToMarkdown(originalPosts);
+    await unlink(postPath).catch(() => {});
+    await unlink(imagePath).catch(() => {});
+  }
+});
+
+test("删除文章时不会误删其他文章仍在使用的图片", async () => {
+  const postImageDir = new URL("../public/post-image/", import.meta.url);
+  const imageName = "cleanup-shared.png";
+  const imagePath = new URL(`../public/post-image/${imageName}`, import.meta.url);
+  const postOnePath = new URL("../src/content/posts/cleanup-shared-a.md", import.meta.url);
+  const postTwoPath = new URL("../src/content/posts/cleanup-shared-b.md", import.meta.url);
+  const originalPosts = await loadPostsFromMarkdown();
+
+  await writeFile(imagePath, Buffer.from("89504e470d0a1a0a", "hex"));
+  const markdownSource = (title) => [
+    "---",
+    `title: ${JSON.stringify(title)}`,
+    `summary: ${JSON.stringify(title)}`,
+    'publishedAt: "2026-04-17"',
+    "tags:",
+    '  - "测试"',
+    "---",
+    "",
+    `![图片](/post-image/${imageName})`,
+    "",
+  ].join("\n");
+  await writeFile(postOnePath, markdownSource("Shared A"));
+  await writeFile(postTwoPath, markdownSource("Shared B"));
+
+  try {
+    const currentPosts = await loadPostsFromMarkdown();
+    const nextPosts = currentPosts.filter((post) => post.id !== "cleanup-shared-a");
+    await writePostsToMarkdown(nextPosts);
+
+    const files = await readdir(postImageDir);
+    assert.equal(files.includes(imageName), true);
+  } finally {
+    await writePostsToMarkdown(originalPosts);
+    await unlink(postOnePath).catch(() => {});
+    await unlink(postTwoPath).catch(() => {});
+    await unlink(imagePath).catch(() => {});
+  }
+});
+
+test("post-image 引用解析会去重并提取文件名", () => {
+  const imageNames = getReferencedPostImageNames([
+    "![一](/post-image/alpha.png)",
+    '<img src="/post-image/beta.jpg" alt="">',
+    "![二](/post-image/alpha.png)",
+  ].join("\n"));
+
+  assert.deepEqual(imageNames, ["alpha.png", "beta.jpg"]);
 });

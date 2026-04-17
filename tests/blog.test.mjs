@@ -20,7 +20,8 @@ test("阅读时长至少为 1 分钟并返回可展示文案", () => {
 
 test("上一篇和下一篇按当前列表顺序返回", () => {
   assert.ok(aiToolsPost);
-  const sourcePosts = posts.slice(0, 4);
+  const aiToolsIndex = posts.findIndex((post) => post.id === aiToolsPost.id);
+  const sourcePosts = posts.slice(Math.max(0, aiToolsIndex - 1), aiToolsIndex + 2);
 
   const adjacentPosts = getAdjacentPosts(aiToolsPost.id, sourcePosts);
 
