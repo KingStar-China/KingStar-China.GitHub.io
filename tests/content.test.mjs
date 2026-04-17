@@ -151,6 +151,32 @@ test("Markdown 常见结构会生成对应 HTML", () => {
   assert.match(post.contentHtml, /<img src="https:\/\/example\.com\/test\.png" alt="Alt">/);
 });
 
+test("Markdown 标题会生成锚点和目录数据", () => {
+  const post = decoratePost({
+    id: "toc-sample",
+    title: "Toc",
+    summary: "Toc",
+    publishedAt: "2026-04-17",
+    tags: ["测试"],
+    content: [
+      "## 第一节",
+      "",
+      "内容",
+      "",
+      "### 第二层",
+      "",
+      "更多内容",
+    ].join("\n"),
+  });
+
+  assert.match(post.contentHtml, /<h2 id="第一节">第一节<\/h2>/);
+  assert.match(post.contentHtml, /<h3 id="第二层">第二层<\/h3>/);
+  assert.deepEqual(post.toc, [
+    { id: "第一节", text: "第一节", depth: 2 },
+    { id: "第二层", text: "第二层", depth: 3 },
+  ]);
+});
+
 test("本地管理校验会拒绝归一化后重复的站点链接和错误图标路径", () => {
   const duplicateSites = structuredClone(sites);
   duplicateSites[0].url = "https://github.com/";

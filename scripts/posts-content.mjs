@@ -2,31 +2,13 @@ import { mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import hljs from "highlight.js";
-import { marked } from "marked";
+import { Marked } from "marked";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
 export const postsContentDir = path.join(rootDir, "src", "content", "posts");
 export const generatedPostsFile = path.join(rootDir, "src", "data", "posts.generated.js");
-
-marked.setOptions({
-  gfm: true,
-  breaks: true,
-});
-
-marked.use({
-  renderer: {
-    code(token) {
-      const language = String(token.lang || "").trim().toLowerCase();
-      const code = String(token.text || "");
-      const highlightedCode = highlightCode(code, language);
-      const languageClass = language ? ` language-${escapeAttribute(language)}` : "";
-
-      return `<pre class="article-code-block"><code class="hljs${languageClass}">${highlightedCode}</code></pre>`;
-    },
-  },
-});
 
 export async function loadPostsFromMarkdown() {
   await mkdir(postsContentDir, { recursive: true });
@@ -49,12 +31,14 @@ export async function loadPostsFromMarkdown() {
 export function decoratePost(post) {
   const content = normalizeMarkdownContent(post.content);
   const blockCount = getMarkdownBlockCount(content);
+  const { html, toc } = renderMarkdown(content);
 
   return {
     ...post,
     content,
-    contentHtml: marked.parse(content).trim(),
+    contentHtml: html,
     blockCount,
+    toc,
   };
 }
 
@@ -210,6 +194,46 @@ function getMarkdownBlockCount(content) {
     .length;
 }
 
+function renderMarkdown(content) {
+  const toc = [];
+  const headingIds = new Map();
+  const parser = new Marked({
+    gfm: true,
+    breaks: true,
+  });
+
+  parser.use({
+    renderer: {
+      code(token) {
+        const language = String(token.lang || "").trim().toLowerCase();
+        const code = String(token.text || "");
+        const highlightedCode = highlightCode(code, language);
+        const languageClass = language ? ` language-${escapeAttribute(language)}` : "";
+
+        return `<pre class="article-code-block"><code class="hljs${languageClass}">${highlightedCode}</code></pre>`;
+      },
+      heading(token) {
+        const depth = Number(token.depth || 0);
+        const rawText = String(token.text || "").trim();
+        const text = rawText.replace(/<[^>]+>/g, "").trim();
+        const id = createHeadingId(text, headingIds);
+        const inlineHtml = this.parser.parseInline(token.tokens);
+
+        if (depth >= 2 && depth <= 4 && text) {
+          toc.push({ id, text, depth });
+        }
+
+        return `<h${depth} id="${escapeAttribute(id)}">${inlineHtml}</h${depth}>`;
+      },
+    },
+  });
+
+  return {
+    html: parser.parse(content).trim(),
+    toc,
+  };
+}
+
 function highlightCode(code, language) {
   if (language && hljs.getLanguage(language)) {
     return hljs.highlight(code, { language }).value;
@@ -224,4 +248,21 @@ function escapeAttribute(value) {
     .replace(/"/g, "&quot;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+function createHeadingId(text, usedIds) {
+  const baseId = slugifyHeading(text) || "section";
+  const currentCount = usedIds.get(baseId) || 0;
+  const nextCount = currentCount + 1;
+  usedIds.set(baseId, nextCount);
+  return currentCount === 0 ? baseId : `${baseId}-${nextCount}`;
+}
+
+function slugifyHeading(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^\w\u4e00-\u9fff\s-]/g, "")
+    .trim()
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }

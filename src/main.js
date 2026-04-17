@@ -29,6 +29,7 @@ import { renderOverviewDeck as renderOverviewSection } from "./lib/overview.js";
  * @property {string} content
  * @property {string=} contentHtml
  * @property {number=} blockCount
+ * @property {{id: string, text: string, depth: number}[]=} toc
  */
 
 /**
@@ -79,6 +80,7 @@ const posts = rawPosts
     content: typeof post.content === "string" ? post.content : String(post.content || ""),
     contentHtml: typeof post.contentHtml === "string" ? post.contentHtml : "",
     blockCount: Number.isFinite(post.blockCount) ? post.blockCount : getMarkdownBlockCount(post.content),
+    toc: Array.isArray(post.toc) ? post.toc : [],
   }))
   .sort((left, right) => new Date(right.publishedAt).getTime() - new Date(left.publishedAt).getTime());
 
@@ -1213,6 +1215,7 @@ function renderBlogDetail() {
         </div>
       </div>
       <div class="article__body">
+        ${renderPostToc(post)}
         ${renderPostBody(post)}
       </div>
       <div class="article__footer">
@@ -1674,6 +1677,32 @@ function renderPostBody(post) {
     .filter(Boolean)
     .map((paragraph) => `<p>${escapeHTML(paragraph)}</p>`)
     .join("");
+}
+
+function renderPostToc(post) {
+  if (!Array.isArray(post.toc) || post.toc.length === 0) {
+    return "";
+  }
+
+  return `
+    <nav class="article__toc" aria-label="文章目录">
+      <div class="article__toc-head">
+        <strong>目录</strong>
+        <span>${post.toc.length} 个小节</span>
+      </div>
+      <div class="article__toc-list">
+        ${post.toc
+          .map(
+            (item) => `
+              <a class="article__toc-link article__toc-link--depth-${item.depth}" href="#${escapeHTML(item.id)}">
+                ${escapeHTML(item.text)}
+              </a>
+            `,
+          )
+          .join("")}
+      </div>
+    </nav>
+  `;
 }
 
 function getMarkdownBlockCount(content) {
