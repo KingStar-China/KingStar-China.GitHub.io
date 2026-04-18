@@ -1,5 +1,19 @@
 export const sites = [
   {
+    "id": "site-1776479141262",
+    "name": "小云雀",
+    "url": "https://xyq.jianying.com",
+    "category": "AI",
+    "tags": [
+      "视频"
+    ],
+    "icon": "https://p26-piu.byteimg.com/tos-cn-i-8jisjyls3a/6c764ca8350d46218d462fe23ea42072~tplv-8jisjyls3a-3:0:0:q75.png",
+    "description": "小云雀，你的内容创作Agent，只需一句指令，小云雀主动思考、智能执行，快速生成爆款视频与图片，一站式满足多样化内容创作需求，突破想象力边界，灵感即所得，创作零门槛。",
+    "aliases": [
+      "xyq.jianying.com"
+    ]
+  },
+  {
     "id": "site-1776383146653",
     "name": "即梦AI - 即刻造梦",
     "url": "https://jimeng.jianying.com/",
