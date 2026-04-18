@@ -899,7 +899,10 @@ function renderBlogDetailToolbar() {
 
   return `
     <div class="toolbar--detail">
-      <a class="article-back" href="${escapeHTML(getBlogListHref())}">返回博客列表</a>
+      <div class="article-back-group">
+        <a class="article-back" href="${escapeHTML(getHomeHref())}">返回主页</a>
+        <a class="article-back" href="${escapeHTML(getBlogListHref())}">返回博客列表</a>
+      </div>
       <div class="toolbar__heading">
         <span class="field-label">BLOG POST</span>
         <h2>${escapeHTML(post.title)}</h2>
@@ -1003,6 +1006,7 @@ function renderOverviewDeck(visibleSites) {
     siteMap,
     escapeHTML,
     formatShortDate,
+    getPostHref,
   });
 }
 function renderSectionRail(groups) {
@@ -1215,6 +1219,7 @@ function renderBlogDetail() {
       <section class="panel empty-state">
         <h2>文章不存在</h2>
         <p>当前选择的文章没有找到，你可以返回博客列表重新选择。</p>
+        <a class="empty-state__button" href="${escapeHTML(getHomeHref())}">返回主页</a>
         <a class="empty-state__button" href="${escapeHTML(getBlogListHref())}">返回博客列表</a>
       </section>
     `;
@@ -1299,7 +1304,10 @@ function renderBlogDetail() {
             `
             : ""
         }
-        <a class="site-card__link article__back-button" href="${escapeHTML(getBlogListHref())}">返回博客列表</a>
+        <div class="article__back-actions">
+          <a class="site-card__link article__back-button" href="${escapeHTML(getHomeHref())}">返回主页</a>
+          <a class="site-card__link article__back-button" href="${escapeHTML(getBlogListHref())}">返回博客列表</a>
+        </div>
       </div>
     </article>
   `;
@@ -1343,6 +1351,7 @@ function renderArticleSidebar(post, sourceLabel) {
           <strong>快捷操作</strong>
           <span>桌面端常驻</span>
         </div>
+        <a class="article__side-link" href="${escapeHTML(getHomeHref())}">返回主页</a>
         <a class="article__side-link" href="${escapeHTML(getBlogListHref())}">返回博客列表</a>
         <button type="button" class="article__side-link article__side-link--button" data-action="copy-post-link">复制文章链接</button>
       </section>
@@ -2397,7 +2406,11 @@ function buildHashRoute(type, { postId = "", blogSearch = "", blogTag = "", page
 }
 
 function getSectionHref(section) {
-  return section === "blog-list" ? getBlogListHref() : `${window.location.pathname || "/"}`;
+  return section === "blog-list" ? getBlogListHref() : getHomeHref();
+}
+
+function getHomeHref() {
+  return `${window.location.pathname || "/"}`;
 }
 
 function getBlogListHref() {

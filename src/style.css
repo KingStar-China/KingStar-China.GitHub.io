@@ -753,6 +753,13 @@ a {
   color: var(--heading);
 }
 
+.article-back-group,
+.article__back-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .blog-list {
   display: grid;
   gap: 20px;

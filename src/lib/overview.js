@@ -5,6 +5,7 @@ export function renderOverviewDeck({
   siteMap,
   escapeHTML,
   formatShortDate,
+  getPostHref,
 }) {
   const favoriteSites = [...favorites].map((id) => siteMap.get(id)).filter(Boolean);
   const spotlightSites = favoriteSites.slice(-6).reverse();
@@ -87,10 +88,10 @@ function renderOverviewPlaceholder(compact = false) {
 
 function renderOverviewPost(post, escapeHTML, formatShortDate) {
   return `
-    <button type="button" class="overview-post" data-action="open-post" data-post-id="${escapeHTML(post.id)}">
+    <a class="overview-post" href="${escapeHTML(getPostHref(post.id))}">
       <span class="overview-post__date">${formatShortDate(post.publishedAt)}</span>
       <strong>${escapeHTML(post.title)}</strong>
       <span>${escapeHTML(post.summary)}</span>
-    </button>
+    </a>
   `;
 }
