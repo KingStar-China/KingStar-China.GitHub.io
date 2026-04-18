@@ -9,7 +9,8 @@
     "build": "node ./scripts/generate-posts-data.mjs && node ./scripts/generate-seo.mjs && vite build",
     "test": "node ./scripts/generate-posts-data.mjs && node --test --experimental-test-isolation=none tests/content.test.mjs tests/search.test.mjs tests/seo.test.mjs tests/command-palette.test.mjs tests/blog.test.mjs",
     "preview": "vite preview",
-    "admin": "node ./scripts/generate-posts-data.mjs && node ./scripts/admin-server.mjs"
+    "admin": "node ./scripts/generate-posts-data.mjs && node ./scripts/admin-server.mjs",
+    "admin:open": "node ./scripts/admin-open.mjs"
   },
   "devDependencies": {
     "highlight.js": "^11.11.1",
