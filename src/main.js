@@ -53,11 +53,13 @@ const searchEngines = rawSearchEngines
   .map((engine) => ({
     id: String(engine.id || "").trim(),
     label: String(engine.label || "").trim(),
+    priority: normalizeSearchEnginePriority(engine.priority),
     placeholder: String(engine.placeholder || "").trim(),
     urlTemplate: String(engine.urlTemplate || "").trim(),
     buildUrl: (query) => String(engine.urlTemplate || "").replace(/{query}/g, encodeURIComponent(query)),
   }))
-  .filter((engine) => engine.id && engine.label && engine.urlTemplate);
+  .filter((engine) => engine.id && engine.label && engine.urlTemplate && Number.isInteger(engine.priority))
+  .sort((left, right) => left.priority - right.priority || left.label.localeCompare(right.label, "zh-CN"));
 
 const defaultSearchEngine = searchEngines[0]?.id || "baidu";
 
@@ -2150,6 +2152,15 @@ function trackRecent(siteId) {
 
 function getSearchEngineId(value) {
   return searchEngines.some((engine) => engine.id === value) ? value : defaultSearchEngine;
+}
+
+function normalizeSearchEnginePriority(value) {
+  const priority = Number.parseInt(String(value ?? "").trim(), 10);
+  if (!Number.isInteger(priority) || priority < 1 || priority > 9) {
+    return null;
+  }
+
+  return priority;
 }
 
 function getActiveSearchEngine() {
