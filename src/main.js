@@ -2156,7 +2156,7 @@ function getSearchEngineId(value) {
 
 function normalizeSearchEnginePriority(value) {
   const priority = Number.parseInt(String(value ?? "").trim(), 10);
-  if (!Number.isInteger(priority) || priority < 1 || priority > 9) {
+  if (!Number.isInteger(priority) || priority < 1) {
     return null;
   }
 

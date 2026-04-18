@@ -1,7 +1,5 @@
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const POST_ID_PATTERN = /^[a-z0-9-]+$/;
-const SEARCH_ENGINE_PRIORITY_PATTERN = /^[1-9]$/;
-
 export function normalizeStringArray(value) {
   if (Array.isArray(value)) {
     return dedupeStrings(value.map((item) => String(item || "").trim()).filter(Boolean));
@@ -221,11 +219,16 @@ function validateSiteIcon(icon, siteId) {
 
 function normalizeSearchEnginePriority(value, engineId) {
   const text = String(value ?? "").trim();
-  if (!SEARCH_ENGINE_PRIORITY_PATTERN.test(text)) {
-    throw new Error(`搜索引擎 ${engineId} 的优先级无效，只支持 1-9 且不能为空`);
+  if (!/^\d+$/.test(text)) {
+    throw new Error(`搜索引擎 ${engineId} 的优先级无效，必须是从 1 开始的整数`);
   }
 
-  return Number.parseInt(text, 10);
+  const priority = Number.parseInt(text, 10);
+  if (!Number.isInteger(priority) || priority < 1) {
+    throw new Error(`搜索引擎 ${engineId} 的优先级无效，必须是从 1 开始的整数`);
+  }
+
+  return priority;
 }
 
 export function normalizePostContent(value) {

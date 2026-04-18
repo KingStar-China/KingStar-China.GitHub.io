@@ -30,6 +30,7 @@ const state = {
     text: "正在读取本地内容文件...",
   },
   publishing: false,
+  draggingSearchEngineId: "",
 };
 
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "::1"]);
@@ -60,6 +61,10 @@ async function init() {
   root.addEventListener("click", handleClick);
   root.addEventListener("input", handleInput);
   root.addEventListener("change", handleChange);
+  root.addEventListener("dragstart", handleDragStart);
+  root.addEventListener("dragover", handleDragOver);
+  root.addEventListener("drop", handleDrop);
+  root.addEventListener("dragend", handleDragEnd);
 
   await loadContent();
   render();
@@ -159,7 +164,7 @@ async function loadContent() {
   const payload = await response.json();
   state.sites = Array.isArray(payload.sites) ? payload.sites.map(normalizeSite) : [];
   state.posts = Array.isArray(payload.posts) ? payload.posts.map(normalizePost) : [];
-  state.searchEngines = Array.isArray(payload.searchEngines) ? sortSearchEngines(payload.searchEngines.map(normalizeSearchEngine)) : [];
+  state.searchEngines = Array.isArray(payload.searchEngines) ? normalizeSearchEngineOrder(payload.searchEngines.map(normalizeSearchEngine)) : [];
   state.iconFiles = Array.isArray(payload.iconFiles) ? payload.iconFiles.map((name) => String(name || "").trim()).filter(Boolean) : [];
   syncSelections();
   resetSiteDiagnostics();
@@ -240,11 +245,14 @@ function renderListItem(item) {
     ? `${item.category || "未分类"} · ${(item.tags || []).join(" / ") || "无标签"}`
     : state.section === "posts"
       ? `${formatDate(item.publishedAt)} · ${(item.tags || []).join(" / ") || "无标签"}`
-      : `优先级 ${item.priority ?? "未设置"} · ${item.urlTemplate || "无模板"}`;
+      : item.urlTemplate || "无模板";
   const preview = isSites ? item.description : state.section === "posts" ? item.summary : item.placeholder;
+  const isSearchEngine = state.section === "searchEngines";
+  const draggableAttrs = isSearchEngine ? ` draggable="true" data-drag-id="${escapeAttr(item.id)}"` : "";
+  const draggingClass = isSearchEngine && state.draggingSearchEngineId === item.id ? " is-dragging" : "";
 
   return `
-    <button type="button" class="list-item ${isActive ? "is-active" : ""}" data-action="select-item" data-id="${escapeHTML(item.id)}">
+    <button type="button" class="list-item ${isActive ? "is-active" : ""}${draggingClass}${isSearchEngine ? " list-item--draggable" : ""}" data-action="select-item" data-id="${escapeHTML(item.id)}"${draggableAttrs}>
       <strong>${escapeHTML(isSites ? item.name || "未命名网站" : state.section === "posts" ? item.title || "未命名文章" : item.label || "未命名引擎")}</strong>
       <span>${escapeHTML(secondary)}</span>
       <span>${escapeHTML(preview || "暂无说明")}</span>
@@ -484,11 +492,6 @@ function renderSearchEngineEditor(engine) {
           <button type="button" class="mini-button" data-action="generate-id">生成</button>
         </div>
       </div>
-      <div class="field">
-        <label for="engine-priority">优先级排序</label>
-        <input id="engine-priority" data-field="priority" type="number" min="1" max="9" step="1" inputmode="numeric" value="${escapeAttr(engine.priority ?? "")}">
-        <span class="helper">只支持 1-9，不能重复；1 排第一。</span>
-      </div>
       <div class="field field--full">
         <label for="engine-placeholder">输入框提示词</label>
         <input id="engine-placeholder" data-field="placeholder" value="${escapeAttr(engine.placeholder)}">
@@ -498,7 +501,7 @@ function renderSearchEngineEditor(engine) {
         <input id="engine-url-template" data-field="urlTemplate" value="${escapeAttr(engine.urlTemplate)}" placeholder="https://www.sogou.com/web?query={query}">
       </div>
       <div class="field field--full">
-        <span class="helper">模板必须包含 <code>{query}</code>，搜索时会自动替换成关键词。比如搜狗可写 <code>https://www.sogou.com/web?query={query}</code>。</span>
+        <span class="helper">模板必须包含 <code>{query}</code>，搜索时会自动替换成关键词。左侧列表支持拖拽排序，越靠上优先级越高。</span>
       </div>
     </div>
   `;
@@ -812,6 +815,70 @@ function handleChange(event) {
   }
 }
 
+function handleDragStart(event) {
+  if (state.section !== "searchEngines") {
+    return;
+  }
+
+  const button = event.target.closest('[data-drag-id]');
+  if (!button) {
+    return;
+  }
+
+  state.draggingSearchEngineId = button.dataset.dragId || "";
+  event.dataTransfer?.setData("text/plain", state.draggingSearchEngineId);
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+  }
+  render();
+}
+
+function handleDragOver(event) {
+  if (state.section !== "searchEngines" || !state.draggingSearchEngineId) {
+    return;
+  }
+
+  const target = event.target.closest('[data-drag-id]');
+  if (!target || target.dataset.dragId === state.draggingSearchEngineId) {
+    return;
+  }
+
+  event.preventDefault();
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = "move";
+  }
+}
+
+function handleDrop(event) {
+  if (state.section !== "searchEngines" || !state.draggingSearchEngineId) {
+    return;
+  }
+
+  const target = event.target.closest('[data-drag-id]');
+  if (!target) {
+    return;
+  }
+
+  event.preventDefault();
+  const targetId = target.dataset.dragId || "";
+  if (!targetId || targetId === state.draggingSearchEngineId) {
+    state.draggingSearchEngineId = "";
+    render();
+    return;
+  }
+
+  reorderSearchEngine(state.draggingSearchEngineId, targetId, event.clientY > target.getBoundingClientRect().top + target.getBoundingClientRect().height / 2 ? "after" : "before");
+}
+
+function handleDragEnd() {
+  if (!state.draggingSearchEngineId) {
+    return;
+  }
+
+  state.draggingSearchEngineId = "";
+  render();
+}
+
 function applySiteField(site, field, value) {
   if (field === "tags" || field === "aliases") {
     site[field] = splitCommaList(value);
@@ -827,11 +894,6 @@ function applySiteField(site, field, value) {
 }
 
 function applySearchEngineField(engine, field, value) {
-  if (field === "priority") {
-    engine.priority = normalizeSearchEnginePriorityValue(value);
-    return;
-  }
-
   engine[field] = value;
 }
 
@@ -1036,7 +1098,7 @@ function appendPickedTag(value) {
 
 function getFilteredItems() {
   const keyword = state.filter.toLowerCase();
-  const items = state.section === "sites" ? state.sites : state.section === "posts" ? state.posts : sortSearchEngines(state.searchEngines);
+  const items = state.section === "sites" ? state.sites : state.section === "posts" ? state.posts : state.searchEngines;
   if (!keyword) {
     return items;
   }
@@ -1113,11 +1175,11 @@ function createItem() {
   const engine = {
     id: `engine-${Date.now()}` ,
     label: "",
-    priority: getNextSearchEnginePriority(),
+    priority: state.searchEngines.length + 1,
     placeholder: "",
     urlTemplate: "https://www.sogou.com/web?query={query}",
   };
-  state.searchEngines = sortSearchEngines([engine, ...state.searchEngines]);
+  state.searchEngines = normalizeSearchEngineOrder([...state.searchEngines, engine]);
   state.selectedSearchEngineId = engine.id;
   state.dirty.searchEngines = true;
   setStatus("info", "已创建新搜索引擎草稿。", false);
@@ -1175,7 +1237,7 @@ async function saveSection() {
 
 async function saveSectionByName(section) {
   const target = section === "sites" ? "/api/sites" : section === "posts" ? "/api/posts" : "/api/search-engines";
-  const payload = section === "sites" ? state.sites : section === "posts" ? state.posts : sortSearchEngines(state.searchEngines);
+  const payload = section === "sites" ? state.sites : section === "posts" ? state.posts : normalizeSearchEngineOrder(state.searchEngines);
 
   validateBeforeSave(payload, section);
 
@@ -1493,7 +1555,7 @@ function applyImportedSection(section, items) {
   }
 
   if (section === "searchEngines") {
-    const searchEngines = sortSearchEngines(items.map(normalizeSearchEngine));
+    const searchEngines = normalizeSearchEngineOrder(items.map(normalizeSearchEngine));
     validateBeforeSave(searchEngines, "searchEngines");
     state.searchEngines = searchEngines;
     state.dirty.searchEngines = true;
@@ -1661,35 +1723,42 @@ function normalizeSearchEnginePriorityValue(value) {
   }
 
   const priority = Number.parseInt(text, 10);
-  if (!Number.isInteger(priority) || priority < 1 || priority > 9) {
+  if (!Number.isInteger(priority) || priority < 1) {
     return null;
   }
 
   return priority;
 }
 
-function sortSearchEngines(searchEngines) {
-  return [...searchEngines].sort((left, right) => {
-    const leftPriority = Number.isInteger(left?.priority) ? left.priority : 99;
-    const rightPriority = Number.isInteger(right?.priority) ? right.priority : 99;
-    return leftPriority - rightPriority || compareText(left?.label || "", right?.label || "") || compareText(left?.id || "", right?.id || "");
-  });
+function normalizeSearchEngineOrder(searchEngines) {
+  return searchEngines.map((engine, index) => ({
+    ...engine,
+    priority: index + 1,
+  }));
 }
 
-function getNextSearchEnginePriority() {
-  const used = new Set(
-    state.searchEngines
-      .map((engine) => normalizeSearchEnginePriorityValue(engine?.priority))
-      .filter(Number.isInteger),
-  );
+function reorderSearchEngine(sourceId, targetId, position) {
+  const items = [...state.searchEngines];
+  const sourceIndex = items.findIndex((engine) => engine.id === sourceId);
+  const targetIndex = items.findIndex((engine) => engine.id === targetId);
 
-  for (let priority = 1; priority <= 9; priority += 1) {
-    if (!used.has(priority)) {
-      return priority;
-    }
+  if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+    state.draggingSearchEngineId = "";
+    render();
+    return;
   }
 
-  return null;
+  const [moved] = items.splice(sourceIndex, 1);
+  const nextTargetIndex = items.findIndex((engine) => engine.id === targetId);
+  const insertIndex = position === "after" ? nextTargetIndex + 1 : nextTargetIndex;
+  items.splice(insertIndex, 0, moved);
+
+  state.searchEngines = normalizeSearchEngineOrder(items);
+  state.selectedSearchEngineId = moved.id;
+  state.dirty.searchEngines = true;
+  state.draggingSearchEngineId = "";
+  setStatus("info", "已调整搜索引擎顺序，记得保存当前分类。", false);
+  render();
 }
 
 function getExistingSiteCategories() {

@@ -338,9 +338,22 @@ button {
   color: var(--text);
 }
 
+.list-item--draggable {
+  cursor: grab;
+}
+
+.list-item--draggable:active {
+  cursor: grabbing;
+}
+
 .list-item.is-active {
   background: rgba(34, 197, 94, 0.12);
   border-color: rgba(34, 197, 94, 0.2);
+}
+
+.list-item.is-dragging {
+  opacity: 0.55;
+  border-style: dashed;
 }
 
 .list-item strong {
