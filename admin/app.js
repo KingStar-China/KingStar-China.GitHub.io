@@ -81,7 +81,7 @@ function renderRemoteOnlyState() {
           <div class="hero__actions">
             <a class="ghost-button" href="/">返回首页</a>
           </div>
-          <p class="helper hero__helper">请在项目目录执行 <code>npm run admin</code>，然后打开 <code>http://127.0.0.1:3210</code>。</p>
+          <p class="helper hero__helper">请在项目目录的外部 PowerShell 或终端执行 <code>npm run admin:open</code>，它会自动启动本地内容管理器并打开 <code>http://127.0.0.1:3210</code>。</p>
         </div>
       </header>
     </div>
@@ -94,6 +94,7 @@ function createShell() {
         <div>
           <h1>本地内容管理器</h1>
           <p>这个页面只在你本机运行，用来编辑站点条目和博客文章。保存后会直接改写 <code>src/data/sites.js</code> 和 <code>src/data/posts.js</code>。</p>
+          <p class="helper hero__helper">建议在项目目录的外部 PowerShell 或终端执行 <code>npm run admin:open</code> 启动本地内容管理器；这样可以自动起服务并打开浏览器，也能正常弹出导入 Markdown 的文件选择框。</p>
           <p class="helper hero__helper">“提交 GitHub”只会提交 <code>src/data</code> 的内容变更，以及 <code>public/icon</code> 里的图标文件。</p>
           <p class="helper hero__helper">JSON 可恢复站点和博客；书签 HTML 只会导入网站，并且默认跳过重复链接。</p>
         </div>
