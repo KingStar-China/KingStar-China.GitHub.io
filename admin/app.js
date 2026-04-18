@@ -93,10 +93,10 @@ function createShell() {
       <header class="panel hero">
         <div>
           <h1>本地内容管理器</h1>
-          <p>这个页面只在你本机运行，用来编辑站点条目和博客文章。保存后会直接改写 <code>src/data/sites.js</code> 和 <code>src/data/posts.js</code>。</p>
-          <p class="helper hero__helper">建议在项目目录的外部 PowerShell 或终端执行 <code>npm run admin:open</code> 启动本地内容管理器；这样可以自动起服务并打开浏览器，也能正常弹出导入 Markdown 的文件选择框。</p>
-          <p class="helper hero__helper">“提交 GitHub”只会提交 <code>src/data</code> 的内容变更，以及 <code>public/icon</code> 里的图标文件。</p>
-          <p class="helper hero__helper">JSON 可恢复站点和博客；书签 HTML 只会导入网站，并且默认跳过重复链接。</p>
+          <p>这个页面只在你本机运行，用来编辑站点条目和博客文章。保存后会直接改写 <code>src/data</code> 和 <code>src/content/posts</code>。</p>
+          <p class="helper hero__helper">建议在外部 PowerShell 或终端执行 <code>npm run admin:open</code>；它会自动起服务、打开浏览器，并支持导入 Markdown 文件。</p>
+          <p class="helper hero__helper">“提交 GitHub”会提交 <code>src/data</code>、<code>src/content</code>、<code>public/icon</code> 和 <code>public/post-image</code> 的内容变更。</p>
+          <p class="helper hero__helper">JSON 可恢复站点和博客；书签 HTML 只导入网站，并默认跳过重复链接。</p>
         </div>
         <div class="hero__aside">
           <div class="hero__meta">
@@ -159,7 +159,7 @@ async function loadContent() {
   const payload = await response.json();
   state.sites = Array.isArray(payload.sites) ? payload.sites.map(normalizeSite) : [];
   state.posts = Array.isArray(payload.posts) ? payload.posts.map(normalizePost) : [];
-  state.searchEngines = Array.isArray(payload.searchEngines) ? payload.searchEngines.map(normalizeSearchEngine) : [];
+  state.searchEngines = Array.isArray(payload.searchEngines) ? sortSearchEngines(payload.searchEngines.map(normalizeSearchEngine)) : [];
   state.iconFiles = Array.isArray(payload.iconFiles) ? payload.iconFiles.map((name) => String(name || "").trim()).filter(Boolean) : [];
   syncSelections();
   resetSiteDiagnostics();
@@ -240,7 +240,7 @@ function renderListItem(item) {
     ? `${item.category || "未分类"} · ${(item.tags || []).join(" / ") || "无标签"}`
     : state.section === "posts"
       ? `${formatDate(item.publishedAt)} · ${(item.tags || []).join(" / ") || "无标签"}`
-      : item.urlTemplate || "无模板";
+      : `优先级 ${item.priority ?? "未设置"} · ${item.urlTemplate || "无模板"}`;
   const preview = isSites ? item.description : state.section === "posts" ? item.summary : item.placeholder;
 
   return `
@@ -404,7 +404,7 @@ function renderSiteEditor(site) {
       <div class="field field--full">
         <label for="site-url">网站链接</label>
         <div class="meta-row">
-          <input id="site-url" data-field="url" value="${escapeAttr(site.url)}">
+          <input id="site-url" data-field="url" value="${escapeAttr(site.url)}" placeholder="https://example.com">
           <button type="button" class="mini-button" data-action="fetch-site-metadata" ${state.siteMetaLoading ? "disabled" : ""}>${state.siteMetaLoading ? "抓取中..." : "抓取站点信息"}</button>
         </div>
         <span class="helper">这一步只在本地内容管理器里执行，不依赖 GitHub Pages。会抓标题、描述和 favicon 建议。</span>
@@ -483,6 +483,11 @@ function renderSearchEngineEditor(engine) {
           <input id="engine-id" data-field="id" value="${escapeAttr(engine.id)}">
           <button type="button" class="mini-button" data-action="generate-id">生成</button>
         </div>
+      </div>
+      <div class="field">
+        <label for="engine-priority">优先级排序</label>
+        <input id="engine-priority" data-field="priority" type="number" min="1" max="9" step="1" inputmode="numeric" value="${escapeAttr(engine.priority ?? "")}">
+        <span class="helper">只支持 1-9，不能重复；1 排第一。</span>
       </div>
       <div class="field field--full">
         <label for="engine-placeholder">输入框提示词</label>
@@ -813,10 +818,20 @@ function applySiteField(site, field, value) {
     return;
   }
 
+  if (field === "url") {
+    site.url = normalizeEditableUrlValue(value);
+    return;
+  }
+
   site[field] = value;
 }
 
 function applySearchEngineField(engine, field, value) {
+  if (field === "priority") {
+    engine.priority = normalizeSearchEnginePriorityValue(value);
+    return;
+  }
+
   engine[field] = value;
 }
 
@@ -922,7 +937,7 @@ async function fetchSelectedSiteMetadata() {
     return;
   }
 
-  const siteUrl = String(item.url || "").trim();
+  const siteUrl = normalizeSiteUrlValue(item.url);
   if (!isValidHttpUrl(siteUrl)) {
     throw new Error("请先填写有效的网站链接，再抓取站点信息。");
   }
@@ -934,6 +949,11 @@ async function fetchSelectedSiteMetadata() {
   try {
     const metadata = await requestSiteMetadata(siteUrl);
     const updatedFields = [];
+
+    if (siteUrl !== item.url) {
+      item.url = siteUrl;
+      updatedFields.push("链接");
+    }
 
     if (metadata.name && metadata.name !== item.name) {
       item.name = metadata.name;
@@ -975,7 +995,7 @@ async function requestSiteMetadata(url) {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
     },
-    body: JSON.stringify({ url }),
+    body: JSON.stringify({ url: normalizeSiteUrlValue(url) }),
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -1016,7 +1036,7 @@ function appendPickedTag(value) {
 
 function getFilteredItems() {
   const keyword = state.filter.toLowerCase();
-  const items = state.section === "sites" ? state.sites : state.section === "posts" ? state.posts : state.searchEngines;
+  const items = state.section === "sites" ? state.sites : state.section === "posts" ? state.posts : sortSearchEngines(state.searchEngines);
   if (!keyword) {
     return items;
   }
@@ -1057,7 +1077,7 @@ function createItem() {
     const site = {
       id: `site-${Date.now()}` ,
       name: "",
-      url: "https://",
+      url: "",
       category: "未分类",
       tags: [],
       icon: "",
@@ -1093,10 +1113,11 @@ function createItem() {
   const engine = {
     id: `engine-${Date.now()}` ,
     label: "",
+    priority: getNextSearchEnginePriority(),
     placeholder: "",
     urlTemplate: "https://www.sogou.com/web?query={query}",
   };
-  state.searchEngines = [engine, ...state.searchEngines];
+  state.searchEngines = sortSearchEngines([engine, ...state.searchEngines]);
   state.selectedSearchEngineId = engine.id;
   state.dirty.searchEngines = true;
   setStatus("info", "已创建新搜索引擎草稿。", false);
@@ -1154,7 +1175,7 @@ async function saveSection() {
 
 async function saveSectionByName(section) {
   const target = section === "sites" ? "/api/sites" : section === "posts" ? "/api/posts" : "/api/search-engines";
-  const payload = section === "sites" ? state.sites : section === "posts" ? state.posts : state.searchEngines;
+  const payload = section === "sites" ? state.sites : section === "posts" ? state.posts : sortSearchEngines(state.searchEngines);
 
   validateBeforeSave(payload, section);
 
@@ -1472,7 +1493,7 @@ function applyImportedSection(section, items) {
   }
 
   if (section === "searchEngines") {
-    const searchEngines = items.map(normalizeSearchEngine);
+    const searchEngines = sortSearchEngines(items.map(normalizeSearchEngine));
     validateBeforeSave(searchEngines, "searchEngines");
     state.searchEngines = searchEngines;
     state.dirty.searchEngines = true;
@@ -1574,6 +1595,7 @@ function getBookmarkFolders(anchor) {
 
 function validateBeforeSave(payload, section) {
   if (section === "sites") {
+    normalizeSitesForSave(payload);
     validateSitesPayload(payload);
     return;
   }
@@ -1626,9 +1648,48 @@ function normalizeSearchEngine(engine = {}) {
   return {
     id: String(engine.id || "").trim(),
     label: String(engine.label || "").trim(),
+    priority: normalizeSearchEnginePriorityValue(engine.priority),
     placeholder: String(engine.placeholder || "").trim(),
     urlTemplate: String(engine.urlTemplate || "").trim(),
   };
+}
+
+function normalizeSearchEnginePriorityValue(value) {
+  const text = String(value ?? "").trim();
+  if (!text) {
+    return null;
+  }
+
+  const priority = Number.parseInt(text, 10);
+  if (!Number.isInteger(priority) || priority < 1 || priority > 9) {
+    return null;
+  }
+
+  return priority;
+}
+
+function sortSearchEngines(searchEngines) {
+  return [...searchEngines].sort((left, right) => {
+    const leftPriority = Number.isInteger(left?.priority) ? left.priority : 99;
+    const rightPriority = Number.isInteger(right?.priority) ? right.priority : 99;
+    return leftPriority - rightPriority || compareText(left?.label || "", right?.label || "") || compareText(left?.id || "", right?.id || "");
+  });
+}
+
+function getNextSearchEnginePriority() {
+  const used = new Set(
+    state.searchEngines
+      .map((engine) => normalizeSearchEnginePriorityValue(engine?.priority))
+      .filter(Number.isInteger),
+  );
+
+  for (let priority = 1; priority <= 9; priority += 1) {
+    if (!used.has(priority)) {
+      return priority;
+    }
+  }
+
+  return null;
 }
 
 function getExistingSiteCategories() {
@@ -1773,6 +1834,40 @@ function splitCommaList(value) {
     .split(/[，,]/)
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function normalizeEditableUrlValue(value) {
+  let text = String(value || "");
+  while (/^https?:\/\/https?:\/\//i.test(text)) {
+    text = text.replace(/^https?:\/\//i, "");
+  }
+  return text;
+}
+
+function normalizeSiteUrlValue(value) {
+  const text = normalizeEditableUrlValue(value).trim();
+  if (!text || /^[a-z][a-z\d+.-]*:\/\//i.test(text)) {
+    return text;
+  }
+
+  if (/^[a-z][a-z\d+.-]*:/i.test(text)) {
+    return text;
+  }
+
+  return `https://${text}`;
+}
+
+function normalizeSitesForSave(sites) {
+  if (!Array.isArray(sites)) {
+    return;
+  }
+
+  for (const site of sites) {
+    if (!site || typeof site !== "object") {
+      continue;
+    }
+    site.url = normalizeSiteUrlValue(site.url);
+  }
 }
 
 function slugify(value) {

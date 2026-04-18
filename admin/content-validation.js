@@ -1,5 +1,6 @@
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const POST_ID_PATTERN = /^[a-z0-9-]+$/;
+const SEARCH_ENGINE_PRIORITY_PATTERN = /^[1-9]$/;
 
 export function normalizeStringArray(value) {
   if (Array.isArray(value)) {
@@ -122,6 +123,7 @@ export function validateSearchEnginesPayload(searchEngines) {
   }
 
   const ids = new Set();
+  const priorities = new Map();
   for (const engine of searchEngines) {
     if (!engine || typeof engine !== "object") {
       throw new Error("搜索引擎条目格式不正确");
@@ -131,6 +133,7 @@ export function validateSearchEnginesPayload(searchEngines) {
     assertString(engine.label, "搜索引擎名称");
     assertString(engine.placeholder, "搜索提示词");
     const urlTemplate = assertString(engine.urlTemplate, "搜索链接模板");
+    const priority = normalizeSearchEnginePriority(engine.priority, id);
 
     if (!isValidSearchUrlTemplate(urlTemplate)) {
       throw new Error(`搜索引擎 ${id} 的链接模板无效，必须是 http/https 且包含 {query}`);
@@ -138,8 +141,13 @@ export function validateSearchEnginesPayload(searchEngines) {
     if (ids.has(id)) {
       throw new Error(`搜索引擎 id 重复: ${id}`);
     }
+    if (priorities.has(priority)) {
+      throw new Error(`搜索引擎优先级重复: ${id} 与 ${priorities.get(priority)} 都设置为 ${priority}`);
+    }
 
     ids.add(id);
+    priorities.set(priority, id);
+    engine.priority = priority;
   }
 }
 
@@ -209,6 +217,15 @@ function validateSiteIcon(icon, siteId) {
   if (!/^icon\/[^\\]+$/i.test(icon) || icon.includes("..")) {
     throw new Error(`站点 ${siteId} 的图标路径无效，只支持 http/https 或 icon/文件名`);
   }
+}
+
+function normalizeSearchEnginePriority(value, engineId) {
+  const text = String(value ?? "").trim();
+  if (!SEARCH_ENGINE_PRIORITY_PATTERN.test(text)) {
+    throw new Error(`搜索引擎 ${engineId} 的优先级无效，只支持 1-9 且不能为空`);
+  }
+
+  return Number.parseInt(text, 10);
 }
 
 export function normalizePostContent(value) {
