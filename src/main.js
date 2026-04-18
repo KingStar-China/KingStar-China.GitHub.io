@@ -1225,6 +1225,8 @@ function renderBlogDetail() {
   const sourceLabel = pageSource === posts ? "来自博客总列表" : "来自当前筛选列表";
   const { previousPost, nextPost } = getAdjacentPosts(post.id, pageSource);
   const relatedPosts = getRelatedPosts(post.id);
+  const hasArticleNav = Boolean(previousPost || nextPost);
+  const hasArticleFooter = hasArticleNav || relatedPosts.length > 0;
 
   return `
     <article class="panel article">
@@ -1253,100 +1255,87 @@ function renderBlogDetail() {
         </div>
         ${renderArticleSidebar(post, sourceLabel)}
       </div>
-      <div class="article__footer">
-        <div class="article__nav">
-          ${
-            previousPost
-              ? `
-                <a class="article__nav-link" href="${escapeHTML(getPostHref(previousPost.id))}">
-                  <span class="article__nav-label">上一篇</span>
-                  <strong class="article__nav-title">${escapeHTML(previousPost.title)}</strong>
-                </a>
-              `
-              : '<div class="article__nav-placeholder" aria-hidden="true"></div>'
-          }
-          ${
-            nextPost
-              ? `
-                <a class="article__nav-link article__nav-link--next" href="${escapeHTML(getPostHref(nextPost.id))}">
-                  <span class="article__nav-label">下一篇</span>
-                  <strong class="article__nav-title">${escapeHTML(nextPost.title)}</strong>
-                </a>
-              `
-              : '<div class="article__nav-placeholder" aria-hidden="true"></div>'
-          }
-        </div>
-        ${
-          relatedPosts.length > 0
-            ? `
-              <section class="article__related" aria-label="相关文章">
-                <div class="article__related-head">
-                  <strong>相关文章</strong>
-                  <span>按标签相关度推荐</span>
-                </div>
-                <div class="article__related-list">
-                  ${relatedPosts
-                    .map(
-                      (relatedPost) => `
-                        <a
-                          class="article__related-card"
-                          href="${escapeHTML(getPostHref(relatedPost.id))}"
-                        >
-                          <span class="article__related-date">${formatDate(relatedPost.publishedAt)}</span>
-                          <strong class="article__related-title">${escapeHTML(relatedPost.title)}</strong>
-                          <span class="article__related-summary">${escapeHTML(relatedPost.summary)}</span>
-                        </a>
-                      `,
-                    )
-                    .join("")}
-                </div>
-              </section>
-            `
-            : ""
-        }
-      </div>
+      ${
+        hasArticleFooter
+          ? `
+            <div class="article__footer">
+              ${
+                hasArticleNav
+                  ? `
+                    <div class="article__nav">
+                      ${
+                        previousPost
+                          ? `
+                            <a class="article__nav-link" href="${escapeHTML(getPostHref(previousPost.id))}">
+                              <span class="article__nav-label">上一篇</span>
+                              <strong class="article__nav-title">${escapeHTML(previousPost.title)}</strong>
+                            </a>
+                          `
+                          : '<div class="article__nav-placeholder" aria-hidden="true"></div>'
+                      }
+                      ${
+                        nextPost
+                          ? `
+                            <a class="article__nav-link article__nav-link--next" href="${escapeHTML(getPostHref(nextPost.id))}">
+                              <span class="article__nav-label">下一篇</span>
+                              <strong class="article__nav-title">${escapeHTML(nextPost.title)}</strong>
+                            </a>
+                          `
+                          : '<div class="article__nav-placeholder" aria-hidden="true"></div>'
+                      }
+                    </div>
+                  `
+                  : ""
+              }
+              ${
+                relatedPosts.length > 0
+                  ? `
+                    <section class="article__related" aria-label="相关文章">
+                      <div class="article__related-head">
+                        <strong>相关文章</strong>
+                        <span>按标签相关度推荐</span>
+                      </div>
+                      <div class="article__related-list">
+                        ${relatedPosts
+                          .map(
+                            (relatedPost) => `
+                              <a
+                                class="article__related-card"
+                                href="${escapeHTML(getPostHref(relatedPost.id))}"
+                              >
+                                <span class="article__related-date">${formatDate(relatedPost.publishedAt)}</span>
+                                <strong class="article__related-title">${escapeHTML(relatedPost.title)}</strong>
+                                <span class="article__related-summary">${escapeHTML(relatedPost.summary)}</span>
+                              </a>
+                            `,
+                          )
+                          .join("")}
+                      </div>
+                    </section>
+                  `
+                  : ""
+              }
+            </div>
+          `
+          : ""
+      }
     </article>
   `;
 }
 
 function renderArticleSidebar(post, sourceLabel) {
   const tocMarkup = renderPostToc(post);
-  const infoItems = [
-    ["发布日期", formatDate(post.publishedAt)],
-    ["阅读时长", formatPostReadingTime(post)],
-    ["内容块", `${post.blockCount} 个`],
-    ["来源", sourceLabel],
-  ];
 
   return `
     <aside class="article__sidebar">
       ${tocMarkup}
-      <section class="article__side-card article__info-card" aria-label="文章信息">
-        <div class="article__side-head">
-          <strong>文章信息</strong>
-          <span>${post.tags.length} 个标签</span>
-        </div>
-        <dl class="article__info-list">
-          ${infoItems
-            .map(
-              ([label, value]) => `
-                <div class="article__info-item">
-                  <dt>${escapeHTML(label)}</dt>
-                  <dd>${escapeHTML(value)}</dd>
-                </div>
-              `,
-            )
-            .join("")}
-        </dl>
-        <div class="tag-list">
-          ${post.tags.map((tag) => `<span class="tag">${escapeHTML(tag)}</span>`).join("")}
-        </div>
-      </section>
       <section class="article__side-card article__side-actions" aria-label="快捷操作">
         <div class="article__side-head">
           <strong>快捷操作</strong>
-          <span>桌面端常驻</span>
+          <span>${sourceLabel}</span>
         </div>
+        <a class="article__side-link" href="${escapeHTML(getHomeHref())}">返回主页</a>
+        <a class="article__side-link" href="${escapeHTML(getBlogListHref())}">返回博客列表</a>
         <button type="button" class="article__side-link article__side-link--button" data-action="copy-post-link">复制文章链接</button>
       </section>
     </aside>
