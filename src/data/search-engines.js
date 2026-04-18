@@ -1,5 +1,11 @@
 export const searchEngines = [
   {
+    "id": "engine-1776480273264",
+    "label": "Yandex",
+    "placeholder": "Yandex：俄罗斯第一",
+    "urlTemplate": "https://yandex.com/search?text={query}"
+  },
+  {
     "id": "engine-1776479643699",
     "label": "Naver",
     "placeholder": "韩国第一",
