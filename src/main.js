@@ -899,10 +899,6 @@ function renderBlogDetailToolbar() {
 
   return `
     <div class="toolbar--detail">
-      <div class="article-back-group">
-        <a class="article-back" href="${escapeHTML(getHomeHref())}">返回主页</a>
-        <a class="article-back" href="${escapeHTML(getBlogListHref())}">返回博客列表</a>
-      </div>
       <div class="toolbar__heading">
         <span class="field-label">BLOG POST</span>
         <h2>${escapeHTML(post.title)}</h2>
@@ -1233,6 +1229,10 @@ function renderBlogDetail() {
   return `
     <article class="panel article">
       <div class="article__header">
+        <div class="article-back-group">
+          <a class="article-back" href="${escapeHTML(getHomeHref())}">返回主页</a>
+          <a class="article-back" href="${escapeHTML(getBlogListHref())}">返回博客列表</a>
+        </div>
         <p class="section-head__eyebrow">BLOG POST</p>
         <h2>${escapeHTML(post.title)}</h2>
         <div class="article__meta">
@@ -1347,8 +1347,6 @@ function renderArticleSidebar(post, sourceLabel) {
           <strong>快捷操作</strong>
           <span>桌面端常驻</span>
         </div>
-        <a class="article__side-link" href="${escapeHTML(getHomeHref())}">返回主页</a>
-        <a class="article__side-link" href="${escapeHTML(getBlogListHref())}">返回博客列表</a>
         <button type="button" class="article__side-link article__side-link--button" data-action="copy-post-link">复制文章链接</button>
       </section>
     </aside>
