@@ -241,21 +241,32 @@ function renderList() {
 function renderListItem(item) {
   const isSites = state.section === "sites";
   const isActive = getSelectedId() === item.id;
-  const secondary = isSites
-    ? `${item.category || "未分类"} · ${(item.tags || []).join(" / ") || "无标签"}`
-    : state.section === "posts"
-      ? `${formatDate(item.publishedAt)} · ${(item.tags || []).join(" / ") || "无标签"}`
-      : item.urlTemplate || "无模板";
-  const preview = isSites ? item.description : state.section === "posts" ? item.summary : item.placeholder;
   const isSearchEngine = state.section === "searchEngines";
   const draggableAttrs = isSearchEngine ? ` draggable="true" data-drag-id="${escapeAttr(item.id)}"` : "";
   const draggingClass = isSearchEngine && state.draggingSearchEngineId === item.id ? " is-dragging" : "";
+  const title = isSites
+    ? item.name || "未命名网站"
+    : state.section === "posts"
+      ? item.title || "未命名文章"
+      : item.label || "未命名引擎";
+
+  if (isSearchEngine) {
+    return `
+      <div class="list-item list-item--draggable ${isActive ? "is-active" : ""}${draggingClass}"${draggableAttrs}>
+        <div class="list-item__drag-handle" aria-hidden="true" title="拖动排序">
+          <span class="list-item__drag-grip">::</span>
+          <span>拖动排序</span>
+        </div>
+        <button type="button" class="list-item__body" data-action="select-item" data-id="${escapeHTML(item.id)}">
+          <strong>${escapeHTML(title)}</strong>
+        </button>
+      </div>
+    `;
+  }
 
   return `
-    <button type="button" class="list-item ${isActive ? "is-active" : ""}${draggingClass}${isSearchEngine ? " list-item--draggable" : ""}" data-action="select-item" data-id="${escapeHTML(item.id)}"${draggableAttrs}>
-      <strong>${escapeHTML(isSites ? item.name || "未命名网站" : state.section === "posts" ? item.title || "未命名文章" : item.label || "未命名引擎")}</strong>
-      <span>${escapeHTML(secondary)}</span>
-      <span>${escapeHTML(preview || "暂无说明")}</span>
+    <button type="button" class="list-item ${isActive ? "is-active" : ""}" data-action="select-item" data-id="${escapeHTML(item.id)}">
+      <strong>${escapeHTML(title)}</strong>
     </button>
   `;
 }
