@@ -1304,10 +1304,6 @@ function renderBlogDetail() {
             `
             : ""
         }
-        <div class="article__back-actions">
-          <a class="site-card__link article__back-button" href="${escapeHTML(getHomeHref())}">返回主页</a>
-          <a class="site-card__link article__back-button" href="${escapeHTML(getBlogListHref())}">返回博客列表</a>
-        </div>
       </div>
     </article>
   `;
