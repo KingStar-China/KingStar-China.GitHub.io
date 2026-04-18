@@ -55,7 +55,7 @@ export function renderOverviewDeck({
         </div>
         <p class="overview-card__summary">导航和内容放在同一站内，入口之外还能顺手记录方法、问题和维护经验。</p>
         <div class="overview-post-list">
-          ${latestPosts.map((post) => renderOverviewPost(post, escapeHTML, formatShortDate)).join("")}
+          ${latestPosts.map((post) => renderOverviewPost(post, escapeHTML, formatShortDate, getPostHref)).join("")}
         </div>
       </article>
     </section>
@@ -86,7 +86,7 @@ function renderOverviewPlaceholder(compact = false) {
   `;
 }
 
-function renderOverviewPost(post, escapeHTML, formatShortDate) {
+function renderOverviewPost(post, escapeHTML, formatShortDate, getPostHref) {
   return `
     <a class="overview-post" href="${escapeHTML(getPostHref(post.id))}">
       <span class="overview-post__date">${formatShortDate(post.publishedAt)}</span>
