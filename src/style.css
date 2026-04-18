@@ -931,6 +931,7 @@ a {
   gap: 16px;
   position: sticky;
   top: 24px;
+  max-height: calc(100vh - 48px);
 }
 
 .article__side-card {
@@ -994,6 +995,9 @@ a {
 .article__toc-list {
   display: grid;
   gap: 6px;
+  max-height: min(52vh, 560px);
+  padding-right: 6px;
+  overflow: auto;
 }
 
 .article__toc-link {
@@ -1076,6 +1080,19 @@ a {
   width: 100%;
   cursor: pointer;
   font: inherit;
+}
+
+.article__toc-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.article__toc-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.35);
+}
+
+.article__toc-list::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .article__body ul,
@@ -1393,6 +1410,13 @@ a {
   .article__sidebar {
     position: static;
     order: -1;
+    max-height: none;
+  }
+
+  .article__toc-list {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
   }
 
   .article__related-list {
