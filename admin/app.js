@@ -164,7 +164,7 @@ async function loadContent() {
   const payload = await response.json();
   state.sites = Array.isArray(payload.sites) ? payload.sites.map(normalizeSite) : [];
   state.posts = Array.isArray(payload.posts) ? payload.posts.map(normalizePost) : [];
-  state.searchEngines = Array.isArray(payload.searchEngines) ? normalizeSearchEngineOrder(payload.searchEngines.map(normalizeSearchEngine)) : [];
+  state.searchEngines = Array.isArray(payload.searchEngines) ? sortSearchEnginesByPriority(payload.searchEngines.map(normalizeSearchEngine)) : [];
   state.iconFiles = Array.isArray(payload.iconFiles) ? payload.iconFiles.map((name) => String(name || "").trim()).filter(Boolean) : [];
   syncSelections();
   resetSiteDiagnostics();
@@ -492,6 +492,11 @@ function renderSearchEngineEditor(engine) {
           <button type="button" class="mini-button" data-action="generate-id">生成</button>
         </div>
       </div>
+      <div class="field">
+        <label for="engine-priority">优先级排序</label>
+        <input id="engine-priority" data-field="priority" type="number" min="1" max="99" step="1" inputmode="numeric" value="${escapeAttr(engine.priority ?? "")}">
+        <span class="helper">支持 1-99，不能重复；1 排第一。左侧也可直接拖拽调整顺序。</span>
+      </div>
       <div class="field field--full">
         <label for="engine-placeholder">输入框提示词</label>
         <input id="engine-placeholder" data-field="placeholder" value="${escapeAttr(engine.placeholder)}">
@@ -501,7 +506,7 @@ function renderSearchEngineEditor(engine) {
         <input id="engine-url-template" data-field="urlTemplate" value="${escapeAttr(engine.urlTemplate)}" placeholder="https://www.sogou.com/web?query={query}">
       </div>
       <div class="field field--full">
-        <span class="helper">模板必须包含 <code>{query}</code>，搜索时会自动替换成关键词。左侧列表支持拖拽排序，越靠上优先级越高。</span>
+        <span class="helper">模板必须包含 <code>{query}</code>，搜索时会自动替换成关键词。</span>
       </div>
     </div>
   `;
@@ -830,7 +835,6 @@ function handleDragStart(event) {
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = "move";
   }
-  render();
 }
 
 function handleDragOver(event) {
@@ -894,6 +898,12 @@ function applySiteField(site, field, value) {
 }
 
 function applySearchEngineField(engine, field, value) {
+  if (field === "priority") {
+    engine.priority = normalizeSearchEnginePriorityValue(value);
+    state.searchEngines = sortSearchEnginesByPriority(state.searchEngines);
+    return;
+  }
+
   engine[field] = value;
 }
 
@@ -1175,11 +1185,11 @@ function createItem() {
   const engine = {
     id: `engine-${Date.now()}` ,
     label: "",
-    priority: state.searchEngines.length + 1,
+    priority: getNextSearchEnginePriority(),
     placeholder: "",
     urlTemplate: "https://www.sogou.com/web?query={query}",
   };
-  state.searchEngines = normalizeSearchEngineOrder([...state.searchEngines, engine]);
+  state.searchEngines = sortSearchEnginesByPriority([...state.searchEngines, engine]);
   state.selectedSearchEngineId = engine.id;
   state.dirty.searchEngines = true;
   setStatus("info", "已创建新搜索引擎草稿。", false);
@@ -1237,7 +1247,7 @@ async function saveSection() {
 
 async function saveSectionByName(section) {
   const target = section === "sites" ? "/api/sites" : section === "posts" ? "/api/posts" : "/api/search-engines";
-  const payload = section === "sites" ? state.sites : section === "posts" ? state.posts : normalizeSearchEngineOrder(state.searchEngines);
+  const payload = section === "sites" ? state.sites : section === "posts" ? state.posts : state.searchEngines;
 
   validateBeforeSave(payload, section);
 
@@ -1555,7 +1565,7 @@ function applyImportedSection(section, items) {
   }
 
   if (section === "searchEngines") {
-    const searchEngines = normalizeSearchEngineOrder(items.map(normalizeSearchEngine));
+    const searchEngines = sortSearchEnginesByPriority(items.map(normalizeSearchEngine));
     validateBeforeSave(searchEngines, "searchEngines");
     state.searchEngines = searchEngines;
     state.dirty.searchEngines = true;
@@ -1723,18 +1733,42 @@ function normalizeSearchEnginePriorityValue(value) {
   }
 
   const priority = Number.parseInt(text, 10);
-  if (!Number.isInteger(priority) || priority < 1) {
+  if (!Number.isInteger(priority) || priority < 1 || priority > 99) {
     return null;
   }
 
   return priority;
 }
 
-function normalizeSearchEngineOrder(searchEngines) {
+function assignSequentialSearchEnginePriorities(searchEngines) {
   return searchEngines.map((engine, index) => ({
     ...engine,
     priority: index + 1,
   }));
+}
+
+function sortSearchEnginesByPriority(searchEngines) {
+  return [...searchEngines].sort((left, right) => {
+    const leftPriority = Number.isInteger(left?.priority) ? left.priority : 999;
+    const rightPriority = Number.isInteger(right?.priority) ? right.priority : 999;
+    return leftPriority - rightPriority || compareText(left?.label || "", right?.label || "") || compareText(left?.id || "", right?.id || "");
+  });
+}
+
+function getNextSearchEnginePriority() {
+  const used = new Set(
+    state.searchEngines
+      .map((engine) => normalizeSearchEnginePriorityValue(engine?.priority))
+      .filter(Number.isInteger),
+  );
+
+  for (let priority = 1; priority <= 99; priority += 1) {
+    if (!used.has(priority)) {
+      return priority;
+    }
+  }
+
+  return state.searchEngines.length + 1;
 }
 
 function reorderSearchEngine(sourceId, targetId, position) {
@@ -1753,7 +1787,7 @@ function reorderSearchEngine(sourceId, targetId, position) {
   const insertIndex = position === "after" ? nextTargetIndex + 1 : nextTargetIndex;
   items.splice(insertIndex, 0, moved);
 
-  state.searchEngines = normalizeSearchEngineOrder(items);
+  state.searchEngines = assignSequentialSearchEnginePriorities(items);
   state.selectedSearchEngineId = moved.id;
   state.dirty.searchEngines = true;
   state.draggingSearchEngineId = "";

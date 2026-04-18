@@ -220,12 +220,12 @@ function validateSiteIcon(icon, siteId) {
 function normalizeSearchEnginePriority(value, engineId) {
   const text = String(value ?? "").trim();
   if (!/^\d+$/.test(text)) {
-    throw new Error(`搜索引擎 ${engineId} 的优先级无效，必须是从 1 开始的整数`);
+    throw new Error(`搜索引擎 ${engineId} 的优先级无效，只支持 1-99 的整数`);
   }
 
   const priority = Number.parseInt(text, 10);
-  if (!Number.isInteger(priority) || priority < 1) {
-    throw new Error(`搜索引擎 ${engineId} 的优先级无效，必须是从 1 开始的整数`);
+  if (!Number.isInteger(priority) || priority < 1 || priority > 99) {
+    throw new Error(`搜索引擎 ${engineId} 的优先级无效，只支持 1-99 的整数`);
   }
 
   return priority;
