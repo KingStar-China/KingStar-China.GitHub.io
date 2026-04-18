@@ -8,8 +8,8 @@ export const searchEngines = [
   {
     "id": "engine-1776479358594",
     "label": "雅虎",
-    "placeholder": "Yandex：曾经我们是世界第一",
-    "urlTemplate": "https://yandex.com/search/?text={query}"
+    "placeholder": "Yahoo：曾经我们是世界第一",
+    "urlTemplate": "﻿https://search.yahoo.com/search?p={query}"
   },
   {
     "id": "engine-1774502120450",
