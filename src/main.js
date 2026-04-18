@@ -118,6 +118,7 @@ const state = {
   commandQuery: "",
   commandIndex: 0,
   nextRouteMode: "replace",
+  activeHeadingId: "",
 };
 
 const root = document.querySelector("#app");
@@ -144,6 +145,7 @@ function init() {
   window.addEventListener("keydown", handleKeydown);
   window.addEventListener("popstate", handlePopState);
   window.addEventListener("hashchange", handlePopState);
+  window.addEventListener("scroll", handleScroll, { passive: true });
 
   hydrateFromLocation();
   syncTheme(state.theme);
@@ -422,6 +424,8 @@ function handleClick(event) {
     }
 
     if (action === "jump-heading" && value) {
+      state.activeHeadingId = value;
+      syncActiveTocLink();
       document.getElementById(value)?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
@@ -534,6 +538,8 @@ function render() {
     refs.workbenchTodoInput.value = state.workbenchTodoDraft;
   }
 
+  syncActiveHeading();
+  syncActiveTocLink();
   syncWorkbenchClock();
   syncRoute(state.nextRouteMode);
   state.nextRouteMode = "replace";
@@ -1761,7 +1767,7 @@ function renderPostToc(post) {
             (item) => `
               <button
                 type="button"
-                class="article__toc-link article__toc-link--depth-${item.depth}"
+                class="article__toc-link article__toc-link--depth-${item.depth} ${state.activeHeadingId === item.id ? "is-active" : ""}"
                 data-action="jump-heading"
                 data-value="${escapeHTML(item.id)}"
               >
@@ -1799,6 +1805,67 @@ function setTransientStatus(text) {
       statusNode.textContent = original;
     }
   }, 1800);
+}
+
+function handleScroll() {
+  if (state.section !== "blog-detail") {
+    return;
+  }
+
+  syncActiveHeading();
+  syncActiveTocLink();
+}
+
+function syncActiveHeading() {
+  const post = getSelectedPost();
+  if (!post || !Array.isArray(post.toc) || post.toc.length === 0) {
+    state.activeHeadingId = "";
+    return;
+  }
+
+  const headings = post.toc
+    .map((item) => ({
+      id: item.id,
+      element: document.getElementById(item.id),
+    }))
+    .filter((item) => item.element);
+
+  if (headings.length === 0) {
+    state.activeHeadingId = "";
+    return;
+  }
+
+  const triggerTop = 156;
+  let activeId = headings[0].id;
+
+  for (const heading of headings) {
+    const top = heading.element.getBoundingClientRect().top;
+    if (top <= triggerTop) {
+      activeId = heading.id;
+      continue;
+    }
+    break;
+  }
+
+  state.activeHeadingId = activeId;
+}
+
+function syncActiveTocLink() {
+  const links = refs.content?.querySelectorAll(".article__toc-link");
+  if (!links || links.length === 0) {
+    return;
+  }
+
+  let activeLink = null;
+  links.forEach((link) => {
+    const isActive = link.dataset.value === state.activeHeadingId;
+    link.classList.toggle("is-active", isActive);
+    if (isActive) {
+      activeLink = link;
+    }
+  });
+
+  activeLink?.scrollIntoView({ block: "nearest" });
 }
 
 function getMarkdownBlockCount(content) {
