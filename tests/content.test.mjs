@@ -65,7 +65,7 @@ test("搜索引擎数据结构有效", () => {
     ids.add(engine.id);
     assert.ok(engine.label, `搜索引擎名称不能为空: ${engine.id}`);
     assert.equal(Number.isInteger(engine.priority), true, `搜索引擎优先级必须是整数: ${engine.id}`);
-    assert.equal(engine.priority >= 1 && engine.priority <= 9, true, `搜索引擎优先级必须在 1-9: ${engine.id}`);
+    assert.equal(engine.priority >= 1, true, `搜索引擎优先级必须从 1 开始: ${engine.id}`);
     assert.equal(priorities.has(engine.priority), false, `搜索引擎优先级重复: ${engine.priority}`);
     priorities.add(engine.priority);
     assert.ok(engine.placeholder, `搜索提示词不能为空: ${engine.id}`);

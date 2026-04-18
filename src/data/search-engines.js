@@ -7,18 +7,11 @@ export const searchEngines = [
     "urlTemplate": "https://yandex.com/search?text={query}"
   },
   {
-    "id": "engine-1776479643699",
-    "label": "Naver",
-    "priority": 2,
-    "placeholder": "韩国第一",
-    "urlTemplate": "https://search.naver.com/search.naver?&query={query}"
-  },
-  {
     "id": "engine-1776479358594",
     "label": "雅虎",
     "priority": 3,
     "placeholder": "Yahoo：曾经我们是世界第一",
-    "urlTemplate": "﻿https://search.yahoo.com/search?p={query}"
+    "urlTemplate": "https://search.yahoo.com/search?p={query}"
   },
   {
     "id": "engine-1774502120450",
@@ -47,5 +40,12 @@ export const searchEngines = [
     "priority": 7,
     "placeholder": "用 Bing 搜索网页、图片和问答",
     "urlTemplate": "https://www.bing.com/search?q={query}"
+  },
+  {
+    "id": "engine-1776479643699",
+    "label": "Naver",
+    "priority": 9,
+    "placeholder": "韩国第一",
+    "urlTemplate": "https://search.naver.com/search.naver?&query={query}"
   }
 ];
