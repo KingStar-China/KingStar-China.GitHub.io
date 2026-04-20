@@ -1,5 +1,18 @@
 export const sites = [
   {
+    "id": "site-1776665815689",
+    "name": "光鸭云盘",
+    "url": "https://www.guangyapan.com/",
+    "category": "网盘",
+    "tags": [],
+    "icon": "https://www.guangyapan.com/icon.png",
+    "description": "迅雷旗下新网盘",
+    "aliases": [
+      "guangyapan.com",
+      "www.guangyapan.com"
+    ]
+  },
+  {
     "id": "site-1776479141262",
     "name": "小云雀",
     "url": "https://xyq.jianying.com",
