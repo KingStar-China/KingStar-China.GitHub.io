@@ -6,6 +6,7 @@ export function renderOverviewDeck({
   escapeHTML,
   formatShortDate,
   getPostHref,
+  collapsedCards,
 }) {
   const favoriteSites = [...favorites].map((id) => siteMap.get(id)).filter(Boolean);
   const spotlightSites = favoriteSites.slice(-6).reverse();
@@ -16,49 +17,88 @@ export function renderOverviewDeck({
   return `
     <section class="overview-grid">
       <div class="overview-grid__main">
-        <article class="panel overview-card overview-card--primary">
-          <div class="overview-card__head">
-            <div>
-              <p class="section-head__eyebrow">FOCUS</p>
-              <h2>最近收藏</h2>
-            </div>
-            <span class="section-count">${spotlightSites.length}</span>
-          </div>
-          <p class="overview-card__summary">保留最新收藏的6个站点。<br>优先放常用入口，<br>减少重复查找。</p>
-          <div class="overview-link-list overview-link-list--primary">
+        ${renderOverviewCard({
+          cardId: "focus",
+          eyebrow: "FOCUS",
+          title: "最近收藏",
+          meta: `<span class="section-count">${spotlightSites.length}</span>`,
+          summary: "保留最新收藏的6个站点。<br>优先放常用入口，<br>减少重复查找。",
+          body: `<div class="overview-link-list overview-link-list--primary">
             ${spotlightSlots.map((site) => (site ? renderOverviewSiteLink(site, escapeHTML) : renderOverviewPlaceholder())).join("")}
-          </div>
-        </article>
+          </div>`,
+          collapsed: Boolean(collapsedCards?.focus),
+          escapeHTML,
+        })}
 
-        <article class="panel overview-card">
-          <div class="overview-card__head">
-            <div>
-              <p class="section-head__eyebrow">FLOW</p>
-              <h2>最近访问</h2>
-            </div>
-            <span class="section-count">${recentSites.length}</span>
-          </div>
-          <p class="overview-card__summary">刚用过的入口会临时聚成一条工作链，不用回忆，也不用重新搜索。</p>
-          <div class="overview-link-list overview-link-list--stacked">
+        ${renderOverviewCard({
+          cardId: "flow",
+          eyebrow: "FLOW",
+          title: "最近访问",
+          meta: `<span class="section-count">${recentSites.length}</span>`,
+          summary: "刚用过的入口会临时聚成一条工作链，不用回忆，也不用重新搜索。",
+          body: `<div class="overview-link-list overview-link-list--stacked">
             ${recentSites.length > 0 ? recentSites.map((site) => renderOverviewSiteLink(site, escapeHTML, true)).join("") : '<div class="overview-empty">打开几个站点后，这里会自动形成当前任务的短期工作台。</div>'}
-          </div>
-        </article>
+          </div>`,
+          collapsed: Boolean(collapsedCards?.flow),
+          escapeHTML,
+        })}
       </div>
 
-      <article class="panel overview-card overview-card--posts">
-        <div class="overview-card__head">
-          <div>
-            <p class="section-head__eyebrow">WRITING</p>
-            <h2>最新文章</h2>
-          </div>
-          <button type="button" class="inline-reset" data-action="set-section" data-value="blog-list">去博客</button>
-        </div>
-        <p class="overview-card__summary">导航和内容放在同一站内，入口之外还能顺手记录方法、问题和维护经验。</p>
-        <div class="overview-post-list">
+      ${renderOverviewCard({
+        cardId: "writing",
+        eyebrow: "WRITING",
+        title: "最新文章",
+        meta: '<button type="button" class="inline-reset" data-action="set-section" data-value="blog-list">去博客</button>',
+        summary: "导航和内容放在同一站内，入口之外还能顺手记录方法、问题和维护经验。",
+        body: `<div class="overview-post-list">
           ${latestPosts.map((post) => renderOverviewPost(post, escapeHTML, formatShortDate, getPostHref)).join("")}
-        </div>
-      </article>
+        </div>`,
+        collapsed: Boolean(collapsedCards?.writing),
+        escapeHTML,
+      })}
     </section>
+  `;
+}
+
+function renderOverviewCard({ cardId, eyebrow, title, meta, summary, body, collapsed, escapeHTML }) {
+  return `
+    <article class="panel overview-card ${collapsed ? "is-collapsed" : ""}" data-overview-card="${escapeHTML(cardId)}">
+      <div class="overview-card__head">
+        <button
+          type="button"
+          class="overview-card__toggle"
+          data-action="toggle-overview-card"
+          data-value="${escapeHTML(cardId)}"
+          aria-expanded="${collapsed ? "false" : "true"}"
+        >
+          <div>
+            <p class="section-head__eyebrow">${escapeHTML(eyebrow)}</p>
+            <h2>${escapeHTML(title)}</h2>
+          </div>
+        </button>
+        <div class="overview-card__meta">
+          ${meta}
+          <button
+            type="button"
+            class="overview-card__collapse"
+            data-action="toggle-overview-card"
+            data-value="${escapeHTML(cardId)}"
+            aria-label="${collapsed ? "展开卡片" : "折叠卡片"}"
+            aria-expanded="${collapsed ? "false" : "true"}"
+          >
+            ${collapsed ? "展开" : "收起"}
+          </button>
+        </div>
+      </div>
+      ${
+        collapsed
+          ? ""
+          : `
+            <p class="overview-card__summary">${summary}</p>
+            ${body}
+          `
+      }
+    </article>
   `;
 }
 

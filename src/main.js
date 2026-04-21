@@ -47,6 +47,7 @@ const STORAGE_KEYS = {
   workbenchNote: "nav-tool.workbench.note",
   workbenchTodos: "nav-tool.workbench.todos",
   searchEngine: "nav-tool.search.engine",
+  overviewCollapsed: "nav-tool.overview.collapsed",
 };
 
 const searchEngines = rawSearchEngines
@@ -121,6 +122,7 @@ const state = {
   commandIndex: 0,
   nextRouteMode: "replace",
   activeHeadingId: "",
+  overviewCollapsed: loadOverviewCollapsedState(),
 };
 
 const root = document.querySelector("#app");
@@ -310,6 +312,16 @@ function handleClick(event) {
     if (action === "set-section") {
       state.section = value === "nav" ? "nav" : "blog-list";
       state.nextRouteMode = "push";
+      render();
+      return;
+    }
+
+    if (action === "toggle-overview-card" && value) {
+      state.overviewCollapsed = {
+        ...state.overviewCollapsed,
+        [value]: !state.overviewCollapsed[value],
+      };
+      localStorage.setItem(STORAGE_KEYS.overviewCollapsed, JSON.stringify(state.overviewCollapsed));
       render();
       return;
     }
@@ -1003,6 +1015,7 @@ function renderOverviewDeck(visibleSites) {
     escapeHTML,
     formatShortDate,
     getPostHref,
+    collapsedCards: state.overviewCollapsed,
   });
 }
 function renderSectionRail(groups) {
@@ -2555,6 +2568,23 @@ function setAlternateFeed() {
 }
 function loadStoredText(key) {
   return String(localStorage.getItem(key) || "");
+}
+
+function loadOverviewCollapsedState() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEYS.overviewCollapsed) || "{}");
+    return {
+      focus: Boolean(parsed.focus),
+      flow: Boolean(parsed.flow),
+      writing: Boolean(parsed.writing),
+    };
+  } catch {
+    return {
+      focus: false,
+      flow: false,
+      writing: false,
+    };
+  }
 }
 
 function loadTodoList(key) {
