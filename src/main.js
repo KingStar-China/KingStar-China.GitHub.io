@@ -317,10 +317,7 @@ function handleClick(event) {
     }
 
     if (action === "toggle-overview-card" && value) {
-      state.overviewCollapsed = {
-        ...state.overviewCollapsed,
-        [value]: !state.overviewCollapsed[value],
-      };
+      state.overviewCollapsed = !state.overviewCollapsed;
       localStorage.setItem(STORAGE_KEYS.overviewCollapsed, JSON.stringify(state.overviewCollapsed));
       render();
       return;
@@ -1015,7 +1012,7 @@ function renderOverviewDeck(visibleSites) {
     escapeHTML,
     formatShortDate,
     getPostHref,
-    collapsedCards: state.overviewCollapsed,
+    collapsed: state.overviewCollapsed,
   });
 }
 function renderSectionRail(groups) {
@@ -2572,18 +2569,10 @@ function loadStoredText(key) {
 
 function loadOverviewCollapsedState() {
   try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEYS.overviewCollapsed) || "{}");
-    return {
-      focus: Boolean(parsed.focus),
-      flow: Boolean(parsed.flow),
-      writing: Boolean(parsed.writing),
-    };
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEYS.overviewCollapsed) || "true");
+    return typeof parsed === "boolean" ? parsed : true;
   } catch {
-    return {
-      focus: false,
-      flow: false,
-      writing: false,
-    };
+    return true;
   }
 }
 

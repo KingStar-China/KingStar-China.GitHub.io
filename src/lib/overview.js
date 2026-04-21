@@ -6,7 +6,7 @@ export function renderOverviewDeck({
   escapeHTML,
   formatShortDate,
   getPostHref,
-  collapsedCards,
+  collapsed,
 }) {
   const favoriteSites = [...favorites].map((id) => siteMap.get(id)).filter(Boolean);
   const spotlightSites = favoriteSites.slice(-6).reverse();
@@ -26,7 +26,7 @@ export function renderOverviewDeck({
           body: `<div class="overview-link-list overview-link-list--primary">
             ${spotlightSlots.map((site) => (site ? renderOverviewSiteLink(site, escapeHTML) : renderOverviewPlaceholder())).join("")}
           </div>`,
-          collapsed: Boolean(collapsedCards?.focus),
+          collapsed: Boolean(collapsed),
           escapeHTML,
         })}
 
@@ -39,7 +39,7 @@ export function renderOverviewDeck({
           body: `<div class="overview-link-list overview-link-list--stacked">
             ${recentSites.length > 0 ? recentSites.map((site) => renderOverviewSiteLink(site, escapeHTML, true)).join("") : '<div class="overview-empty">打开几个站点后，这里会自动形成当前任务的短期工作台。</div>'}
           </div>`,
-          collapsed: Boolean(collapsedCards?.flow),
+          collapsed: Boolean(collapsed),
           escapeHTML,
         })}
       </div>
@@ -53,7 +53,7 @@ export function renderOverviewDeck({
         body: `<div class="overview-post-list">
           ${latestPosts.map((post) => renderOverviewPost(post, escapeHTML, formatShortDate, getPostHref)).join("")}
         </div>`,
-        collapsed: Boolean(collapsedCards?.writing),
+        collapsed: Boolean(collapsed),
         escapeHTML,
       })}
     </section>
