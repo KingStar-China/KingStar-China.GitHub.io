@@ -1,5 +1,19 @@
 export const sites = [
   {
+    "id": "site-1776754836129",
+    "name": "IP125.com",
+    "url": "https://ip125.com/",
+    "category": "外网",
+    "tags": [
+      "工具"
+    ],
+    "icon": "https://ip125.com/images/apple-touch-icon.png",
+    "description": "免费 IP 查询工具，提供本机 IP、国内 IP 查询、国外 IP 查询、IP 分流查询、分流测试、网速测试、WHOIS、手机号归属地、公共 DNS 及 NTP 服务器查询。",
+    "aliases": [
+      "ip125.com"
+    ]
+  },
+  {
     "id": "site-1776665815689",
     "name": "光鸭云盘",
     "url": "https://www.guangyapan.com/",
