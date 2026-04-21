@@ -2326,6 +2326,45 @@ body,
   gap: 12px;
 }
 
+.overview-card__toggle {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  justify-items: start;
+  gap: 0;
+  text-align: left;
+  color: inherit;
+}
+
+.overview-card__toggle:hover {
+  opacity: 0.92;
+}
+
+.overview-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.overview-card__collapse {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--chip);
+  color: var(--text);
+}
+
+.overview-card.is-collapsed {
+  gap: 0;
+}
+
+.overview-card.is-collapsed .overview-card__head {
+  align-items: center;
+}
+
 .overview-card__head h2 {
   margin: 6px 0 0;
   font-size: 1.28rem;
