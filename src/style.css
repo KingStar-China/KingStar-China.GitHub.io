@@ -2823,6 +2823,268 @@ body,
   }
 }
 
+@media (max-width: 640px) {
+  #app {
+    padding-inline: 12px;
+  }
+
+  .hero {
+    gap: 14px;
+  }
+
+  .hero h1 {
+    font-size: 2rem;
+    line-height: 1.06;
+  }
+
+  .hero__copy {
+    gap: 14px;
+  }
+
+  .hero__controls {
+    gap: 10px;
+  }
+
+  .section-tabs {
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .section-tabs::-webkit-scrollbar,
+  .chip-group::-webkit-scrollbar,
+  .hero-search-panel__engines::-webkit-scrollbar,
+  .toolbar-shortcuts::-webkit-scrollbar,
+  .tag-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .section-tab {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    min-height: 42px;
+    padding-inline: 14px;
+  }
+
+  .command-bar {
+    min-height: 48px;
+  }
+
+  .stats-grid {
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 14px;
+    min-height: 92px;
+  }
+
+  .stat-card__value {
+    margin-top: 8px;
+    font-size: 1.35rem;
+  }
+
+  .hero-search-panel {
+    gap: 12px;
+    border-radius: 18px;
+  }
+
+  .hero-search-panel__engines,
+  .chip-group,
+  .toolbar-shortcuts,
+  .tag-list {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .engine-chip,
+  .chip,
+  .toolbar-shortcut,
+  .tag {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .chip {
+    padding: 9px 12px;
+  }
+
+  .active-state {
+    gap: 8px;
+  }
+
+  .state-pill {
+    padding: 6px 10px;
+    font-size: 0.82rem;
+  }
+
+  .content {
+    gap: 18px;
+  }
+
+  .overview-card {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .overview-card__head {
+    gap: 10px;
+  }
+
+  .overview-card__head h2 {
+    font-size: 1.12rem;
+  }
+
+  .overview-card__collapse {
+    min-height: 34px;
+    padding-inline: 12px;
+  }
+
+  .section-rail__chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .section-jump {
+    width: auto;
+    flex: 0 0 auto;
+    min-width: 148px;
+  }
+
+  .site-grid,
+  .blog-grid {
+    gap: 14px;
+  }
+
+  .site-card,
+  .blog-card {
+    gap: 14px;
+    min-height: 0;
+  }
+
+  .site-card__top {
+    gap: 10px;
+  }
+
+  .site-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+  }
+
+  .favorite-button {
+    padding: 8px 10px;
+  }
+
+  .site-card__body h3,
+  .blog-card__body h3 {
+    font-size: 1.18rem;
+    line-height: 1.35;
+  }
+
+  .site-card__body p,
+  .blog-card__body p {
+    line-height: 1.65;
+    font-size: 0.94rem;
+  }
+
+  .pagination__summary,
+  .pagination__controls {
+    gap: 10px;
+  }
+
+  .page-button {
+    min-height: 42px;
+    padding-inline: 12px;
+  }
+
+  .toolbar__heading h2 {
+    font-size: 1.35rem;
+  }
+
+  .toolbar__heading p {
+    font-size: 0.94rem;
+    line-height: 1.6;
+  }
+
+  .article {
+    margin-bottom: 220px;
+  }
+
+  .article-back-group {
+    width: 100%;
+  }
+
+  .article-back {
+    flex: 1 1 0;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .article__meta {
+    gap: 8px;
+  }
+
+  .article__meta span {
+    font-size: 0.8rem;
+  }
+
+  .article__body {
+    gap: 14px;
+  }
+
+  .article__body p,
+  .article__body li {
+    line-height: 1.8;
+    font-size: 0.96rem;
+  }
+
+  .article__side-card {
+    padding: 14px 16px;
+  }
+
+  .article__side-link {
+    min-height: 42px;
+  }
+
+  .scroll-action-group {
+    right: 12px;
+    bottom: 12px;
+    gap: 8px;
+  }
+
+  .scroll-action-button {
+    min-height: 42px;
+    padding: 10px 14px;
+    font-size: 0.94rem;
+  }
+
+  .command-palette {
+    border-radius: 20px;
+  }
+
+  .command-palette__meta {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .command-palette__meta span {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}
+
 html.is-command-open,
 body.is-command-open {
   overflow: hidden;
