@@ -1,5 +1,18 @@
 export const sites = [
   {
+    "id": "site-1777127055483",
+    "name": "52pojie",
+    "url": "https://www.52pojie.cn/",
+    "category": "计算机",
+    "tags": [],
+    "icon": "https://www.52pojie.cn/apple-touch-icon.png",
+    "description": "软件破解，原创软件",
+    "aliases": [
+      "52pojie.cn",
+      "www.52pojie.cn"
+    ]
+  },
+  {
     "id": "site-1776754836129",
     "name": "IP125.com",
     "url": "https://ip125.com/",
