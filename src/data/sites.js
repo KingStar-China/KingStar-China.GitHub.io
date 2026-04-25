@@ -1,7 +1,7 @@
 export const sites = [
   {
     "id": "site-1777127055483",
-    "name": "52pojie",
+    "name": "吾爱破解论坛",
     "url": "https://www.52pojie.cn/",
     "category": "计算机",
     "tags": [],
