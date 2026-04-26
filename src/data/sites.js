@@ -1,5 +1,18 @@
 export const sites = [
   {
+    "id": "site-1777197905495",
+    "name": "Codex余量",
+    "url": "https://chatgpt.com/codex/cloud/settings/analytics#usage",
+    "category": "AI",
+    "tags": [],
+    "icon": "https://chatgpt.com/cdn/assets/favicon-180x180-od45eci6.webp",
+    "description": "ChatGPT is your AI chatbot for everyday use. Chat with the most advanced AI to explore ideas, solve problems, and learn faster.",
+    "aliases": [
+      "chatgpt.com",
+      "codex"
+    ]
+  },
+  {
     "id": "site-1777127055483",
     "name": "吾爱破解论坛",
     "url": "https://www.52pojie.cn/",
