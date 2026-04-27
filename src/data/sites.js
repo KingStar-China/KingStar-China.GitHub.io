@@ -1,5 +1,18 @@
 export const sites = [
   {
+    "id": "site-1777281219575",
+    "name": "Reddit",
+    "url": "https://www.reddit.com/",
+    "category": "外网",
+    "tags": [],
+    "icon": "https://www.redditstatic.com/shreddit/assets/favicon/64x64.png",
+    "description": "Reddit 是一个以兴趣社区为核心的海外论坛平台，用户可以在不同版块里发帖、评论、投票，围绕新闻、娱乐、技术、二次元等话题交流。",
+    "aliases": [
+      "reddit.com",
+      "www.reddit.com"
+    ]
+  },
+  {
     "id": "site-1777197905495",
     "name": "Codex余量",
     "url": "https://chatgpt.com/codex/cloud/settings/analytics#usage",
