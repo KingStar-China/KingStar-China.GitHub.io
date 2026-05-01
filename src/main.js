@@ -313,6 +313,7 @@ function handleClick(event) {
       state.section = value === "nav" ? "nav" : "blog-list";
       state.nextRouteMode = "push";
       render();
+      scrollPageTop();
       return;
     }
 
@@ -364,6 +365,7 @@ function handleClick(event) {
       state.section = "blog-list";
       state.nextRouteMode = "push";
       render();
+      scrollPageTop();
       return;
     }
 
@@ -378,6 +380,7 @@ function handleClick(event) {
       state.section = "blog-list";
       state.nextRouteMode = "push";
       render();
+      scrollPageTop();
       return;
     }
 
@@ -416,6 +419,7 @@ function handleClick(event) {
     if (action === "open-post" && postId && postMap.has(postId)) {
       openPost(postId);
       render();
+      scrollPageTop();
       return;
     }
 
@@ -423,6 +427,7 @@ function handleClick(event) {
       state.section = "blog-list";
       state.nextRouteMode = "push";
       render();
+      scrollPageTop();
       return;
     }
 
@@ -431,6 +436,7 @@ function handleClick(event) {
       state.section = "blog-list";
       state.nextRouteMode = "push";
       render();
+      scrollPageTop();
       return;
     }
 
@@ -1264,7 +1270,7 @@ function renderBlogDetail() {
             ${renderPostBody(post)}
           </div>
         </div>
-        ${renderArticleSidebar(post, sourceLabel)}
+        ${renderArticleSidebar(post)}
       </div>
       ${
         hasArticleFooter
@@ -1334,21 +1340,12 @@ function renderBlogDetail() {
   `;
 }
 
-function renderArticleSidebar(post, sourceLabel) {
+function renderArticleSidebar(post) {
   const tocMarkup = renderPostToc(post);
 
   return `
     <aside class="article__sidebar">
       ${tocMarkup}
-      <section class="article__side-card article__side-actions" aria-label="快捷操作">
-        <div class="article__side-head">
-          <strong>快捷操作</strong>
-          <span>${sourceLabel}</span>
-        </div>
-        <a class="article__side-link" href="${escapeHTML(getHomeHref())}">返回主页</a>
-        <a class="article__side-link" href="${escapeHTML(getBlogListHref())}">返回博客列表</a>
-        <button type="button" class="article__side-link article__side-link--button" data-action="copy-post-link">复制文章链接</button>
-      </section>
     </aside>
   `;
 }
@@ -2292,8 +2289,18 @@ function syncTheme(theme) {
 }
 
 function handlePopState() {
+  const previousSection = state.section;
+  const previousPostId = state.selectedPostId;
+  const previousBlogPage = state.blogPage;
   hydrateFromLocation();
   render();
+
+  const changedToPost = state.section === "blog-detail" && (previousSection !== "blog-detail" || previousPostId !== state.selectedPostId);
+  const changedBlogListPosition = state.section === "blog-list" && (previousSection !== "blog-list" || previousBlogPage !== state.blogPage);
+
+  if (changedToPost || changedBlogListPosition) {
+    scrollPageTop();
+  }
 }
 
 function hydrateFromLocation() {
@@ -2575,6 +2582,12 @@ function loadOverviewCollapsedState() {
   } catch {
     return true;
   }
+}
+
+function scrollPageTop() {
+  window.requestAnimationFrame(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  });
 }
 
 function loadTodoList(key) {
