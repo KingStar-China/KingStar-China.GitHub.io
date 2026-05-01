@@ -99,6 +99,15 @@ a {
   margin: 0 auto;
 }
 
+.app-shell.is-article-view .hero,
+.app-shell.is-article-view .toolbar {
+  display: none;
+}
+
+.app-shell.is-article-view .content {
+  margin-top: 0;
+}
+
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);

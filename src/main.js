@@ -522,6 +522,7 @@ function handleKeydown(event) {
 }
 function render() {
   state.blogPage = clampPage(state.blogPage);
+  root.querySelector(".app-shell")?.classList.toggle("is-article-view", state.section === "blog-detail");
   refs.themeToggle.textContent = state.theme === "dark" ? "切换到浅色" : "切换到深色";
   refs.sectionTabs.innerHTML = renderSectionTabs();
   refs.summary.textContent = buildSummary();
