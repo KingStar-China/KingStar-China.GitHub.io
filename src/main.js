@@ -1264,13 +1264,10 @@ function renderBlogDetail() {
           ${post.tags.map((tag) => `<span class="tag">${escapeHTML(tag)}</span>`).join("")}
         </div>
       </div>
-      <div class="article__layout">
-        <div class="article__main">
-          <div class="article__body">
-            ${renderPostBody(post)}
-          </div>
+      <div class="article__main">
+        <div class="article__body">
+          ${renderPostBody(post)}
         </div>
-        ${renderArticleSidebar(post)}
       </div>
       ${
         hasArticleFooter
@@ -1337,16 +1334,6 @@ function renderBlogDetail() {
           : ""
       }
     </article>
-  `;
-}
-
-function renderArticleSidebar(post) {
-  const tocMarkup = renderPostToc(post);
-
-  return `
-    <aside class="article__sidebar">
-      ${tocMarkup}
-    </aside>
   `;
 }
 
