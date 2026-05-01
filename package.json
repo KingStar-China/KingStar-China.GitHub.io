@@ -8,7 +8,7 @@
     "dev": "node ./scripts/generate-posts-data.mjs && vite",
     "build": "node ./scripts/generate-posts-data.mjs && node ./scripts/generate-seo.mjs && vite build",
     "test": "node ./scripts/generate-posts-data.mjs && node --test --experimental-test-isolation=none tests/content.test.mjs tests/search.test.mjs tests/seo.test.mjs tests/command-palette.test.mjs tests/blog.test.mjs",
-    "preview": "vite preview",
+    "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
     "admin": "node ./scripts/generate-posts-data.mjs && node ./scripts/admin-server.mjs",
     "admin:open": "node ./scripts/admin-open.mjs"
   },
