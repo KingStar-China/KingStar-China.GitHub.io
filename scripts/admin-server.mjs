@@ -16,7 +16,7 @@ const adminDir = path.join(rootDir, "admin");
 const dataDir = path.join(rootDir, "src", "data");
 const iconDir = path.join(rootDir, "public", "icon");
 const host = process.env.ADMIN_HOST || "127.0.0.1";
-const port = Number(process.env.ADMIN_PORT || 3210);
+const port = Number(process.env.ADMIN_PORT || 3214);
 const LINK_CHECK_TIMEOUT = 8000;
 const LINK_CHECK_CONCURRENCY = 5;
 

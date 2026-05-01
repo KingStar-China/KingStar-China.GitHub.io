@@ -86,7 +86,7 @@ function renderRemoteOnlyState() {
           <div class="hero__actions">
             <a class="ghost-button" href="/">返回首页</a>
           </div>
-          <p class="helper hero__helper">请在项目目录的外部 PowerShell 或终端执行 <code>npm run admin:open</code>，它会自动启动本地内容管理器并打开 <code>http://127.0.0.1:3210</code>。</p>
+          <p class="helper hero__helper">请在项目目录的外部 PowerShell 或终端执行 <code>npm run admin:open</code>，它会自动启动本地内容管理器并打开 <code>http://127.0.0.1:3214</code>。</p>
         </div>
       </header>
     </div>
