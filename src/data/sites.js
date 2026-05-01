@@ -1,5 +1,17 @@
 export const sites = [
   {
+    "id": "site-1777618726159",
+    "name": "Gmail",
+    "url": "https://mail.google.com/",
+    "category": "外网",
+    "tags": [],
+    "icon": "https://accounts.google.com/favicon.ico",
+    "description": "Gmail是一款直观、高效且实用的电子邮箱服务。拥有15GB存储空间、更少垃圾邮件以及移动端访问功能。",
+    "aliases": [
+      "accounts.google.com"
+    ]
+  },
+  {
     "id": "site-1777281219575",
     "name": "Reddit",
     "url": "https://www.reddit.com/",
@@ -19,7 +31,7 @@ export const sites = [
     "category": "AI",
     "tags": [],
     "icon": "https://chatgpt.com/cdn/assets/favicon-180x180-od45eci6.webp",
-    "description": "ChatGPT is your AI chatbot for everyday use. Chat with the most advanced AI to explore ideas, solve problems, and learn faster.",
+    "description": "ChatGPT是一款日常可用的人工智能聊天机器人。与顶尖人工智能对话，迸发创意灵感、解决各类问题、高效提升学习效率。",
     "aliases": [
       "chatgpt.com",
       "codex"
