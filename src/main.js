@@ -731,17 +731,26 @@ function renderThemePalette() {
     .map((theme) => `
       <button
         type="button"
-        class="theme-chip ${state.themePreset === theme.id ? "is-active" : ""}"
+        class="theme-card ${state.themePreset === theme.id ? "is-active" : ""}"
         data-action="set-theme-preset"
         data-value="${escapeHTML(theme.id)}"
         aria-pressed="${state.themePreset === theme.id ? "true" : "false"}"
       >
         <span
-          class="theme-chip__swatch"
-          style="--swatch-start: ${escapeHTML(theme.swatch[0])}; --swatch-end: ${escapeHTML(theme.swatch[1])};"
+          class="theme-card__preview"
+          style="--theme-card-preview: ${escapeHTML(theme.preview)}; --theme-card-glow: ${escapeHTML(theme.previewGlow)};"
           aria-hidden="true"
-        ></span>
-        <span class="theme-chip__label">${escapeHTML(theme.label)}</span>
+        >
+          <span class="theme-card__badge">${escapeHTML(theme.badge)}</span>
+          ${state.themePreset === theme.id ? '<span class="theme-card__status">正在使用</span>' : ""}
+        </span>
+        <span class="theme-card__body">
+          <span class="theme-card__title-row">
+            <strong>${escapeHTML(theme.label)}</strong>
+            <small>${escapeHTML(theme.mood)}</small>
+          </span>
+          <span class="theme-card__summary">${escapeHTML(theme.summary)}</span>
+        </span>
       </button>
     `)
     .join("");
@@ -776,7 +785,10 @@ function renderThemeShelf() {
     </button>
     <div class="theme-shelf__body" ${state.themeShelfExpanded ? "" : "hidden"}>
       <div class="theme-shelf__toolbar">
-        <p class="theme-shelf__summary">${escapeHTML(preset.summary)}</p>
+        <div class="theme-shelf__copy">
+          <span class="theme-shelf__badge">主题库 ${themes.length} 套</span>
+          <p class="theme-shelf__summary">当前启用 ${escapeHTML(preset.label)} · ${escapeHTML(preset.mood)}，点击卡片立即切换。</p>
+        </div>
         <button class="theme-toggle" type="button" data-action="toggle-theme" data-role="theme-toggle"></button>
       </div>
       <div class="theme-palette">${renderThemePalette()}</div>
