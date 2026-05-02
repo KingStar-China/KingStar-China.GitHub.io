@@ -2010,7 +2010,7 @@ function runCommandResult(result) {
     trackRecent,
     closeCommandPalette,
     render,
-    openPost,
+    getPostHref,
     resetNavFilters,
   });
 }
