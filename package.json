@@ -10,7 +10,8 @@
     "test": "node ./scripts/generate-posts-data.mjs && node --test --experimental-test-isolation=none tests/content.test.mjs tests/search.test.mjs tests/seo.test.mjs tests/command-palette.test.mjs tests/blog.test.mjs",
     "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
     "admin": "node ./scripts/generate-posts-data.mjs && node ./scripts/admin-server.mjs",
-    "admin:open": "node ./scripts/admin-open.mjs"
+    "admin:open": "node ./scripts/admin-open.mjs",
+    "dev:open": "node ./scripts/dev-open.mjs"
   },
   "devDependencies": {
     "highlight.js": "^11.11.1",
