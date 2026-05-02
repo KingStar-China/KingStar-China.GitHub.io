@@ -2,6 +2,7 @@ import { sites as rawSites } from "./data/sites.js";
 import { posts as rawPosts } from "./data/posts.js";
 import { siteMeta } from "./data/site.js";
 import { searchEngines as rawSearchEngines } from "./data/search-engines.js";
+import { themes } from "./data/themes.js";
 import { getPostSearchScore, getSiteSearchScore, matchesPostQuery, matchesSiteQuery } from "./lib/search.js";
 import { formatPostReadingTime, getAdjacentPosts, getRelatedPosts } from "./lib/blog.js";
 import { getCommandSections as getCommandSectionsState, getFlatCommandResults as getFlatCommandResultsState, runCommandResult as executeCommandResult, openCommandPalette as openCommandPaletteState, closeCommandPalette as closeCommandPaletteState } from "./lib/command-palette.js";
@@ -42,6 +43,7 @@ import { renderOverviewDeck as renderOverviewSection } from "./lib/overview.js";
 
 const STORAGE_KEYS = {
   theme: "nav-tool.theme",
+  themePreset: "nav-tool.themePreset",
   favorites: "nav-tool.favorites",
   recent: "nav-tool.recent",
   workbenchNote: "nav-tool.workbench.note",
@@ -91,6 +93,7 @@ const categoryOrder = [...new Set(sites.map((site) => site.category))];
 const siteIds = new Set(sites.map((site) => site.id));
 const siteMap = new Map(sites.map((site) => [site.id, site]));
 const postMap = new Map(posts.map((post) => [post.id, post]));
+const themeMap = new Map(themes.map((theme) => [theme.id, theme]));
 const categoryDescriptions = {
   AI: "把高频模型、检索和内容生成入口压到同一层，减少来回切换。",
   学习: "课程、资料、文档和知识型工具的集中区，适合连续阅读。",
@@ -106,6 +109,7 @@ const state = {
   favorites: loadIdSet(STORAGE_KEYS.favorites),
   recent: loadIdList(STORAGE_KEYS.recent),
   theme: document.documentElement.dataset.theme || "dark",
+  themePreset: getThemePresetId(loadStoredText(STORAGE_KEYS.themePreset)),
   workbenchNote: loadStoredText(STORAGE_KEYS.workbenchNote),
   workbenchTodos: loadTodoList(STORAGE_KEYS.workbenchTodos),
   workbenchTodoDraft: "",
@@ -141,6 +145,8 @@ function init() {
 
   refs.sectionTabs = root.querySelector('[data-role="section-tabs"]');
   refs.themeToggle = root.querySelector('[data-role="theme-toggle"]');
+  refs.themePalette = root.querySelector('[data-role="theme-palette"]');
+  refs.themeSummary = root.querySelector('[data-role="theme-summary"]');
   refs.summary = root.querySelector('[data-role="summary"]');
   refs.heroSearch = root.querySelector('[data-role="hero-search"]');
   refs.stats = root.querySelector('[data-role="stats"]');
@@ -181,7 +187,17 @@ function createShell() {
           <div class="hero__search" data-role="hero-search"></div>
         </div>
         <div class="hero__aside">
-          <button class="theme-toggle" type="button" data-action="toggle-theme" data-role="theme-toggle"></button>
+          <div class="theme-shelf">
+            <div class="theme-shelf__head">
+              <div class="theme-shelf__title">
+                <span>空间皮肤</span>
+                <strong>首页换肤</strong>
+              </div>
+              <button class="theme-toggle" type="button" data-action="toggle-theme" data-role="theme-toggle"></button>
+            </div>
+            <div class="theme-palette" data-role="theme-palette"></div>
+            <p class="theme-shelf__summary" data-role="theme-summary"></p>
+          </div>
           <div class="stats-grid" data-role="stats"></div>
         </div>
       </header>
@@ -311,6 +327,12 @@ function handleClick(event) {
 
     if (action === "toggle-theme") {
       syncTheme(state.theme === "dark" ? "light" : "dark");
+      render();
+      return;
+    }
+
+    if (action === "set-theme-preset" && value) {
+      syncThemePreset(value);
       render();
       return;
     }
@@ -539,7 +561,9 @@ function handleKeydown(event) {
 function render() {
   state.blogPage = clampPage(state.blogPage);
   root.querySelector(".app-shell")?.classList.toggle("is-article-view", state.section === "blog-detail");
-  refs.themeToggle.textContent = state.theme === "dark" ? "切换到浅色" : "切换到深色";
+  refs.themeToggle.textContent = state.theme === "dark" ? "浅色底" : "深色底";
+  refs.themePalette.innerHTML = renderThemePalette();
+  refs.themeSummary.textContent = getThemePreset().summary;
   refs.sectionTabs.innerHTML = renderSectionTabs();
   refs.summary.textContent = buildSummary();
   refs.heroSearch.innerHTML = state.section === "nav" || state.section === "blog-list" ? renderHeroSearch() : "";
@@ -704,6 +728,27 @@ function renderBlogStats() {
     createStatCard("分页", `${state.blogPage}/${totalPages}`),
     createStatCard("最新发布", latestDate),
   ].join("");
+}
+
+function renderThemePalette() {
+  return themes
+    .map((theme) => `
+      <button
+        type="button"
+        class="theme-chip ${state.themePreset === theme.id ? "is-active" : ""}"
+        data-action="set-theme-preset"
+        data-value="${escapeHTML(theme.id)}"
+        aria-pressed="${state.themePreset === theme.id ? "true" : "false"}"
+      >
+        <span
+          class="theme-chip__swatch"
+          style="--swatch-start: ${escapeHTML(theme.swatch[0])}; --swatch-end: ${escapeHTML(theme.swatch[1])};"
+          aria-hidden="true"
+        ></span>
+        <span class="theme-chip__label">${escapeHTML(theme.label)}</span>
+      </button>
+    `)
+    .join("");
 }
 
 function renderHeroSearch() {
@@ -1727,6 +1772,14 @@ function getPostPageSource(postId) {
   return filteredPosts.some((post) => post.id === postId) ? filteredPosts : posts;
 }
 
+function getThemePresetId(value) {
+  return themeMap.has(value) ? value : themes[0]?.id || "mist";
+}
+
+function getThemePreset() {
+  return themeMap.get(getThemePresetId(state.themePreset)) || themes[0];
+}
+
 function renderPostBody(post) {
   if (post.contentHtml) {
     return post.contentHtml;
@@ -2253,6 +2306,23 @@ function syncTheme(theme) {
   state.theme = theme;
   document.documentElement.dataset.theme = theme;
   localStorage.setItem(STORAGE_KEYS.theme, theme);
+  applyThemePreset();
+}
+
+function syncThemePreset(themePreset) {
+  state.themePreset = getThemePresetId(themePreset);
+  localStorage.setItem(STORAGE_KEYS.themePreset, state.themePreset);
+  applyThemePreset();
+}
+
+function applyThemePreset() {
+  const preset = getThemePreset();
+  const vars = preset?.vars?.[state.theme] || preset?.vars?.dark || {};
+  document.documentElement.dataset.themePreset = preset.id;
+
+  for (const [name, value] of Object.entries(vars)) {
+    document.documentElement.style.setProperty(name, value);
+  }
 }
 
 function handlePopState() {
