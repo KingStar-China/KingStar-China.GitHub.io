@@ -133,8 +133,6 @@ const state = {
 const root = document.querySelector("#app");
 const refs = {};
 let commandFocusRetryId = 0;
-let siteDescriptionTitleSyncId = 0;
-let siteDescriptionTitleTimeoutId = 0;
 
 init();
 
@@ -161,14 +159,6 @@ function init() {
   window.addEventListener("popstate", handlePopState);
   window.addEventListener("hashchange", handlePopState);
   window.addEventListener("scroll", handleScroll, { passive: true });
-  window.addEventListener("resize", queueSiteDescriptionTitleSync);
-  window.addEventListener("load", queueSiteDescriptionTitleSync);
-
-  if (document.fonts?.ready) {
-    document.fonts.ready.then(() => {
-      queueSiteDescriptionTitleSync();
-    });
-  }
 
   hydrateFromLocation();
   syncTheme(state.theme);
@@ -595,7 +585,6 @@ function render() {
     refs.workbenchTodoInput.value = state.workbenchTodoDraft;
   }
 
-  queueSiteDescriptionTitleSync();
   syncActiveHeading();
   syncActiveTocLink();
   syncWorkbenchClock();
@@ -607,39 +596,6 @@ function render() {
     state.pendingScrollTop = false;
     scrollToCurrentSectionTop();
   }
-}
-
-function queueSiteDescriptionTitleSync() {
-  if (siteDescriptionTitleSyncId) {
-    window.cancelAnimationFrame(siteDescriptionTitleSyncId);
-  }
-  if (siteDescriptionTitleTimeoutId) {
-    window.clearTimeout(siteDescriptionTitleTimeoutId);
-  }
-
-  siteDescriptionTitleSyncId = window.requestAnimationFrame(() => {
-    siteDescriptionTitleSyncId = 0;
-    syncSiteDescriptionTitles();
-  });
-
-  siteDescriptionTitleTimeoutId = window.setTimeout(() => {
-    siteDescriptionTitleTimeoutId = 0;
-    syncSiteDescriptionTitles();
-  }, 180);
-}
-
-function syncSiteDescriptionTitles() {
-  refs.content.querySelectorAll(".site-card__description p").forEach((element) => {
-    const isTruncated = element.scrollHeight - element.clientHeight > 1 || element.scrollWidth - element.clientWidth > 1;
-    const fullText = element.textContent?.trim() || "";
-
-    if (isTruncated && fullText) {
-      element.title = fullText;
-      return;
-    }
-
-    element.removeAttribute("title");
-  });
 }
 
 function renderCommandPaletteState({ maintainFocus = false } = {}) {
@@ -1072,7 +1028,6 @@ function renderNavSearchState() {
   if (refs.workbenchTodoInput) {
     refs.workbenchTodoInput.value = state.workbenchTodoDraft;
   }
-  queueSiteDescriptionTitleSync();
   syncRoute();
   updateSeo();
 }
@@ -1562,7 +1517,7 @@ function renderSiteCard(site) {
         </div>
         <h3>${escapeHTML(site.name)}</h3>
         <div class="site-card__description">
-          <p>${description}</p>
+          <p title="${description}">${description}</p>
         </div>
         <div class="tag-list">
           ${site.tags.map((tag) => `<span class="tag">${escapeHTML(tag)}</span>`).join("")}
