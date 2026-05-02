@@ -791,6 +791,10 @@ function handleInput(event) {
     state.dirty.searchEngines = true;
   }
 
+  if (field === "id") {
+    setSelectedId(item.id);
+  }
+
   setStatus("info", "内容已修改，记得点击“保存当前分类”。", false);
   refreshChrome();
 }
