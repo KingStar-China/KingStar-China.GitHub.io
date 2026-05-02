@@ -972,27 +972,26 @@ function renderNavToolbar() {
         <h2>导航工具台</h2>
         <p>先缩小范围，再进入站点。把常用工具入口、分类和标签压到同一工作面板。</p>
       </div>
-      <div class="toolbar__workspace">
-        <section class="toolbar-panel toolbar-panel--search">
-          <div class="toolbar-panel__head">
-            <span class="field-label">即时搜索</span>
-            <small>按站点名、描述、标签过滤</small>
-          </div>
-          <label class="search-field">
-            <input
-              data-role="search"
-              type="search"
-              inputmode="search"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="搜站点名、标签、描述，例如 GPT / 文档 / 视频"
-            >
-          </label>
-        </section>
-        <div class="toolbar-panel toolbar-panel--filters filter-stack" data-role="nav-filters">
-          ${renderNavFilterRows()}
+      <section class="toolbar-panel toolbar-panel--search">
+        <div class="toolbar-panel__head">
+          <span class="field-label">即时搜索</span>
+          <small>按站点名、描述、标签过滤</small>
         </div>
-      </div>
+        <label class="search-field">
+          <input
+            data-role="search"
+            type="search"
+            inputmode="search"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="搜站点名、标签、描述，例如 GPT / 文档 / 视频"
+          >
+        </label>
+      </section>
+    </div>
+
+    <div class="filter-grid filter-grid--nav filter-stack" data-role="nav-filters">
+      ${renderNavFilterRows()}
     </div>
 
     <div class="toolbar__footer">
@@ -1079,37 +1078,37 @@ function renderBlogToolbar() {
 
   return `
     <div class="toolbar--blog">
-      <div class="toolbar-shell">
+      <div class="toolbar-shell toolbar-shell--blog">
         <div class="toolbar__heading">
           <span class="field-label">BLOG</span>
           <h2>博客搜索与分页</h2>
           <p>像内容工作台一样浏览文章。先搜关键词，再按标签和分页收束阅读范围。</p>
         </div>
-        <div class="toolbar__workspace toolbar__workspace--blog">
-          <section class="toolbar-panel toolbar-panel--search">
-            <div class="toolbar-panel__head">
-              <span class="field-label">搜索文章</span>
-              <small>标题、摘要、正文、标签统一检索</small>
-            </div>
-            <label class="search-field search-field--blog">
-              <input
-                data-role="blog-search"
-                type="search"
-                inputmode="search"
-                autocomplete="off"
-                spellcheck="false"
-                placeholder="搜标题、摘要、正文、标签，例如 Cloudflare / GitHub Pages / 工作流"
-              >
-            </label>
-          </section>
-          <section class="toolbar-panel toolbar-panel--filters filter-row">
-            <div class="filter-panel__head">
-              <span class="filter-label">博客标签</span>
-              <small>按主题收束当前页内容</small>
-            </div>
-            <div class="chip-group chip-group--dense">${renderBlogTagFilters()}</div>
-          </section>
-        </div>
+        <section class="toolbar-panel toolbar-panel--search">
+          <div class="toolbar-panel__head">
+            <span class="field-label">搜索文章</span>
+            <small>标题、摘要、正文、标签统一检索</small>
+          </div>
+          <label class="search-field search-field--blog">
+            <input
+              data-role="blog-search"
+              type="search"
+              inputmode="search"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="搜标题、摘要、正文、标签，例如 Cloudflare / GitHub Pages / 工作流"
+            >
+          </label>
+        </section>
+      </div>
+      <div class="filter-grid filter-grid--blog">
+        <section class="toolbar-panel toolbar-panel--filters filter-row">
+          <div class="filter-panel__head">
+            <span class="filter-label">博客标签</span>
+            <small>按主题收束当前页内容</small>
+          </div>
+          <div class="chip-group chip-group--dense">${renderBlogTagFilters()}</div>
+        </section>
       </div>
       <div class="toolbar__footer">
         <div class="active-state">
