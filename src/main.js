@@ -1466,21 +1466,28 @@ function renderBlogDetail() {
           <a class="article-back" href="${escapeHTML(getHomeHref())}" data-route-kind="home">返回主页</a>
           <a class="article-back" href="${escapeHTML(getBlogListHref())}" data-route-kind="blog-list">返回博客列表</a>
         </div>
-        <p class="section-head__eyebrow">BLOG POST</p>
-        <h2>${escapeHTML(post.title)}</h2>
-        <div class="article__meta">
-          <span>${formatDate(post.publishedAt)}</span>
-          <span>${formatPostReadingTime(post)}</span>
-          <span>${post.blockCount} 个内容块</span>
-          <span>${sourceLabel}</span>
-        </div>
-        <div class="tag-list">
-          ${post.tags.map((tag) => `<span class="tag">${escapeHTML(tag)}</span>`).join("")}
+        <div class="article__hero">
+          <p class="section-head__eyebrow">BLOG POST</p>
+          <div class="article__headline">
+            <h2>${escapeHTML(post.title)}</h2>
+            <p class="article__lede">${escapeHTML(post.summary)}</p>
+          </div>
+          <div class="article__meta">
+            <span>${formatDate(post.publishedAt)}</span>
+            <span>${formatPostReadingTime(post)}</span>
+            <span>${post.blockCount} 个内容块</span>
+            <span>${sourceLabel}</span>
+          </div>
+          <div class="tag-list">
+            ${post.tags.map((tag) => `<span class="tag">${escapeHTML(tag)}</span>`).join("")}
+          </div>
         </div>
       </div>
       <div class="article__main">
-        <div class="article__body">
-          ${renderPostBody(post)}
+        <div class="article__body-shell">
+          <div class="article__body">
+            ${renderPostBody(post)}
+          </div>
         </div>
       </div>
       ${
