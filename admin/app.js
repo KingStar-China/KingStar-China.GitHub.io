@@ -652,6 +652,7 @@ function handleClick(event) {
   }
 
   if (action === "generate-id") {
+    pendingEditorScrollY = window.scrollY;
     generateId();
     render();
     return;
