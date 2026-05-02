@@ -781,12 +781,6 @@ function renderNavToolbar() {
           >
         </label>
 
-        <div class="toolbar-shortcuts">
-          <button type="button" class="toolbar-shortcut" data-action="open-command">
-            <span>全站命令面板</span>
-            <small>Ctrl + K</small>
-          </button>
-        </div>
       </div>
     </div>
 
