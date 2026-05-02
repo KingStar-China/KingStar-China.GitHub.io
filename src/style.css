@@ -66,8 +66,8 @@ body::before {
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    linear-gradient(var(--theme-grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--theme-grid-color) 1px, transparent 1px);
   background-size: 32px 32px;
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.6), transparent);
 }
@@ -240,6 +240,40 @@ a {
   align-content: space-between;
 }
 
+.theme-shelf {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.theme-shelf__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.theme-shelf__title {
+  display: grid;
+  gap: 4px;
+}
+
+.theme-shelf__title span {
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.theme-shelf__title strong {
+  color: var(--heading);
+  font-size: 0.94rem;
+}
+
 .theme-toggle {
   justify-self: end;
   padding: 10px 14px;
@@ -250,9 +284,72 @@ a {
   transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
 }
 
+.theme-shelf .theme-toggle {
+  justify-self: auto;
+}
+
 .theme-toggle:hover {
   transform: translateY(-1px);
   border-color: rgba(15, 118, 110, 0.34);
+}
+
+.theme-palette {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.theme-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 9px 10px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.28);
+  color: var(--heading);
+  text-align: left;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+[data-theme="dark"] .theme-chip {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.theme-chip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(15, 118, 110, 0.28);
+}
+
+.theme-chip.is-active {
+  border-color: transparent;
+  background: var(--chip-active);
+  color: var(--chip-active-text);
+  box-shadow: 0 10px 24px rgba(14, 31, 43, 0.12);
+}
+
+.theme-chip__swatch {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--swatch-start), var(--swatch-end));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.42),
+    0 4px 10px rgba(14, 31, 43, 0.18);
+}
+
+.theme-chip__label {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.theme-shelf__summary {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
 }
 
 .stats-grid {
@@ -265,7 +362,7 @@ a {
   padding: 14px;
   border-radius: 16px;
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--theme-stat-bg);
 }
 
 .stat-card__label {
@@ -2080,7 +2177,14 @@ a {
   --chip: rgba(255, 255, 255, 0.72);
   --chip-active: #17384c;
   --chip-active-text: #f7fbff;
-  --surface-soft: rgba(255, 255, 255, 0.72);
+  --theme-bg-left: rgba(118, 147, 170, 0.12);
+  --theme-bg-right: rgba(170, 191, 205, 0.1);
+  --theme-bg-overlay: rgba(255, 255, 255, 0.42);
+  --theme-grid-color: rgba(255, 255, 255, 0.03);
+  --theme-hero-tint: linear-gradient(135deg, rgba(15, 118, 110, 0.15), transparent 42%);
+  --theme-surface-soft: rgba(255, 255, 255, 0.72);
+  --theme-stat-bg: rgba(255, 255, 255, 0.08);
+  --surface-soft: var(--theme-surface-soft);
 }
 
 [data-theme="dark"] {
@@ -2098,14 +2202,21 @@ a {
   --chip: #102635;
   --chip-active: #14756d;
   --chip-active-text: #f4fffc;
-  --surface-soft: rgba(255, 255, 255, 0.06);
+  --theme-bg-left: rgba(41, 93, 105, 0.2);
+  --theme-bg-right: rgba(170, 191, 205, 0.08);
+  --theme-bg-overlay: rgba(255, 255, 255, 0.04);
+  --theme-grid-color: rgba(255, 255, 255, 0.03);
+  --theme-hero-tint: linear-gradient(135deg, rgba(85, 208, 183, 0.18), transparent 42%);
+  --theme-surface-soft: rgba(255, 255, 255, 0.06);
+  --theme-stat-bg: rgba(255, 255, 255, 0.08);
+  --surface-soft: var(--theme-surface-soft);
 }
 
 body {
   background:
-    radial-gradient(circle at top left, var(--bg-accent), transparent 28%),
-    radial-gradient(circle at top right, rgba(170, 191, 205, 0.1), transparent 24%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.42), transparent 40%),
+    radial-gradient(circle at top left, var(--theme-bg-left), transparent 28%),
+    radial-gradient(circle at top right, var(--theme-bg-right), transparent 24%),
+    linear-gradient(180deg, var(--theme-bg-overlay), transparent 40%),
     var(--bg);
 }
 
@@ -2129,16 +2240,7 @@ body,
 .hero {
   gap: 20px;
   padding: 24px;
-  background:
-    radial-gradient(circle at top left, rgba(126, 164, 176, 0.1), transparent 30%),
-    linear-gradient(135deg, rgba(244, 248, 250, 0.96), rgba(251, 253, 254, 0.98));
-}
-
-[data-theme="dark"] .hero {
-  background:
-    radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 34%),
-    radial-gradient(circle at bottom right, rgba(21, 94, 117, 0.14), transparent 30%),
-    var(--panel-strong);
+  background: var(--theme-hero-tint), var(--panel-strong);
 }
 
 .toolbar {
@@ -2747,6 +2849,15 @@ body,
     grid-template-columns: 1fr 1fr;
   }
 
+  .theme-shelf {
+    padding: 12px;
+  }
+
+  .theme-chip {
+    min-height: 42px;
+    padding-inline: 9px;
+  }
+
   .stat-card {
     min-height: 0;
   }
@@ -3126,12 +3237,11 @@ body.is-command-open {
 @media (max-width: 640px) {
   [data-theme="light"] body {
     background:
-      radial-gradient(circle at top center, rgba(170, 191, 205, 0.16), transparent 30%),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.46), transparent 42%),
+      radial-gradient(circle at top center, var(--theme-bg-right), transparent 30%),
+      linear-gradient(180deg, var(--theme-bg-overlay), transparent 42%),
       var(--bg);
   }
 
-  [data-theme="light"] .hero,
   [data-theme="light"] .toolbar,
   [data-theme="light"] .overview-card,
   [data-theme="light"] .workbench-card,
@@ -3143,8 +3253,7 @@ body.is-command-open {
   [data-theme="light"] .blog-card,
   [data-theme="light"] .article,
   [data-theme="light"] .pagination,
-  [data-theme="light"] .command-palette,
-  [data-theme="light"] .stat-card {
+  [data-theme="light"] .command-palette {
     background:
       linear-gradient(180deg, rgba(255, 255, 255, 0.6), transparent 36%),
       rgba(249, 252, 253, 0.96);
