@@ -1245,7 +1245,9 @@ function generateId() {
   }
 
   if (state.section === "posts") {
-    item.id = createUniquePostTimestampId(item.id);
+    const nextId = createUniquePostTimestampId(item.id);
+    item.id = nextId;
+    setSelectedId(nextId);
     state.dirty.posts = true;
     setStatus("info", "已按当前时间生成文章 ID。", false);
     return;
@@ -1253,7 +1255,9 @@ function generateId() {
 
   const source = state.section === "sites" ? item.name : state.section === "posts" ? item.title : item.label;
   const slug = slugify(source);
-  item.id = slug || `${state.section === "sites" ? "site" : "engine"}-${Date.now()}`;
+  const nextId = slug || `${state.section === "sites" ? "site" : "engine"}-${Date.now()}`;
+  item.id = nextId;
+  setSelectedId(nextId);
   state.dirty[state.section] = true;
   setStatus("info", "已根据当前标题生成 ID。", false);
 }
@@ -1569,7 +1573,9 @@ async function importPostMarkdown() {
   }
 
   if (!post.id || /^post-\d+$/.test(post.id)) {
-    post.id = createUniquePostTimestampId(post.id);
+    const nextId = createUniquePostTimestampId(post.id);
+    post.id = nextId;
+    setSelectedId(nextId);
     importedFields.push("ID");
   }
 
