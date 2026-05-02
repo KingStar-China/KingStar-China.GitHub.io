@@ -1079,7 +1079,6 @@ function renderWorkbenchSection() {
         <div>
           <p class="section-head__eyebrow">PERSONAL LAYER</p>
           <h2>个人工作台</h2>
-          <p class="section-head__summary">把待办、便签和临时节奏沉到首页最后一层，保留工具效率，但不抢主要浏览动线。</p>
         </div>
         <span class="section-count">${pendingCount}</span>
       </div>
@@ -1114,7 +1113,6 @@ function renderNavContent() {
             <div>
               <p class="section-head__eyebrow">${escapeHTML(group.label)}</p>
               <h2>${escapeHTML(group.title)}</h2>
-              <p class="section-head__summary">${escapeHTML(getCategorySummary(group.title, group.sites.length))}</p>
             </div>
             <span class="section-count">${group.sites.length}</span>
           </div>
@@ -1963,17 +1961,6 @@ function getGroupedSites(visibleSites) {
   return grouped;
 }
 
-function getCategorySummary(category, count) {
-  if (category === "最近访问") {
-    return "按最近点开的顺序临时排成一条工作链，方便回到刚才的上下文。";
-  }
-
-  if (categoryDescriptions[category]) {
-    return `${categoryDescriptions[category]} 当前 ${count} 个入口。`;
-  }
-
-  return `当前分类下共有 ${count} 个站点，适合成组浏览和连续切换。`;
-}
 function getCommandPaletteDeps() {
   return {
     state,
@@ -2048,12 +2035,7 @@ function getHost(url) {
 
 function buildSummary() {
   if (state.section === "blog-list") {
-    const filteredPosts = getFilteredPosts();
-    if (!state.blogQuery && state.blogTag === "all") {
-      return `当前共有 ${posts.length} 篇文章。`;
-    }
-
-    return `当前命中 ${filteredPosts.length} 篇文章。`;
+    return "";
   }
 
   if (state.section === "blog-detail") {
@@ -2061,13 +2043,7 @@ function buildSummary() {
     return post ? post.summary : "当前文章不存在，你可以返回博客列表重新选择。";
   }
 
-  const filteredCount = getVisibleSites().length;
-
-  if (!state.query && state.category === "all" && state.tag === "all" && state.view === "all") {
-    return `当前共有 ${sites.length} 个站点。`;
-  }
-
-  return `当前命中 ${filteredCount} 个站点。`;
+  return "";
 }
 
 function getEmptyMessage() {
