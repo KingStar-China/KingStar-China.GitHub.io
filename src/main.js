@@ -766,7 +766,6 @@ function renderNavToolbar() {
       <div class="toolbar__heading toolbar__heading--compact">
         <span class="field-label">NAV TOOLKIT</span>
         <h2>导航工具台</h2>
-        <p>先搜，再筛，再进入分类区，不让首页重新退化成一整面链接墙。</p>
       </div>
 
       <div class="toolbar__tools">
@@ -887,7 +886,6 @@ function renderBlogToolbar() {
         <div class="toolbar__heading">
           <span class="field-label">BLOG</span>
           <h2>博客搜索与分页</h2>
-          <p>记录建站、工具、AI 和效率方法。现在支持按标题、摘要、正文和标签筛选文章，同时保留分页阅读。</p>
         </div>
         <div class="toolbar__tools">
           <label class="search-field search-field--blog">
@@ -1046,7 +1044,6 @@ function renderSectionRail(groups) {
           <p class="section-head__eyebrow">CATEGORIES</p>
           <h2>网站分类</h2>
         </div>
-        <p class="section-rail__summary">先处理高频入口，再按分类扫站点，个人工作台单独落在最后一层，避免首页继续变成纯功能堆叠。</p>
       </div>
       <div class="section-rail__chips">
         ${groups
@@ -1136,7 +1133,6 @@ function renderBlogList() {
     return `
       <section class="panel empty-state">
         <h2>博客还没有内容</h2>
-        <p>等你加上第一篇文章后，这里会自动显示列表和分页。</p>
       </section>
     `;
   }
@@ -1146,7 +1142,6 @@ function renderBlogList() {
     return `
       <section class="panel empty-state">
         <h2>没有匹配文章</h2>
-        <p>当前关键词或标签没有命中文章。清空博客筛选后会恢复全部内容。</p>
         <button type="button" class="empty-state__button" data-action="reset-blog-filters">恢复全部文章</button>
       </section>
     `;
@@ -1245,7 +1240,6 @@ function renderBlogDetail() {
     return `
       <section class="panel empty-state">
         <h2>文章不存在</h2>
-        <p>当前选择的文章没有找到，你可以返回博客列表重新选择。</p>
         <a class="empty-state__button" href="${escapeHTML(getHomeHref())}" data-route-kind="home">返回主页</a>
         <a class="empty-state__button" href="${escapeHTML(getBlogListHref())}" data-route-kind="blog-list">返回博客列表</a>
       </section>
@@ -1526,8 +1520,7 @@ function renderCommandEmptyState() {
   if (!query) {
     return `
       <div class="command-empty">
-        <strong>这里会显示最近访问和最新文章。</strong>
-        <span>直接输入关键词，就会开始搜网站名、文章标题、标签和描述。</span>
+        <strong>输入关键词开始搜索。</strong>
       </div>
     `;
   }
@@ -1638,7 +1631,7 @@ function renderActiveState() {
   }
 
   if (parts.length === 0) {
-    return `<span class="active-state__hint">当前显示全部站点。先搜关键词，或者直接切到收藏/最近访问。</span>`;
+    return "";
   }
 
   return `
@@ -1680,7 +1673,7 @@ function renderBlogActiveState(count) {
   }
 
   if (!state.blogQuery && state.blogTag === "all") {
-    return `${parts.join("")}<span class="active-state__hint">当前显示全部文章，可按标题、摘要、正文和标签继续收窄范围。</span>`;
+    return parts.join("");
   }
 
   return `
@@ -2057,10 +2050,10 @@ function buildSummary() {
   if (state.section === "blog-list") {
     const filteredPosts = getFilteredPosts();
     if (!state.blogQuery && state.blogTag === "all") {
-      return `记录建站、工具和效率实践。当前共有 ${posts.length} 篇文章，已经支持博客搜索、标签筛选和分页阅读。`;
+      return `当前共有 ${posts.length} 篇文章。`;
     }
 
-    return `当前命中 ${filteredPosts.length} 篇文章。你可以继续按关键词和标签把内容范围缩小。`;
+    return `当前命中 ${filteredPosts.length} 篇文章。`;
   }
 
   if (state.section === "blog-detail") {
@@ -2071,22 +2064,22 @@ function buildSummary() {
   const filteredCount = getVisibleSites().length;
 
   if (!state.query && state.category === "all" && state.tag === "all" && state.view === "all") {
-    return "把常用网站集中成一个可搜索、可筛选、可沉淀习惯的个人起始台。现在支持 Ctrl + K 全站搜索网站和博客。";
+    return `当前共有 ${sites.length} 个站点。`;
   }
 
-  return `当前命中 ${filteredCount} 个站点。你可以继续按分类、标签或收藏状态继续收窄范围。`;
+  return `当前命中 ${filteredCount} 个站点。`;
 }
 
 function getEmptyMessage() {
   if (state.view === "favorites") {
-    return "收藏列表还是空的。先从常用站点里标记几个，后面会越用越顺手。";
+    return "收藏列表为空。";
   }
 
   if (state.view === "recent") {
-    return "最近访问还没有记录。打开任意站点后，这里会自动形成你的短期工作台。";
+    return "最近访问暂无记录。";
   }
 
-  return "当前关键词或筛选条件太严格了。清空筛选后会恢复全部站点。";
+  return "没有匹配站点。";
 }
 
 function getTotalBlogPages(sourcePosts = getFilteredPosts()) {
@@ -2184,7 +2177,7 @@ function submitEngineSearch() {
 
 function renderWorkbenchTodoItems() {
   if (state.workbenchTodos.length === 0) {
-    return '<div class="workbench-empty">还没有待办。先写下一件最重要的事，工作台就开始真正有用了。</div>';
+    return '<div class="workbench-empty">还没有待办。</div>';
   }
 
   return state.workbenchTodos
@@ -2578,9 +2571,9 @@ function buildPageDescription() {
   if (state.section === "blog-list") {
     const filteredPosts = getFilteredPosts();
     if (state.blogQuery || state.blogTag !== "all") {
-      return `博客当前命中 ${filteredPosts.length} 篇文章，支持按标题、摘要、正文和标签搜索。`;
+      return `博客当前命中 ${filteredPosts.length} 篇文章。`;
     }
-    return `收录建站、工具、AI 和效率实践的轻量博客，当前共有 ${posts.length} 篇文章。`;
+    return `当前共有 ${posts.length} 篇文章。`;
   }
 
   return siteMeta.description;
