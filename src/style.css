@@ -242,7 +242,6 @@ a {
 
 .theme-shelf {
   display: grid;
-  gap: 10px;
   padding: 14px;
   border-radius: 18px;
   border: 1px solid var(--border);
@@ -250,7 +249,88 @@ a {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-.theme-shelf__head {
+.theme-shelf__trigger {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 0;
+  text-align: left;
+}
+
+.theme-shelf__trigger:hover .theme-shelf__current,
+.theme-shelf__trigger:hover .theme-shelf__caret {
+  border-color: rgba(15, 118, 110, 0.3);
+}
+
+.theme-shelf__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.theme-shelf__current {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--chip);
+  color: var(--heading);
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: border-color 180ms ease, background 180ms ease;
+}
+
+.theme-shelf__swatch {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--swatch-start), var(--swatch-end));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.42),
+    0 3px 8px rgba(14, 31, 43, 0.18);
+}
+
+.theme-shelf__caret {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--chip);
+  position: relative;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.theme-shelf__caret::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translate(-50%, -62%) rotate(45deg);
+}
+
+.theme-shelf.is-expanded .theme-shelf__caret {
+  transform: rotate(180deg);
+}
+
+.theme-shelf__body {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.theme-shelf__toolbar {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -272,6 +352,10 @@ a {
 .theme-shelf__title strong {
   color: var(--heading);
   font-size: 0.94rem;
+}
+
+.theme-shelf__toolbar .theme-toggle {
+  flex: 0 0 auto;
 }
 
 .theme-toggle {
@@ -2851,6 +2935,16 @@ body,
 
   .theme-shelf {
     padding: 12px;
+  }
+
+  .theme-shelf__trigger,
+  .theme-shelf__toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .theme-shelf__meta {
+    justify-content: space-between;
   }
 
   .theme-chip {
