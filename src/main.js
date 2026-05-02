@@ -1490,6 +1490,7 @@ function renderSiteCard(site) {
   const isFavorite = state.favorites.has(site.id);
   const iconMarkup = renderIcon(site);
   const host = getHost(site.url);
+  const description = escapeHTML(site.description);
 
   return `
     <article class="panel site-card">
@@ -1511,7 +1512,10 @@ function renderSiteCard(site) {
           <span class="site-card__host">${escapeHTML(host)}</span>
         </div>
         <h3>${escapeHTML(site.name)}</h3>
-        <p>${escapeHTML(site.description)}</p>
+        <div class="site-card__description">
+          <p title="${description}">${description}</p>
+          <div class="site-card__tooltip" aria-hidden="true">${description}</div>
+        </div>
         <div class="tag-list">
           ${site.tags.map((tag) => `<span class="tag">${escapeHTML(tag)}</span>`).join("")}
         </div>
