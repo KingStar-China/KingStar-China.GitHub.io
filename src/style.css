@@ -330,6 +330,10 @@ a {
   border-top: 1px solid var(--border);
 }
 
+.theme-shelf__body[hidden] {
+  display: none;
+}
+
 .theme-shelf__toolbar {
   display: flex;
   justify-content: space-between;
