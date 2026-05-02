@@ -1470,7 +1470,6 @@ function renderBlogDetail() {
           <p class="section-head__eyebrow">BLOG POST</p>
           <div class="article__headline">
             <h2>${escapeHTML(post.title)}</h2>
-            <p class="article__lede">${escapeHTML(post.summary)}</p>
           </div>
           <div class="article__meta">
             <span>${formatDate(post.publishedAt)}</span>
