@@ -1865,7 +1865,7 @@ a {
   display: grid;
   gap: 14px;
   width: 100%;
-  max-width: 760px;
+  max-width: 980px;
   margin: 0 auto;
 }
 
@@ -1913,6 +1913,9 @@ a {
 }
 
 .article__body-shell {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
   padding: 24px 26px;
   border-radius: 24px;
   border: 1px solid var(--border);
