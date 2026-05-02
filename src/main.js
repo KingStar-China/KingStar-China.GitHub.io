@@ -910,7 +910,6 @@ function renderBlogToolbar() {
       <div class="toolbar__footer">
         <div class="active-state">
           ${renderBlogActiveState(filteredPosts.length)}
-          <button type="button" class="inline-reset" data-action="open-command">全站搜 Ctrl + K</button>
         </div>
       </div>
     </div>
