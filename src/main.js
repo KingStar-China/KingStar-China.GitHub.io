@@ -111,6 +111,7 @@ const state = {
   theme: document.documentElement.dataset.theme || "dark",
   themePreset: getThemePresetId(loadStoredText(STORAGE_KEYS.themePreset)),
   themeShelfExpanded: false,
+  themeShowcaseIndex: 0,
   workbenchNote: loadStoredText(STORAGE_KEYS.workbenchNote),
   workbenchTodos: loadTodoList(STORAGE_KEYS.workbenchTodos),
   workbenchTodoDraft: "",
@@ -328,6 +329,24 @@ function handleClick(event) {
 
     if (action === "set-theme-preset" && value) {
       syncThemePreset(value);
+      render();
+      return;
+    }
+
+    if (action === "prev-theme-showcase") {
+      shiftThemeShowcase(-1);
+      render();
+      return;
+    }
+
+    if (action === "next-theme-showcase") {
+      shiftThemeShowcase(1);
+      render();
+      return;
+    }
+
+    if (action === "set-theme-showcase" && value) {
+      syncThemeShowcase(value);
       render();
       return;
     }
@@ -727,32 +746,23 @@ function renderBlogStats() {
 }
 
 function renderThemePalette() {
-  return themes
-    .filter((theme) => theme.id !== state.themePreset)
+  return getThemeShelfThemes()
     .map((theme) => `
       <button
         type="button"
-        class="theme-card"
-        data-action="set-theme-preset"
+        class="theme-thumb ${getShowcaseTheme()?.id === theme.id ? "is-active" : ""}"
+        data-action="set-theme-showcase"
         data-value="${escapeHTML(theme.id)}"
-        aria-pressed="false"
+        aria-pressed="${getShowcaseTheme()?.id === theme.id ? "true" : "false"}"
       >
         <span
-          class="theme-card__preview"
+          class="theme-thumb__preview"
           style="--theme-card-preview: ${escapeHTML(theme.preview)}; --theme-card-glow: ${escapeHTML(theme.previewGlow)};"
           aria-hidden="true"
-        >
-          <span class="theme-card__badge">${escapeHTML(theme.badge)}</span>
-          <span class="theme-card__sticker">${escapeHTML(theme.sticker)}</span>
-          <span class="theme-card__spark theme-card__spark--a"></span>
-          <span class="theme-card__spark theme-card__spark--b"></span>
-        </span>
-        <span class="theme-card__body">
-          <span class="theme-card__title-row">
-            <strong>${escapeHTML(theme.label)}</strong>
-            <small>${escapeHTML(theme.mood)}</small>
-          </span>
-          <span class="theme-card__summary">${escapeHTML(theme.summary)}</span>
+        ></span>
+        <span class="theme-thumb__body">
+          <strong>${escapeHTML(theme.label)}</strong>
+          <small>${escapeHTML(theme.badge)}</small>
         </span>
       </button>
     `)
@@ -793,10 +803,66 @@ function renderFeaturedThemeCard(theme) {
   `;
 }
 
+function renderThemeShowcase() {
+  const theme = getShowcaseTheme();
+  const shelfThemes = getThemeShelfThemes();
+
+  if (!theme || shelfThemes.length === 0) {
+    return "";
+  }
+
+  return `
+    <section class="theme-showcase">
+      <div class="theme-showcase__head">
+        <div>
+          <p class="theme-showcase__eyebrow">本周上新</p>
+          <strong>${escapeHTML(theme.label)}</strong>
+        </div>
+        <div class="theme-showcase__controls">
+          <button type="button" class="theme-nav" data-action="prev-theme-showcase" aria-label="查看上一个皮肤">‹</button>
+          <span class="theme-showcase__count">${state.themeShowcaseIndex + 1} / ${shelfThemes.length}</span>
+          <button type="button" class="theme-nav" data-action="next-theme-showcase" aria-label="查看下一个皮肤">›</button>
+        </div>
+      </div>
+      <div class="theme-spotlight">
+        <div
+          class="theme-spotlight__preview"
+          style="--theme-card-preview: ${escapeHTML(theme.preview)}; --theme-card-glow: ${escapeHTML(theme.previewGlow)};"
+          aria-hidden="true"
+        >
+          <span class="theme-card__badge">${escapeHTML(theme.badge)}</span>
+          <span class="theme-card__sticker">${escapeHTML(theme.sticker)}</span>
+          <span class="theme-card__spark theme-card__spark--a"></span>
+          <span class="theme-card__spark theme-card__spark--b"></span>
+        </div>
+        <div class="theme-spotlight__body">
+          <div class="theme-spotlight__title">
+            <div>
+              <h4>${escapeHTML(theme.label)}</h4>
+              <p>${escapeHTML(theme.mood)}</p>
+            </div>
+            <span class="theme-feature__mood">${escapeHTML(theme.charm)}</span>
+          </div>
+          <p class="theme-spotlight__summary">${escapeHTML(theme.summary)}</p>
+          <div class="theme-spotlight__meta">
+            <span>${escapeHTML(theme.sticker)}</span>
+            <span>${escapeHTML(theme.charm)}</span>
+            <span>主题头图联动</span>
+          </div>
+          <button type="button" class="theme-spotlight__apply" data-action="set-theme-preset" data-value="${escapeHTML(theme.id)}">
+            立即换成 ${escapeHTML(theme.label)}
+          </button>
+        </div>
+      </div>
+      <div class="theme-palette">${renderThemePalette()}</div>
+    </section>
+  `;
+}
+
 function renderThemeShelf() {
   const preset = getThemePreset();
   const [swatchStart = "#98d5d2", swatchEnd = "#ddeff6"] = preset.swatch || [];
-  const otherThemesCount = Math.max(0, themes.length - 1);
+  const otherThemesCount = getThemeShelfThemes().length;
 
   return `
     <button
@@ -834,9 +900,9 @@ function renderThemeShelf() {
         <div class="theme-palette-shell">
           <div class="theme-palette__head">
             <strong>更多皮肤</strong>
-            <span>${otherThemesCount} 套可切换</span>
+            <span>${otherThemesCount} 套在橱窗轮播</span>
           </div>
-          <div class="theme-palette">${renderThemePalette()}</div>
+          ${renderThemeShowcase()}
         </div>
       ` : ""}
     </div>
@@ -1872,6 +1938,21 @@ function getThemePreset() {
   return themeMap.get(getThemePresetId(state.themePreset)) || themes[0];
 }
 
+function getThemeShelfThemes() {
+  return themes.filter((theme) => theme.id !== state.themePreset);
+}
+
+function getShowcaseTheme() {
+  const shelfThemes = getThemeShelfThemes();
+
+  if (shelfThemes.length === 0) {
+    return null;
+  }
+
+  const index = ((state.themeShowcaseIndex % shelfThemes.length) + shelfThemes.length) % shelfThemes.length;
+  return shelfThemes[index];
+}
+
 function renderPostBody(post) {
   if (post.contentHtml) {
     return post.contentHtml;
@@ -2403,12 +2484,30 @@ function syncTheme(theme) {
 
 function syncThemePreset(themePreset) {
   state.themePreset = getThemePresetId(themePreset);
+  state.themeShowcaseIndex = 0;
   localStorage.setItem(STORAGE_KEYS.themePreset, state.themePreset);
   applyThemePreset();
 }
 
 function syncThemeShelfExpanded(expanded) {
   state.themeShelfExpanded = Boolean(expanded);
+}
+
+function syncThemeShowcase(themeId) {
+  const shelfThemes = getThemeShelfThemes();
+  const index = shelfThemes.findIndex((theme) => theme.id === themeId);
+  state.themeShowcaseIndex = index >= 0 ? index : 0;
+}
+
+function shiftThemeShowcase(offset) {
+  const shelfThemes = getThemeShelfThemes();
+
+  if (shelfThemes.length === 0) {
+    state.themeShowcaseIndex = 0;
+    return;
+  }
+
+  state.themeShowcaseIndex = (state.themeShowcaseIndex + offset + shelfThemes.length) % shelfThemes.length;
 }
 
 function applyThemePreset() {
