@@ -743,6 +743,9 @@ function renderThemePalette() {
           aria-hidden="true"
         >
           <span class="theme-card__badge">${escapeHTML(theme.badge)}</span>
+          <span class="theme-card__sticker">${escapeHTML(theme.sticker)}</span>
+          <span class="theme-card__spark theme-card__spark--a"></span>
+          <span class="theme-card__spark theme-card__spark--b"></span>
         </span>
         <span class="theme-card__body">
           <span class="theme-card__title-row">
@@ -766,6 +769,10 @@ function renderFeaturedThemeCard(theme) {
       >
         <span class="theme-feature__badge">${escapeHTML(theme.badge)}</span>
         <span class="theme-feature__status">当前使用</span>
+        <span class="theme-feature__sticker">${escapeHTML(theme.sticker)}</span>
+        <span class="theme-feature__charm">${escapeHTML(theme.charm)}</span>
+        <span class="theme-feature__spark theme-feature__spark--a"></span>
+        <span class="theme-feature__spark theme-feature__spark--b"></span>
       </div>
       <div class="theme-feature__body">
         <div class="theme-feature__head">
