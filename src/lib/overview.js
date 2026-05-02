@@ -22,7 +22,7 @@ export function renderOverviewDeck({
           eyebrow: "FOCUS",
           title: "最近收藏",
           meta: `<span class="section-count">${spotlightSites.length}</span>`,
-          summary: "保留最新收藏的6个站点。<br>优先放常用入口，<br>减少重复查找。",
+          summary: "",
           body: `<div class="overview-link-list overview-link-list--primary">
             ${spotlightSlots.map((site) => (site ? renderOverviewSiteLink(site, escapeHTML) : renderOverviewPlaceholder())).join("")}
           </div>`,
@@ -35,9 +35,9 @@ export function renderOverviewDeck({
           eyebrow: "FLOW",
           title: "最近访问",
           meta: `<span class="section-count">${recentSites.length}</span>`,
-          summary: "刚用过的入口会临时聚成一条工作链，不用回忆，也不用重新搜索。",
+          summary: "",
           body: `<div class="overview-link-list overview-link-list--stacked">
-            ${recentSites.length > 0 ? recentSites.map((site) => renderOverviewSiteLink(site, escapeHTML, true)).join("") : '<div class="overview-empty">打开几个站点后，这里会自动形成当前任务的短期工作台。</div>'}
+            ${recentSites.length > 0 ? recentSites.map((site) => renderOverviewSiteLink(site, escapeHTML, true)).join("") : '<div class="overview-empty">暂无记录。</div>'}
           </div>`,
           collapsed: Boolean(collapsed),
           escapeHTML,
@@ -49,7 +49,7 @@ export function renderOverviewDeck({
         eyebrow: "WRITING",
         title: "最新文章",
         meta: '<button type="button" class="inline-reset" data-action="set-section" data-value="blog-list">去博客</button>',
-        summary: "导航和内容放在同一站内，入口之外还能顺手记录方法、问题和维护经验。",
+        summary: "",
         body: `<div class="overview-post-list">
           ${latestPosts.map((post) => renderOverviewPost(post, escapeHTML, formatShortDate, getPostHref)).join("")}
         </div>`,
@@ -94,7 +94,7 @@ function renderOverviewCard({ cardId, eyebrow, title, meta, summary, body, colla
         collapsed
           ? ""
           : `
-            <p class="overview-card__summary">${summary}</p>
+            ${summary ? `<p class="overview-card__summary">${summary}</p>` : ""}
             ${body}
           `
       }
@@ -128,7 +128,7 @@ function renderOverviewPlaceholder(compact = false) {
 
 function renderOverviewPost(post, escapeHTML, formatShortDate, getPostHref) {
   return `
-    <a class="overview-post" href="${escapeHTML(getPostHref(post.id))}">
+    <a class="overview-post" href="${escapeHTML(getPostHref(post.id))}" data-route-kind="post" data-post-id="${escapeHTML(post.id)}">
       <span class="overview-post__date">${formatShortDate(post.publishedAt)}</span>
       <strong>${escapeHTML(post.title)}</strong>
       <span>${escapeHTML(post.summary)}</span>
