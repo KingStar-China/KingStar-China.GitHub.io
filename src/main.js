@@ -1513,8 +1513,7 @@ function renderSiteCard(site) {
         </div>
         <h3>${escapeHTML(site.name)}</h3>
         <div class="site-card__description">
-          <p>${description}</p>
-          <div class="site-card__tooltip" aria-hidden="true">${description}</div>
+          <p title="${description}">${description}</p>
         </div>
         <div class="tag-list">
           ${site.tags.map((tag) => `<span class="tag">${escapeHTML(tag)}</span>`).join("")}
