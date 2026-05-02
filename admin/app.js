@@ -538,6 +538,7 @@ function renderPostEditor(post) {
           <input id="post-id" data-field="id" value="${escapeAttr(post.id)}">
           <button type="button" class="mini-button" data-action="generate-id">生成</button>
         </div>
+        <span class="helper">文章 ID 使用生成时的本地时间，格式为 YYYYMMDDHHMMSS。</span>
       </div>
       <div class="field">
         <label for="post-date">发布日期</label>
@@ -1179,7 +1180,7 @@ function createItem() {
   if (state.section === "posts") {
     const today = new Date().toISOString().slice(0, 10);
     const post = {
-      id: `post-${Date.now()}` ,
+      id: createUniquePostTimestampId(),
       title: "",
       summary: "",
       publishedAt: today,
@@ -1243,11 +1244,43 @@ function generateId() {
     return;
   }
 
+  if (state.section === "posts") {
+    item.id = createUniquePostTimestampId(item.id);
+    state.dirty.posts = true;
+    setStatus("info", "已按当前时间生成文章 ID。", false);
+    return;
+  }
+
   const source = state.section === "sites" ? item.name : state.section === "posts" ? item.title : item.label;
-  const slug = state.section === "posts" ? slugifyPostId(source) : slugify(source);
-  item.id = slug || `${state.section === "sites" ? "site" : state.section === "posts" ? "post" : "engine"}-${Date.now()}`;
+  const slug = slugify(source);
+  item.id = slug || `${state.section === "sites" ? "site" : "engine"}-${Date.now()}`;
   state.dirty[state.section] = true;
   setStatus("info", "已根据当前标题生成 ID。", false);
+}
+
+function formatTimestampId(date = new Date()) {
+  const year = String(date.getFullYear());
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${year}${month}${day}${hours}${minutes}${seconds}`;
+}
+
+function createUniquePostTimestampId(excludeId = "") {
+  const usedIds = new Set(state.posts.map((post) => post.id).filter((id) => id && id !== excludeId));
+  const baseDate = new Date();
+
+  for (let offsetSeconds = 0; offsetSeconds < 120; offsetSeconds += 1) {
+    const candidateDate = new Date(baseDate.getTime() + offsetSeconds * 1000);
+    const candidateId = formatTimestampId(candidateDate);
+    if (!usedIds.has(candidateId)) {
+      return candidateId;
+    }
+  }
+
+  return `${formatTimestampId(baseDate)}${String(Math.floor(Math.random() * 10))}`;
 }
 
 async function saveSection() {
@@ -1535,9 +1568,8 @@ async function importPostMarkdown() {
     importedFields.push("标签");
   }
 
-  const importedId = slugifyPostId(imported.fileBaseName);
-  if (importedId && (!post.id || /^post-\d+$/.test(post.id))) {
-    post.id = importedId;
+  if (!post.id || /^post-\d+$/.test(post.id)) {
+    post.id = createUniquePostTimestampId(post.id);
     importedFields.push("ID");
   }
 
@@ -1993,16 +2025,6 @@ function slugify(value) {
     .replace(/-+/g, "-");
 
   return slug;
-}
-
-function slugifyPostId(value) {
-  return String(value || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "");
 }
 
 function compareText(left, right) {
