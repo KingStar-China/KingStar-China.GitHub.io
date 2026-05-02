@@ -972,6 +972,8 @@ function renderToolbar() {
 }
 
 function renderNavToolbar() {
+  const activeState = renderActiveState();
+
   return `
     <div class="toolbar-shell toolbar-shell--nav">
       <div class="toolbar__heading toolbar__heading--compact">
@@ -1001,9 +1003,7 @@ function renderNavToolbar() {
       ${renderNavFilterRows()}
     </div>
 
-    <div class="toolbar__footer">
-      <div class="active-state" data-role="nav-active-state">${renderActiveState()}</div>
-    </div>
+    ${activeState ? `<div class="toolbar__footer"><div class="active-state" data-role="nav-active-state">${activeState}</div></div>` : ""}
   `;
 }
 function renderNavFilterRows() {
