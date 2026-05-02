@@ -728,13 +728,14 @@ function renderBlogStats() {
 
 function renderThemePalette() {
   return themes
+    .filter((theme) => theme.id !== state.themePreset)
     .map((theme) => `
       <button
         type="button"
-        class="theme-card ${state.themePreset === theme.id ? "is-active" : ""}"
+        class="theme-card"
         data-action="set-theme-preset"
         data-value="${escapeHTML(theme.id)}"
-        aria-pressed="${state.themePreset === theme.id ? "true" : "false"}"
+        aria-pressed="false"
       >
         <span
           class="theme-card__preview"
@@ -742,7 +743,6 @@ function renderThemePalette() {
           aria-hidden="true"
         >
           <span class="theme-card__badge">${escapeHTML(theme.badge)}</span>
-          ${state.themePreset === theme.id ? '<span class="theme-card__status">正在使用</span>' : ""}
         </span>
         <span class="theme-card__body">
           <span class="theme-card__title-row">
@@ -756,9 +756,40 @@ function renderThemePalette() {
     .join("");
 }
 
+function renderFeaturedThemeCard(theme) {
+  return `
+    <article class="theme-feature">
+      <div
+        class="theme-feature__preview"
+        style="--theme-card-preview: ${escapeHTML(theme.preview)}; --theme-card-glow: ${escapeHTML(theme.previewGlow)};"
+        aria-hidden="true"
+      >
+        <span class="theme-feature__badge">${escapeHTML(theme.badge)}</span>
+        <span class="theme-feature__status">当前使用</span>
+      </div>
+      <div class="theme-feature__body">
+        <div class="theme-feature__head">
+          <div>
+            <p class="theme-feature__eyebrow">精选主题</p>
+            <h3>${escapeHTML(theme.label)}</h3>
+          </div>
+          <span class="theme-feature__mood">${escapeHTML(theme.mood)}</span>
+        </div>
+        <p class="theme-feature__summary">${escapeHTML(theme.summary)}</p>
+        <div class="theme-feature__meta">
+          <span>支持浅色 / 深色底</span>
+          <span>即时切换</span>
+          <span>首页头图联动</span>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
 function renderThemeShelf() {
   const preset = getThemePreset();
   const [swatchStart = "#98d5d2", swatchEnd = "#ddeff6"] = preset.swatch || [];
+  const otherThemesCount = Math.max(0, themes.length - 1);
 
   return `
     <button
@@ -791,7 +822,16 @@ function renderThemeShelf() {
         </div>
         <button class="theme-toggle" type="button" data-action="toggle-theme" data-role="theme-toggle"></button>
       </div>
-      <div class="theme-palette">${renderThemePalette()}</div>
+      ${renderFeaturedThemeCard(preset)}
+      ${otherThemesCount > 0 ? `
+        <div class="theme-palette-shell">
+          <div class="theme-palette__head">
+            <strong>更多皮肤</strong>
+            <span>${otherThemesCount} 套可切换</span>
+          </div>
+          <div class="theme-palette">${renderThemePalette()}</div>
+        </div>
+      ` : ""}
     </div>
   `;
 }
