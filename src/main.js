@@ -134,6 +134,7 @@ const root = document.querySelector("#app");
 const refs = {};
 let commandFocusRetryId = 0;
 let siteDescriptionTitleSyncId = 0;
+let siteDescriptionTitleTimeoutId = 0;
 
 init();
 
@@ -161,6 +162,13 @@ function init() {
   window.addEventListener("hashchange", handlePopState);
   window.addEventListener("scroll", handleScroll, { passive: true });
   window.addEventListener("resize", queueSiteDescriptionTitleSync);
+  window.addEventListener("load", queueSiteDescriptionTitleSync);
+
+  if (document.fonts?.ready) {
+    document.fonts.ready.then(() => {
+      queueSiteDescriptionTitleSync();
+    });
+  }
 
   hydrateFromLocation();
   syncTheme(state.theme);
@@ -605,11 +613,19 @@ function queueSiteDescriptionTitleSync() {
   if (siteDescriptionTitleSyncId) {
     window.cancelAnimationFrame(siteDescriptionTitleSyncId);
   }
+  if (siteDescriptionTitleTimeoutId) {
+    window.clearTimeout(siteDescriptionTitleTimeoutId);
+  }
 
   siteDescriptionTitleSyncId = window.requestAnimationFrame(() => {
     siteDescriptionTitleSyncId = 0;
     syncSiteDescriptionTitles();
   });
+
+  siteDescriptionTitleTimeoutId = window.setTimeout(() => {
+    siteDescriptionTitleTimeoutId = 0;
+    syncSiteDescriptionTitles();
+  }, 180);
 }
 
 function syncSiteDescriptionTitles() {
