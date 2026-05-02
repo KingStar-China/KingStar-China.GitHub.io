@@ -1052,6 +1052,11 @@ function renderNavSearchState() {
     activeState.innerHTML = renderActiveState();
   }
   refs.content.innerHTML = renderNavContent();
+  refs.workbenchTodoInput = refs.content.querySelector('[data-role="workbench-todo-input"]');
+  if (refs.workbenchTodoInput) {
+    refs.workbenchTodoInput.value = state.workbenchTodoDraft;
+  }
+  queueSiteDescriptionTitleSync();
   syncRoute();
   updateSeo();
 }
