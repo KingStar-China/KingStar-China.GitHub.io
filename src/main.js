@@ -542,7 +542,7 @@ function render() {
   refs.themeToggle.textContent = state.theme === "dark" ? "切换到浅色" : "切换到深色";
   refs.sectionTabs.innerHTML = renderSectionTabs();
   refs.summary.textContent = buildSummary();
-  refs.heroSearch.innerHTML = state.section === "nav" ? renderHeroSearch() : "";
+  refs.heroSearch.innerHTML = state.section === "nav" || state.section === "blog-list" ? renderHeroSearch() : "";
   refs.stats.innerHTML = state.section === "nav" ? renderNavStats() : renderBlogStats();
   refs.toolbar.innerHTML = renderToolbar();
   refs.content.innerHTML = renderContent();
