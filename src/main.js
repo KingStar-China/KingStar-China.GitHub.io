@@ -44,7 +44,6 @@ import { renderOverviewDeck as renderOverviewSection } from "./lib/overview.js";
 const STORAGE_KEYS = {
   theme: "nav-tool.theme",
   themePreset: "nav-tool.themePreset",
-  themeShelfExpanded: "nav-tool.themeShelfExpanded",
   favorites: "nav-tool.favorites",
   recent: "nav-tool.recent",
   workbenchNote: "nav-tool.workbench.note",
@@ -111,7 +110,7 @@ const state = {
   recent: loadIdList(STORAGE_KEYS.recent),
   theme: document.documentElement.dataset.theme || "dark",
   themePreset: getThemePresetId(loadStoredText(STORAGE_KEYS.themePreset)),
-  themeShelfExpanded: loadThemeShelfExpandedState(),
+  themeShelfExpanded: false,
   workbenchNote: loadStoredText(STORAGE_KEYS.workbenchNote),
   workbenchTodos: loadTodoList(STORAGE_KEYS.workbenchTodos),
   workbenchTodoDraft: "",
@@ -2351,7 +2350,6 @@ function syncThemePreset(themePreset) {
 
 function syncThemeShelfExpanded(expanded) {
   state.themeShelfExpanded = Boolean(expanded);
-  localStorage.setItem(STORAGE_KEYS.themeShelfExpanded, JSON.stringify(state.themeShelfExpanded));
 }
 
 function applyThemePreset() {
@@ -2716,15 +2714,6 @@ function loadOverviewCollapsedState() {
     return typeof parsed === "boolean" ? parsed : true;
   } catch {
     return true;
-  }
-}
-
-function loadThemeShelfExpandedState() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEYS.themeShelfExpanded) || "false");
-    return typeof parsed === "boolean" ? parsed : false;
-  } catch {
-    return false;
   }
 }
 
