@@ -44,6 +44,7 @@ import { renderOverviewDeck as renderOverviewSection } from "./lib/overview.js";
 const STORAGE_KEYS = {
   theme: "nav-tool.theme",
   themePreset: "nav-tool.themePreset",
+  themeShelfExpanded: "nav-tool.themeShelfExpanded",
   favorites: "nav-tool.favorites",
   recent: "nav-tool.recent",
   workbenchNote: "nav-tool.workbench.note",
@@ -110,6 +111,7 @@ const state = {
   recent: loadIdList(STORAGE_KEYS.recent),
   theme: document.documentElement.dataset.theme || "dark",
   themePreset: getThemePresetId(loadStoredText(STORAGE_KEYS.themePreset)),
+  themeShelfExpanded: loadThemeShelfExpandedState(),
   workbenchNote: loadStoredText(STORAGE_KEYS.workbenchNote),
   workbenchTodos: loadTodoList(STORAGE_KEYS.workbenchTodos),
   workbenchTodoDraft: "",
@@ -144,9 +146,7 @@ function init() {
   root.innerHTML = createShell();
 
   refs.sectionTabs = root.querySelector('[data-role="section-tabs"]');
-  refs.themeToggle = root.querySelector('[data-role="theme-toggle"]');
-  refs.themePalette = root.querySelector('[data-role="theme-palette"]');
-  refs.themeSummary = root.querySelector('[data-role="theme-summary"]');
+  refs.themeShelf = root.querySelector('[data-role="theme-shelf"]');
   refs.summary = root.querySelector('[data-role="summary"]');
   refs.heroSearch = root.querySelector('[data-role="hero-search"]');
   refs.stats = root.querySelector('[data-role="stats"]');
@@ -187,17 +187,7 @@ function createShell() {
           <div class="hero__search" data-role="hero-search"></div>
         </div>
         <div class="hero__aside">
-          <div class="theme-shelf">
-            <div class="theme-shelf__head">
-              <div class="theme-shelf__title">
-                <span>空间皮肤</span>
-                <strong>首页换肤</strong>
-              </div>
-              <button class="theme-toggle" type="button" data-action="toggle-theme" data-role="theme-toggle"></button>
-            </div>
-            <div class="theme-palette" data-role="theme-palette"></div>
-            <p class="theme-shelf__summary" data-role="theme-summary"></p>
-          </div>
+          <div class="theme-shelf" data-role="theme-shelf"></div>
           <div class="stats-grid" data-role="stats"></div>
         </div>
       </header>
@@ -327,6 +317,12 @@ function handleClick(event) {
 
     if (action === "toggle-theme") {
       syncTheme(state.theme === "dark" ? "light" : "dark");
+      render();
+      return;
+    }
+
+    if (action === "toggle-theme-shelf") {
+      syncThemeShelfExpanded(!state.themeShelfExpanded);
       render();
       return;
     }
@@ -561,9 +557,10 @@ function handleKeydown(event) {
 function render() {
   state.blogPage = clampPage(state.blogPage);
   root.querySelector(".app-shell")?.classList.toggle("is-article-view", state.section === "blog-detail");
+  refs.themeShelf.classList.toggle("is-expanded", state.themeShelfExpanded);
+  refs.themeShelf.innerHTML = renderThemeShelf();
+  refs.themeToggle = refs.themeShelf.querySelector('[data-role="theme-toggle"]');
   refs.themeToggle.textContent = state.theme === "dark" ? "浅色底" : "深色底";
-  refs.themePalette.innerHTML = renderThemePalette();
-  refs.themeSummary.textContent = getThemePreset().summary;
   refs.sectionTabs.innerHTML = renderSectionTabs();
   refs.summary.textContent = buildSummary();
   refs.heroSearch.innerHTML = state.section === "nav" || state.section === "blog-list" ? renderHeroSearch() : "";
@@ -749,6 +746,43 @@ function renderThemePalette() {
       </button>
     `)
     .join("");
+}
+
+function renderThemeShelf() {
+  const preset = getThemePreset();
+  const [swatchStart = "#98d5d2", swatchEnd = "#ddeff6"] = preset.swatch || [];
+
+  return `
+    <button
+      type="button"
+      class="theme-shelf__trigger"
+      data-action="toggle-theme-shelf"
+      aria-expanded="${state.themeShelfExpanded ? "true" : "false"}"
+    >
+      <div class="theme-shelf__title">
+        <span>空间皮肤</span>
+        <strong>首页换肤</strong>
+      </div>
+      <div class="theme-shelf__meta">
+        <span class="theme-shelf__current">
+          <span
+            class="theme-shelf__swatch"
+            style="--swatch-start: ${escapeHTML(swatchStart)}; --swatch-end: ${escapeHTML(swatchEnd)};"
+            aria-hidden="true"
+          ></span>
+          ${escapeHTML(preset.label)}
+        </span>
+        <span class="theme-shelf__caret" aria-hidden="true"></span>
+      </div>
+    </button>
+    <div class="theme-shelf__body" ${state.themeShelfExpanded ? "" : "hidden"}>
+      <div class="theme-shelf__toolbar">
+        <p class="theme-shelf__summary">${escapeHTML(preset.summary)}</p>
+        <button class="theme-toggle" type="button" data-action="toggle-theme" data-role="theme-toggle"></button>
+      </div>
+      <div class="theme-palette">${renderThemePalette()}</div>
+    </div>
+  `;
 }
 
 function renderHeroSearch() {
@@ -2315,6 +2349,11 @@ function syncThemePreset(themePreset) {
   applyThemePreset();
 }
 
+function syncThemeShelfExpanded(expanded) {
+  state.themeShelfExpanded = Boolean(expanded);
+  localStorage.setItem(STORAGE_KEYS.themeShelfExpanded, JSON.stringify(state.themeShelfExpanded));
+}
+
 function applyThemePreset() {
   const preset = getThemePreset();
   const vars = preset?.vars?.[state.theme] || preset?.vars?.dark || {};
@@ -2677,6 +2716,15 @@ function loadOverviewCollapsedState() {
     return typeof parsed === "boolean" ? parsed : true;
   } catch {
     return true;
+  }
+}
+
+function loadThemeShelfExpandedState() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEYS.themeShelfExpanded) || "false");
+    return typeof parsed === "boolean" ? parsed : false;
+  } catch {
+    return false;
   }
 }
 
