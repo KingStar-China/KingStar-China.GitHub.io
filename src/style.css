@@ -1889,14 +1889,6 @@ a {
   line-height: 1.12;
 }
 
-.article__lede {
-  margin: 0;
-  max-width: 62ch;
-  color: var(--muted);
-  font-size: 1.02rem;
-  line-height: 1.82;
-}
-
 .article__meta {
   display: flex;
   flex-wrap: wrap;
@@ -2497,11 +2489,6 @@ a {
 
   .article__header h2 {
     font-size: 1.7rem;
-  }
-
-  .article__lede {
-    font-size: 0.96rem;
-    line-height: 1.74;
   }
 
   .article__body {
