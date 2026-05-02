@@ -966,42 +966,32 @@ function renderToolbar() {
 
 function renderNavToolbar() {
   return `
-    <div class="toolbar-shell">
+    <div class="toolbar-shell toolbar-shell--nav">
       <div class="toolbar__heading toolbar__heading--compact">
         <span class="field-label">NAV TOOLKIT</span>
         <h2>导航工具台</h2>
+        <p>先缩小范围，再进入站点。把常用工具入口、分类和标签压到同一工作面板。</p>
       </div>
-
-      <div class="toolbar__tools">
-        <label class="search-field">
-          <span class="field-label">即时搜索</span>
-          <input
-            data-role="search"
-            type="search"
-            inputmode="search"
-            autocomplete="off"
+      <div class="toolbar__workspace">
+        <section class="toolbar-panel toolbar-panel--search">
+          <div class="toolbar-panel__head">
+            <span class="field-label">即时搜索</span>
+            <small>按站点名、描述、标签过滤</small>
+          </div>
+          <label class="search-field">
+            <input
+              data-role="search"
+              type="search"
+              inputmode="search"
+              autocomplete="off"
               spellcheck="false"
-            placeholder="搜站点名、标签、描述，例如 GPT / 文档 / 视频"
-          >
-        </label>
-
-      </div>
-    </div>
-
-    <div class="filter-stack" data-role="nav-filters">
-      <div class="filter-row">
-        <span class="filter-label">视图</span>
-        <div class="chip-group">${renderViewFilters()}</div>
-      </div>
-
-      <div class="filter-row">
-        <span class="filter-label">分类</span>
-        <div class="chip-group">${renderCategoryFilters()}</div>
-      </div>
-
-      <div class="filter-row">
-        <span class="filter-label">标签</span>
-        <div class="chip-group chip-group--dense">${renderTagFilters()}</div>
+              placeholder="搜站点名、标签、描述，例如 GPT / 文档 / 视频"
+            >
+          </label>
+        </section>
+        <div class="toolbar-panel toolbar-panel--filters filter-stack" data-role="nav-filters">
+          ${renderNavFilterRows()}
+        </div>
       </div>
     </div>
 
@@ -1012,20 +1002,29 @@ function renderNavToolbar() {
 }
 function renderNavFilterRows() {
   return `
-    <div class="filter-row">
-      <span class="filter-label">视图</span>
+    <section class="filter-panel filter-row">
+      <div class="filter-panel__head">
+        <span class="filter-label">视图</span>
+        <small>全部 / 收藏 / 最近访问</small>
+      </div>
       <div class="chip-group">${renderViewFilters()}</div>
-    </div>
+    </section>
 
-    <div class="filter-row">
-      <span class="filter-label">分类</span>
+    <section class="filter-panel filter-row">
+      <div class="filter-panel__head">
+        <span class="filter-label">分类</span>
+        <small>按工具区域收束结果</small>
+      </div>
       <div class="chip-group">${renderCategoryFilters()}</div>
-    </div>
+    </section>
 
-    <div class="filter-row">
-      <span class="filter-label">标签</span>
+    <section class="filter-panel filter-row">
+      <div class="filter-panel__head">
+        <span class="filter-label">标签</span>
+        <small>适合跨分类交叉筛选</small>
+      </div>
       <div class="chip-group chip-group--dense">${renderTagFilters()}</div>
-    </div>
+    </section>
   `;
 }
 
@@ -1084,24 +1083,33 @@ function renderBlogToolbar() {
         <div class="toolbar__heading">
           <span class="field-label">BLOG</span>
           <h2>博客搜索与分页</h2>
+          <p>像内容工作台一样浏览文章。先搜关键词，再按标签和分页收束阅读范围。</p>
         </div>
-        <div class="toolbar__tools">
-          <label class="search-field search-field--blog">
-            <span class="field-label">搜索文章</span>
-            <input
-              data-role="blog-search"
-              type="search"
-              inputmode="search"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="搜标题、摘要、正文、标签，例如 Cloudflare / GitHub Pages / 工作流"
-            >
-          </label>
+        <div class="toolbar__workspace toolbar__workspace--blog">
+          <section class="toolbar-panel toolbar-panel--search">
+            <div class="toolbar-panel__head">
+              <span class="field-label">搜索文章</span>
+              <small>标题、摘要、正文、标签统一检索</small>
+            </div>
+            <label class="search-field search-field--blog">
+              <input
+                data-role="blog-search"
+                type="search"
+                inputmode="search"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="搜标题、摘要、正文、标签，例如 Cloudflare / GitHub Pages / 工作流"
+              >
+            </label>
+          </section>
+          <section class="toolbar-panel toolbar-panel--filters filter-row">
+            <div class="filter-panel__head">
+              <span class="filter-label">博客标签</span>
+              <small>按主题收束当前页内容</small>
+            </div>
+            <div class="chip-group chip-group--dense">${renderBlogTagFilters()}</div>
+          </section>
         </div>
-      </div>
-      <div class="filter-row">
-        <span class="filter-label">博客标签</span>
-        <div class="chip-group chip-group--dense">${renderBlogTagFilters()}</div>
       </div>
       <div class="toolbar__footer">
         <div class="active-state">
@@ -1359,8 +1367,10 @@ function renderBlogCard(post) {
     <article class="panel blog-card">
       <div class="blog-card__meta">
         <span class="blog-card__date">${formatDate(post.publishedAt)}</span>
+        <span class="blog-card__reading">${formatPostReadingTime(post)}</span>
       </div>
       <div class="blog-card__body">
+        <span class="blog-card__kicker">文章</span>
         <h3>${escapeHTML(post.title)}</h3>
         <p>${escapeHTML(post.summary)}</p>
         <div class="tag-list">
@@ -1546,6 +1556,7 @@ function renderBlogDetail() {
 function renderSiteCard(site) {
   const isFavorite = state.favorites.has(site.id);
   const iconMarkup = renderIcon(site);
+  const host = getHost(site.url);
 
   return `
     <article class="panel site-card">
@@ -1564,6 +1575,7 @@ function renderSiteCard(site) {
       <div class="site-card__body">
         <div class="site-card__meta">
           <span class="site-card__category">${escapeHTML(site.category)}</span>
+          <span class="site-card__host">${escapeHTML(host)}</span>
         </div>
         <h3>${escapeHTML(site.name)}</h3>
         <p>${escapeHTML(site.description)}</p>
