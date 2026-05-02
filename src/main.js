@@ -65,6 +65,7 @@ const searchEngines = rawSearchEngines
   .sort((left, right) => left.priority - right.priority || left.label.localeCompare(right.label, "zh-CN"));
 
 const defaultSearchEngine = searchEngines[0]?.id || "baidu";
+const DEFAULT_THEME_PRESET = "aurora";
 
 const POSTS_PER_PAGE = 5;
 const COMMAND_RESULT_LIMIT = 8;
@@ -1931,11 +1932,11 @@ function getPostPageSource(postId) {
 }
 
 function getThemePresetId(value) {
-  return themeMap.has(value) ? value : themes[0]?.id || "mist";
+  return themeMap.has(value) ? value : DEFAULT_THEME_PRESET;
 }
 
 function getThemePreset() {
-  return themeMap.get(getThemePresetId(state.themePreset)) || themes[0];
+  return themeMap.get(getThemePresetId(state.themePreset)) || themeMap.get(DEFAULT_THEME_PRESET) || themes[0];
 }
 
 function getThemeShelfThemes() {
