@@ -6,7 +6,6 @@ import { themes } from "./data/themes.js";
 import { getPostSearchScore, getSiteSearchScore, matchesPostQuery, matchesSiteQuery } from "./lib/search.js";
 import { formatPostReadingTime, getAdjacentPosts, getRelatedPosts } from "./lib/blog.js";
 import { getCommandSections as getCommandSectionsState, getFlatCommandResults as getFlatCommandResultsState, runCommandResult as executeCommandResult, openCommandPalette as openCommandPaletteState, closeCommandPalette as closeCommandPaletteState } from "./lib/command-palette.js";
-import { renderOverviewDeck as renderOverviewSection } from "./lib/overview.js";
 
 /**
  * @typedef {Object} SiteItem
@@ -49,7 +48,6 @@ const STORAGE_KEYS = {
   workbenchNote: "nav-tool.workbench.note",
   workbenchTodos: "nav-tool.workbench.todos",
   searchEngine: "nav-tool.search.engine",
-  overviewCollapsed: "nav-tool.overview.collapsed",
 };
 
 const searchEngines = rawSearchEngines
@@ -129,7 +127,6 @@ const state = {
   commandIndex: 0,
   nextRouteMode: "replace",
   activeHeadingId: "",
-  overviewCollapsed: loadOverviewCollapsedState(),
   pendingScrollTop: false,
 };
 
@@ -360,24 +357,6 @@ function handleClick(event) {
       return;
     }
 
-    if (action === "toggle-overview-card" && value) {
-      state.overviewCollapsed = !state.overviewCollapsed;
-      localStorage.setItem(STORAGE_KEYS.overviewCollapsed, JSON.stringify(state.overviewCollapsed));
-      render();
-      return;
-    }
-
-    if (action === "jump-category" && value) {
-      const target = Array.from(refs.content.querySelectorAll("[data-category-anchor]"))
-        .find((element) => element.dataset.categoryAnchor === value);
-      target?.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
-    }
-
-    if (action === "jump-workbench") {
-      refs.content.querySelector('[data-section-anchor="workbench"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
-    }
     if (action === "set-view") {
       state.view = value;
       render();
@@ -1226,55 +1205,6 @@ function renderWorkbench() {
     </section>
   `;
 }
-function renderOverviewDeck(visibleSites) {
-  void visibleSites;
-  return renderOverviewSection({
-    favorites: state.favorites,
-    recent: state.recent,
-    posts,
-    siteMap,
-    escapeHTML,
-    formatShortDate,
-    getPostHref,
-    collapsed: state.overviewCollapsed,
-  });
-}
-function renderSectionRail(groups) {
-  const pendingCount = state.workbenchTodos.filter((item) => !item.done).length;
-
-  return `
-    <section class="panel section-rail">
-      <div class="section-rail__head">
-        <div>
-          <p class="section-head__eyebrow">CATEGORIES</p>
-          <h2>网站分类</h2>
-        </div>
-      </div>
-      <div class="section-rail__chips">
-        ${groups
-          .map(
-            (group) => `
-              <button
-                type="button"
-                class="section-jump"
-                data-action="jump-category"
-                data-value="${escapeHTML(group.title)}"
-              >
-                <strong>${escapeHTML(group.title)}</strong>
-                <small>${group.sites.length} 个</small>
-              </button>
-            `,
-          )
-          .join("")}
-        <button type="button" class="section-jump section-jump--secondary" data-action="jump-workbench">
-          <strong>工作台</strong>
-          <small>${pendingCount > 0 ? `${pendingCount} 件待办` : "个人层"}</small>
-        </button>
-      </div>
-    </section>
-  `;
-}
-
 function renderWorkbenchSection() {
   const pendingCount = state.workbenchTodos.filter((item) => !item.done).length;
 
@@ -1295,12 +1225,10 @@ function renderWorkbenchSection() {
 function renderNavContent() {
   const visibleSites = getVisibleSites();
   const groups = getGroupedSites(visibleSites);
-  const overview = renderOverviewDeck(visibleSites);
-  const sectionRail = groups.length > 1 ? renderSectionRail(groups) : "";
   const workbench = renderWorkbenchSection();
 
   if (visibleSites.length === 0) {
-    return `${overview}
+    return `
       <section class="panel empty-state">
         <h2>没有匹配结果</h2>
         <p>${escapeHTML(getEmptyMessage())}</p>
@@ -1329,7 +1257,7 @@ function renderNavContent() {
     )
     .join("");
 
-  return `${overview}${sectionRail}${groupsMarkup}${workbench}`;
+  return `${groupsMarkup}${workbench}`;
 }
 function renderBlogList() {
   if (posts.length === 0) {
@@ -2882,15 +2810,6 @@ function setAlternateFeed() {
 }
 function loadStoredText(key) {
   return String(localStorage.getItem(key) || "");
-}
-
-function loadOverviewCollapsedState() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEYS.overviewCollapsed) || "true");
-    return typeof parsed === "boolean" ? parsed : true;
-  } catch {
-    return true;
-  }
 }
 
 function scrollPageTop() {
