@@ -46,7 +46,7 @@ export function runCommandResult(result, deps) {
     return;
   }
 
-  const { siteMap, trackRecent, closeCommandPalette, render, openPost, resetNavFilters, state } = deps;
+  const { siteMap, trackRecent, closeCommandPalette, render, resetNavFilters, state, getPostHref } = deps;
 
   if (result.kind === "site") {
     const site = siteMap.get(result.id);
@@ -70,9 +70,12 @@ export function runCommandResult(result, deps) {
   }
 
   if (result.kind === "post") {
-    openPost(result.id);
     closeCommandPalette();
-    render();
+    const postHref = typeof getPostHref === "function" ? getPostHref(result.id) : "";
+    if (!postHref) {
+      return;
+    }
+    window.location.assign(new URL(postHref, window.location.href).toString());
     return;
   }
 
