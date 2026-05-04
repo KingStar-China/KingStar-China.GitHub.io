@@ -1,7 +1,7 @@
 export const themes = [
   {
     id: "mist",
-    label: "雾青",
+    label: "雾灰",
     badge: "经典",
     mood: "冷色玻璃",
     sticker: "雾面贴纸",
@@ -12,6 +12,7 @@ export const themes = [
     previewGlow: "radial-gradient(circle at 22% 24%, rgba(255, 255, 255, 0.68), transparent 28%), radial-gradient(circle at 76% 80%, rgba(73, 162, 167, 0.34), transparent 34%)",
     vars: {
       light: {
+        "--site-bg-image": 'url("/backgrounds/雾灰.webp")',
         "--theme-bg-left": "rgba(118, 147, 170, 0.12)",
         "--theme-bg-right": "rgba(170, 191, 205, 0.1)",
         "--theme-bg-overlay": "rgba(255, 255, 255, 0.42)",
@@ -33,6 +34,7 @@ export const themes = [
         "--theme-accent-glow": "rgba(81, 170, 176, 0.22)",
       },
       dark: {
+        "--site-bg-image": 'url("/backgrounds/雾灰.webp")',
         "--theme-bg-left": "rgba(41, 93, 105, 0.2)",
         "--theme-bg-right": "rgba(170, 191, 205, 0.08)",
         "--theme-bg-overlay": "rgba(255, 255, 255, 0.04)",
@@ -68,6 +70,7 @@ export const themes = [
     previewGlow: "radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.74), transparent 26%), radial-gradient(circle at 82% 74%, rgba(68, 235, 198, 0.38), transparent 32%)",
     vars: {
       light: {
+        "--site-bg-image": 'url("/backgrounds/雾灰.webp")',
         "--theme-bg-left": "rgba(83, 194, 255, 0.16)",
         "--theme-bg-right": "rgba(125, 247, 204, 0.14)",
         "--theme-bg-overlay": "rgba(255, 255, 255, 0.36)",
@@ -89,6 +92,7 @@ export const themes = [
         "--theme-accent-glow": "rgba(74, 215, 229, 0.3)",
       },
       dark: {
+        "--site-bg-image": 'url("/backgrounds/雾灰.webp")',
         "--theme-bg-left": "rgba(18, 136, 186, 0.28)",
         "--theme-bg-right": "rgba(18, 181, 136, 0.22)",
         "--theme-bg-overlay": "rgba(203, 255, 245, 0.06)",
@@ -113,7 +117,7 @@ export const themes = [
   },
   {
     id: "blossom",
-    label: "樱雾",
+    label: "夜樱",
     badge: "甜系",
     mood: "粉雾暖光",
     sticker: "樱粉贴纸",
@@ -124,6 +128,7 @@ export const themes = [
     previewGlow: "radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.76), transparent 26%), radial-gradient(circle at 80% 78%, rgba(255, 182, 207, 0.34), transparent 32%)",
     vars: {
       light: {
+        "--site-bg-image": 'url("/backgrounds/夜樱.webp")',
         "--theme-bg-left": "rgba(255, 183, 207, 0.2)",
         "--theme-bg-right": "rgba(255, 220, 178, 0.18)",
         "--theme-bg-overlay": "rgba(255, 250, 246, 0.5)",
@@ -145,6 +150,7 @@ export const themes = [
         "--theme-accent-glow": "rgba(238, 143, 183, 0.28)",
       },
       dark: {
+        "--site-bg-image": 'url("/backgrounds/夜樱.webp")',
         "--theme-bg-left": "rgba(183, 71, 112, 0.28)",
         "--theme-bg-right": "rgba(167, 102, 45, 0.2)",
         "--theme-bg-overlay": "rgba(255, 229, 236, 0.05)",
@@ -180,6 +186,7 @@ export const themes = [
     previewGlow: "radial-gradient(circle at 18% 20%, rgba(255, 243, 232, 0.7), transparent 26%), radial-gradient(circle at 82% 78%, rgba(113, 125, 255, 0.32), transparent 32%)",
     vars: {
       light: {
+        "--site-bg-image": 'url("/backgrounds/夜樱.webp")',
         "--theme-bg-left": "rgba(255, 159, 104, 0.18)",
         "--theme-bg-right": "rgba(107, 123, 255, 0.14)",
         "--theme-bg-overlay": "rgba(255, 250, 245, 0.42)",
@@ -201,6 +208,7 @@ export const themes = [
         "--theme-accent-glow": "rgba(243, 136, 83, 0.28)",
       },
       dark: {
+        "--site-bg-image": 'url("/backgrounds/夜樱.webp")',
         "--theme-bg-left": "rgba(175, 84, 28, 0.3)",
         "--theme-bg-right": "rgba(74, 83, 188, 0.22)",
         "--theme-bg-overlay": "rgba(255, 232, 214, 0.05)",
