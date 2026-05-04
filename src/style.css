@@ -5044,5 +5044,17 @@ body.is-command-open {
     rgba(7, 16, 25, 0.28);
 }
 
+.category-block,
+.personal-layer {
+  background: transparent !important;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+[data-theme="dark"] .category-block,
+[data-theme="dark"] .personal-layer {
+  background: transparent !important;
+}
+
 
 
