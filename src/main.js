@@ -558,7 +558,9 @@ function render() {
   refs.themeShelf.classList.toggle("is-expanded", state.themeShelfExpanded);
   refs.themeShelf.innerHTML = renderThemeShelf();
   refs.themeToggle = refs.themeShelf.querySelector('[data-role="theme-toggle"]');
-  refs.themeToggle.textContent = state.theme === "dark" ? "浅色底" : "深色底";
+  if (refs.themeToggle) {
+    refs.themeToggle.textContent = state.theme === "dark" ? "浅色底" : "深色底";
+  }
   refs.sectionTabs.innerHTML = renderSectionTabs();
   refs.summary.textContent = buildSummary();
   refs.heroSearch.innerHTML = state.section === "nav" || state.section === "blog-list" ? renderHeroSearch() : "";
@@ -805,16 +807,19 @@ function renderThemeShowcase() {
         </div>
       </div>
       <div class="theme-spotlight">
-        <div
+        <button
+          type="button"
           class="theme-spotlight__preview"
+          data-action="set-theme-preset"
+          data-value="${escapeHTML(theme.id)}"
           style="--theme-card-preview: ${escapeHTML(theme.preview)}; --theme-card-glow: ${escapeHTML(theme.previewGlow)};"
-          aria-hidden="true"
+          aria-label="立即换成 ${escapeHTML(theme.label)}"
         >
           <span class="theme-card__badge">${escapeHTML(theme.badge)}</span>
           <span class="theme-card__sticker">${escapeHTML(theme.sticker)}</span>
           <span class="theme-card__spark theme-card__spark--a"></span>
           <span class="theme-card__spark theme-card__spark--b"></span>
-        </div>
+        </button>
         <div class="theme-spotlight__body">
           <div class="theme-spotlight__title">
             <div>
@@ -842,7 +847,6 @@ function renderThemeShowcase() {
 function renderThemeShelf() {
   const preset = getThemePreset();
   const [swatchStart = "#98d5d2", swatchEnd = "#ddeff6"] = preset.swatch || [];
-  const otherThemesCount = getThemeShelfThemes().length;
 
   return `
     <button
@@ -868,23 +872,7 @@ function renderThemeShelf() {
       </div>
     </button>
     <div class="theme-shelf__body" ${state.themeShelfExpanded ? "" : "hidden"}>
-      <div class="theme-shelf__toolbar">
-        <div class="theme-shelf__copy">
-          <span class="theme-shelf__badge">主题引擎 ${themes.length} 套</span>
-          <p class="theme-shelf__summary">当前启用 ${escapeHTML(preset.label)} · ${escapeHTML(preset.mood)}，点击卡片立即切换。</p>
-        </div>
-        <button class="theme-toggle" type="button" data-action="toggle-theme" data-role="theme-toggle"></button>
-      </div>
-      ${renderFeaturedThemeCard(preset)}
-      ${otherThemesCount > 0 ? `
-        <div class="theme-palette-shell">
-          <div class="theme-palette__head">
-            <strong>更多预设</strong>
-            <span>${otherThemesCount} 套可轮播预览</span>
-          </div>
-          ${renderThemeShowcase()}
-        </div>
-      ` : ""}
+      ${renderThemeShowcase()}
     </div>
   `;
 }
