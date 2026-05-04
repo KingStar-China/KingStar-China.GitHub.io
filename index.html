@@ -20,15 +20,18 @@
     <link rel="alternate" type="application/rss+xml" title="少昊导航 RSS" href="https://845864204.xyz/rss.xml">
     <title>少昊导航</title>
     <link rel="icon" href="./icon/openai.svg">
-    <link rel="stylesheet" href="./src/style.css">
     <script>
       (() => {
-        const key = "nav-tool.theme";
-        const stored = localStorage.getItem(key);
+        const themeKey = "nav-tool.theme";
+        const themePresetKey = "nav-tool.themePreset";
+        const stored = localStorage.getItem(themeKey);
+        const storedPreset = localStorage.getItem(themePresetKey);
         const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
         document.documentElement.dataset.theme = stored || (prefersDark ? "dark" : "light");
+        document.documentElement.dataset.themePreset = storedPreset || "aurora";
       })();
     </script>
+    <link rel="stylesheet" href="./src/style.css">
   </head>
   <body>
     <div id="app"></div>
