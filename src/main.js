@@ -110,7 +110,7 @@ const state = {
   theme: document.documentElement.dataset.theme || "dark",
   themePreset: getThemePresetId(loadStoredText(STORAGE_KEYS.themePreset)),
   themeShelfExpanded: false,
-  themeShowcaseIndex: 0,
+  themeShowcaseIndex: getThemePresetIndex(loadStoredText(STORAGE_KEYS.themePreset)),
   workbenchNote: loadStoredText(STORAGE_KEYS.workbenchNote),
   workbenchTodos: loadTodoList(STORAGE_KEYS.workbenchTodos),
   workbenchTodoDraft: "",
@@ -1875,12 +1875,18 @@ function getThemePresetId(value) {
   return themeMap.has(value) ? value : DEFAULT_THEME_PRESET;
 }
 
+function getThemePresetIndex(value) {
+  const themeId = getThemePresetId(value);
+  const index = themes.findIndex((theme) => theme.id === themeId);
+  return index >= 0 ? index : 0;
+}
+
 function getThemePreset() {
   return themeMap.get(getThemePresetId(state.themePreset)) || themeMap.get(DEFAULT_THEME_PRESET) || themes[0];
 }
 
 function getThemeShelfThemes() {
-  return themes.filter((theme) => theme.id !== state.themePreset);
+  return themes;
 }
 
 function getShowcaseTheme() {
@@ -2425,7 +2431,7 @@ function syncTheme(theme) {
 
 function syncThemePreset(themePreset) {
   state.themePreset = getThemePresetId(themePreset);
-  state.themeShowcaseIndex = 0;
+  state.themeShowcaseIndex = getThemePresetIndex(state.themePreset);
   localStorage.setItem(STORAGE_KEYS.themePreset, state.themePreset);
   applyThemePreset();
 }
