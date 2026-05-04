@@ -4972,18 +4972,16 @@ body.is-command-open {
 }
 
 [data-theme="dark"] {
-  --panel: rgba(10, 23, 33, 0.58);
-  --panel-strong: rgba(10, 23, 33, 0.72);
-  --surface-soft: rgba(9, 24, 34, 0.42);
+  --panel: rgba(7, 16, 25, 0.42);
+  --panel-strong: rgba(7, 16, 25, 0.54);
+  --surface-soft: rgba(7, 16, 25, 0.24);
 }
 
 body {
   background:
-    linear-gradient(180deg, rgba(12, 10, 20, 0.48), rgba(8, 16, 24, 0.2)),
-    radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.12), transparent 24%),
-    radial-gradient(circle at top left, rgba(120, 73, 118, 0.18), transparent 34%),
-    radial-gradient(circle at top right, rgba(255, 155, 202, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 40%),
+    linear-gradient(180deg, rgba(7, 9, 14, 0.18), rgba(7, 9, 14, 0.06)),
+    radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.08), transparent 24%),
+    radial-gradient(circle at 50% 100%, rgba(0, 0, 0, 0.14), transparent 42%),
     var(--site-bg-image) center top / 100% auto no-repeat,
     var(--bg);
 }
@@ -4996,6 +4994,42 @@ body {
     linear-gradient(180deg, var(--theme-bg-overlay), transparent 42%),
     var(--site-bg-image) center top / 100% auto no-repeat,
     var(--bg);
+}
+
+[data-theme="dark"] .hero,
+[data-theme="dark"] .toolbar,
+[data-theme="dark"] .theme-shelf,
+[data-theme="dark"] .toolbar__heading,
+[data-theme="dark"] .toolbar-panel,
+[data-theme="dark"] .filter-panel,
+[data-theme="dark"] .active-state,
+[data-theme="dark"] .category-block,
+[data-theme="dark"] .personal-layer,
+[data-theme="dark"] .workbench-card,
+[data-theme="dark"] .pagination,
+[data-theme="dark"] .empty-state,
+[data-theme="dark"] .site-card,
+[data-theme="dark"] .blog-card {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.05), transparent 38%),
+    rgba(7, 16, 25, 0.32);
+}
+
+[data-theme="dark"] .hero {
+  background:
+    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.08), transparent 24%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 34%),
+    rgba(7, 16, 25, 0.38);
+}
+
+[data-theme="dark"] .hero-search-panel,
+[data-theme="dark"] .theme-feature,
+[data-theme="dark"] .theme-spotlight,
+[data-theme="dark"] .theme-thumb,
+[data-theme="dark"] .stat-card {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.04), transparent 40%),
+    rgba(7, 16, 25, 0.28);
 }
 
 
