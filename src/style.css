@@ -4968,25 +4968,31 @@ body.is-command-open {
 }
 
 :root {
-  --site-bg-image: url("/backgrounds/sakura-girl.png");
+  --site-bg-image: url("/backgrounds/sakura-girl-night.png");
+}
+
+[data-theme="dark"] {
+  --panel: rgba(10, 23, 33, 0.58);
+  --panel-strong: rgba(10, 23, 33, 0.72);
+  --surface-soft: rgba(9, 24, 34, 0.42);
 }
 
 body {
   background:
-    linear-gradient(180deg, rgba(6, 18, 26, 0.72), rgba(6, 18, 26, 0.34)),
+    linear-gradient(180deg, rgba(12, 10, 20, 0.48), rgba(8, 16, 24, 0.2)),
     radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.12), transparent 24%),
-    radial-gradient(circle at top left, var(--bg-accent), transparent 32%),
-    radial-gradient(circle at top right, rgba(128, 163, 194, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 40%),
+    radial-gradient(circle at top left, rgba(120, 73, 118, 0.18), transparent 34%),
+    radial-gradient(circle at top right, rgba(255, 155, 202, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 40%),
     var(--site-bg-image) center top / cover no-repeat,
     var(--bg);
 }
 
 [data-theme="light"] body {
   background:
-    linear-gradient(180deg, rgba(255, 247, 250, 0.7), rgba(243, 249, 251, 0.42)),
+    linear-gradient(180deg, rgba(250, 240, 248, 0.62), rgba(243, 249, 251, 0.34)),
     radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.52), transparent 26%),
-    radial-gradient(circle at top center, var(--theme-bg-right), transparent 30%),
+    radial-gradient(circle at top center, rgba(230, 165, 213, 0.14), transparent 30%),
     linear-gradient(180deg, var(--theme-bg-overlay), transparent 42%),
     var(--site-bg-image) center top / cover no-repeat,
     var(--bg);
