@@ -4743,6 +4743,20 @@ body.is-command-open {
   pointer-events: none;
 }
 
+.toolbar--detail .toolbar__heading,
+.toolbar--detail .active-state {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.toolbar--detail .active-state::after {
+  display: none;
+}
+
 .category-block,
 .personal-layer,
 .workbench-card,
