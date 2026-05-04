@@ -5029,9 +5029,10 @@ body.is-command-open {
 
 [data-theme="dark"] .hero {
   background:
-    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.08), transparent 24%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 34%),
-    rgba(7, 16, 25, 0.38);
+    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.05), transparent 24%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.03), transparent 34%),
+    rgba(7, 16, 25, 0.2);
+  backdrop-filter: none;
 }
 
 [data-theme="dark"] .hero-search-panel,
@@ -5042,6 +5043,13 @@ body.is-command-open {
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.04), transparent 40%),
     rgba(7, 16, 25, 0.28);
+}
+
+[data-theme="dark"] .toolbar {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.03), transparent 40%),
+    rgba(7, 16, 25, 0.18);
+  backdrop-filter: none;
 }
 
 .category-block,
