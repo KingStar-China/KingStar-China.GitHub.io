@@ -170,7 +170,7 @@ function createShell() {
     <div class="app-shell">
       <header class="panel hero">
         <div class="hero__copy">
-          <p class="eyebrow">PERSONAL START PAGE</p>
+          <p class="eyebrow">SIGNAL START PAGE</p>
           <div class="hero__title-row">
             <h1>少昊导航</h1>
             <div class="hero__controls">
@@ -704,10 +704,10 @@ function renderNavStats() {
   const recentCount = state.recent.filter((id) => siteIds.has(id)).length;
 
   return [
-    createStatCard("总数", String(sites.length)),
-    createStatCard("当前结果", String(visibleSites.length)),
-    createStatCard("收藏", String(favoriteCount)),
-    createStatCard("最近访问", String(recentCount)),
+    createStatCard("站点总数", String(sites.length)),
+    createStatCard("当前命中", String(visibleSites.length)),
+    createStatCard("已收藏", String(favoriteCount)),
+    createStatCard("最近打开", String(recentCount)),
   ].join("");
 }
 
@@ -718,9 +718,9 @@ function renderBlogStats() {
   const latestDate = posts[0] ? formatShortDate(posts[0].publishedAt) : "--";
 
   return [
-    createStatCard("文章", String(posts.length)),
-    createStatCard("标签", String(uniqueTags)),
-    createStatCard("分页", `${state.blogPage}/${totalPages}`),
+    createStatCard("文章总数", String(posts.length)),
+    createStatCard("标签数量", String(uniqueTags)),
+    createStatCard("当前页", `${state.blogPage}/${totalPages}`),
     createStatCard("最新发布", latestDate),
   ].join("");
 }
@@ -767,7 +767,7 @@ function renderFeaturedThemeCard(theme) {
       <div class="theme-feature__body">
         <div class="theme-feature__head">
           <div>
-            <p class="theme-feature__eyebrow">精选主题</p>
+            <p class="theme-feature__eyebrow">当前主视觉</p>
             <h3>${escapeHTML(theme.label)}</h3>
           </div>
           <span class="theme-feature__mood">${escapeHTML(theme.mood)}</span>
@@ -795,13 +795,13 @@ function renderThemeShowcase() {
     <section class="theme-showcase">
       <div class="theme-showcase__head">
         <div>
-          <p class="theme-showcase__eyebrow">本周上新</p>
+          <p class="theme-showcase__eyebrow">主题预览</p>
           <strong>${escapeHTML(theme.label)}</strong>
         </div>
         <div class="theme-showcase__controls">
-          <button type="button" class="theme-nav" data-action="prev-theme-showcase" aria-label="查看上一个皮肤">‹</button>
+          <button type="button" class="theme-nav" data-action="prev-theme-showcase" aria-label="查看上一个主题">‹</button>
           <span class="theme-showcase__count">${state.themeShowcaseIndex + 1} / ${shelfThemes.length}</span>
-          <button type="button" class="theme-nav" data-action="next-theme-showcase" aria-label="查看下一个皮肤">›</button>
+          <button type="button" class="theme-nav" data-action="next-theme-showcase" aria-label="查看下一个主题">›</button>
         </div>
       </div>
       <div class="theme-spotlight">
@@ -827,7 +827,7 @@ function renderThemeShowcase() {
           <div class="theme-spotlight__meta">
             <span>${escapeHTML(theme.sticker)}</span>
             <span>${escapeHTML(theme.charm)}</span>
-            <span>主题头图联动</span>
+            <span>主视觉联动</span>
           </div>
           <button type="button" class="theme-spotlight__apply" data-action="set-theme-preset" data-value="${escapeHTML(theme.id)}">
             立即换成 ${escapeHTML(theme.label)}
@@ -852,8 +852,8 @@ function renderThemeShelf() {
       aria-expanded="${state.themeShelfExpanded ? "true" : "false"}"
     >
       <div class="theme-shelf__title">
-        <span>空间皮肤</span>
-        <strong>首页换肤</strong>
+        <span>氛围主题</span>
+        <strong>切换主视觉</strong>
       </div>
       <div class="theme-shelf__meta">
         <span class="theme-shelf__current">
@@ -870,7 +870,7 @@ function renderThemeShelf() {
     <div class="theme-shelf__body" ${state.themeShelfExpanded ? "" : "hidden"}>
       <div class="theme-shelf__toolbar">
         <div class="theme-shelf__copy">
-          <span class="theme-shelf__badge">主题库 ${themes.length} 套</span>
+          <span class="theme-shelf__badge">主题引擎 ${themes.length} 套</span>
           <p class="theme-shelf__summary">当前启用 ${escapeHTML(preset.label)} · ${escapeHTML(preset.mood)}，点击卡片立即切换。</p>
         </div>
         <button class="theme-toggle" type="button" data-action="toggle-theme" data-role="theme-toggle"></button>
@@ -879,8 +879,8 @@ function renderThemeShelf() {
       ${otherThemesCount > 0 ? `
         <div class="theme-palette-shell">
           <div class="theme-palette__head">
-            <strong>更多皮肤</strong>
-            <span>${otherThemesCount} 套在橱窗轮播</span>
+            <strong>更多预设</strong>
+            <span>${otherThemesCount} 套可轮播预览</span>
           </div>
           ${renderThemeShowcase()}
         </div>
@@ -949,14 +949,14 @@ function renderNavToolbar() {
   return `
     <div class="toolbar-shell toolbar-shell--nav">
       <div class="toolbar__heading toolbar__heading--compact">
-        <span class="field-label">NAV TOOLKIT</span>
-        <h2>导航工具台</h2>
-        <p>先缩小范围，再进入站点。把常用工具入口、分类和标签压到同一工作面板。</p>
+        <span class="field-label">SIGNAL DECK</span>
+        <h2>导航工作台</h2>
+        <p>先锁定目标，再进入站点。搜索、分类和标签都收进同一张信号面板。</p>
       </div>
       <section class="toolbar-panel toolbar-panel--search">
         <div class="toolbar-panel__head">
-          <span class="field-label">即时搜索</span>
-          <small>按站点名、描述、标签过滤</small>
+          <span class="field-label">快速检索</span>
+          <small>站点名、描述、标签统一过滤</small>
         </div>
         <label class="search-field">
           <input
