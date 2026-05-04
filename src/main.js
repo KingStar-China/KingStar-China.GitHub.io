@@ -169,39 +169,24 @@ function createShell() {
   return `
     <div class="app-shell">
       <header class="panel hero">
-        <div class="hero__mast">
-          <section class="space-passport">
-            <p class="eyebrow">QQ SPACE MODE</p>
-            <div class="space-passport__head">
-              <div>
-                <h1>少昊导航</h1>
-                <p class="space-passport__alias">少昊的黄钻导航空间</p>
-              </div>
-              <span class="space-passport__vip">黄钻</span>
-            </div>
-            <p class="hero__summary space-passport__signature" data-role="summary"></p>
-            <div class="space-passport__badges" aria-label="空间档头标签">
-              <span>主人档案</span>
-              <span>日志同步</span>
-              <span>导航主页</span>
-            </div>
-            <div class="space-passport__stats" data-role="stats"></div>
-          </section>
-
-          <section class="space-stage">
-            <div class="hero__search" data-role="hero-search"></div>
-            <div class="space-quickbar">
+        <div class="hero__copy">
+          <p class="eyebrow">PERSONAL START PAGE</p>
+          <div class="hero__title-row">
+            <h1>少昊导航</h1>
+            <div class="hero__controls">
               <button type="button" class="command-bar" data-action="open-command" data-role="command-bar">
                 <span class="command-bar__label">全站搜索</span>
                 <span class="command-bar__hint">Ctrl + K</span>
               </button>
-              <div class="section-tabs space-quickbar__tabs" data-role="section-tabs"></div>
+              <div class="section-tabs" data-role="section-tabs"></div>
             </div>
-          </section>
-
-          <aside class="hero__aside">
-            <div class="theme-shelf" data-role="theme-shelf"></div>
-          </aside>
+          </div>
+          <p class="hero__summary" data-role="summary"></p>
+          <div class="hero__search" data-role="hero-search"></div>
+        </div>
+        <div class="hero__aside">
+          <div class="theme-shelf" data-role="theme-shelf"></div>
+          <div class="stats-grid" data-role="stats"></div>
         </div>
       </header>
 
@@ -340,15 +325,6 @@ function handleClick(event) {
       return;
     }
 
-    if (action === "open-theme-shelf") {
-      if (!state.themeShelfExpanded) {
-        syncThemeShelfExpanded(true);
-        render();
-      }
-      scrollPageTop();
-      return;
-    }
-
     if (action === "set-theme-preset" && value) {
       syncThemePreset(value);
       render();
@@ -418,11 +394,6 @@ function handleClick(event) {
     if (action === "reset-filters") {
       resetNavFilters();
       render();
-      return;
-    }
-
-    if (action === "jump-workbench") {
-      refs.content.querySelector('[data-section-anchor="workbench"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
 
@@ -733,10 +704,10 @@ function renderNavStats() {
   const recentCount = state.recent.filter((id) => siteIds.has(id)).length;
 
   return [
-    createStatCard("导航数", String(sites.length)),
-    createStatCard("当前页", String(visibleSites.length)),
-    createStatCard("收藏夹", String(favoriteCount)),
-    createStatCard("来访", String(recentCount)),
+    createStatCard("总数", String(sites.length)),
+    createStatCard("当前结果", String(visibleSites.length)),
+    createStatCard("收藏", String(favoriteCount)),
+    createStatCard("最近访问", String(recentCount)),
   ].join("");
 }
 
@@ -796,7 +767,7 @@ function renderFeaturedThemeCard(theme) {
       <div class="theme-feature__body">
         <div class="theme-feature__head">
           <div>
-            <p class="theme-feature__eyebrow">黄钻主推</p>
+            <p class="theme-feature__eyebrow">精选主题</p>
             <h3>${escapeHTML(theme.label)}</h3>
           </div>
           <span class="theme-feature__mood">${escapeHTML(theme.mood)}</span>
@@ -805,7 +776,7 @@ function renderFeaturedThemeCard(theme) {
         <div class="theme-feature__meta">
           <span>支持浅色 / 深色底</span>
           <span>即时切换</span>
-          <span>空间横幅联动</span>
+          <span>首页头图联动</span>
         </div>
       </div>
     </article>
@@ -824,7 +795,7 @@ function renderThemeShowcase() {
     <section class="theme-showcase">
       <div class="theme-showcase__head">
         <div>
-          <p class="theme-showcase__eyebrow">本周主推</p>
+          <p class="theme-showcase__eyebrow">本周上新</p>
           <strong>${escapeHTML(theme.label)}</strong>
         </div>
         <div class="theme-showcase__controls">
@@ -856,7 +827,7 @@ function renderThemeShowcase() {
           <div class="theme-spotlight__meta">
             <span>${escapeHTML(theme.sticker)}</span>
             <span>${escapeHTML(theme.charm)}</span>
-            <span>空间壳层联动</span>
+            <span>主题头图联动</span>
           </div>
           <button type="button" class="theme-spotlight__apply" data-action="set-theme-preset" data-value="${escapeHTML(theme.id)}">
             立即换成 ${escapeHTML(theme.label)}
@@ -881,8 +852,8 @@ function renderThemeShelf() {
       aria-expanded="${state.themeShelfExpanded ? "true" : "false"}"
     >
       <div class="theme-shelf__title">
-        <span>黄钻专区</span>
-        <strong>装扮空间</strong>
+        <span>空间皮肤</span>
+        <strong>首页换肤</strong>
       </div>
       <div class="theme-shelf__meta">
         <span class="theme-shelf__current">
@@ -899,8 +870,8 @@ function renderThemeShelf() {
     <div class="theme-shelf__body" ${state.themeShelfExpanded ? "" : "hidden"}>
       <div class="theme-shelf__toolbar">
         <div class="theme-shelf__copy">
-          <span class="theme-shelf__badge">黄钻主题 ${themes.length} 套</span>
-          <p class="theme-shelf__summary">当前装扮 ${escapeHTML(preset.label)} · ${escapeHTML(preset.mood)}，点击卡片立即换上整套空间壳层。</p>
+          <span class="theme-shelf__badge">主题库 ${themes.length} 套</span>
+          <p class="theme-shelf__summary">当前启用 ${escapeHTML(preset.label)} · ${escapeHTML(preset.mood)}，点击卡片立即切换。</p>
         </div>
         <button class="theme-toggle" type="button" data-action="toggle-theme" data-role="theme-toggle"></button>
       </div>
@@ -908,8 +879,8 @@ function renderThemeShelf() {
       ${otherThemesCount > 0 ? `
         <div class="theme-palette-shell">
           <div class="theme-palette__head">
-            <strong>本周主推</strong>
-            <span>${otherThemesCount} 套装扮在轮播</span>
+            <strong>更多皮肤</strong>
+            <span>${otherThemesCount} 套在橱窗轮播</span>
           </div>
           ${renderThemeShowcase()}
         </div>
@@ -918,7 +889,9 @@ function renderThemeShelf() {
   `;
 }
 
-function renderEngineSearchPanel(activeEngine) {
+function renderHeroSearch() {
+  const activeEngine = getActiveSearchEngine();
+
   return `
     <section class="hero-search-panel">
       <div class="hero-search-panel__field">
@@ -928,7 +901,7 @@ function renderEngineSearchPanel(activeEngine) {
           class="hero-search-panel__input"
           inputmode="search"
           autocomplete="off"
-          spellcheck="false"
+              spellcheck="false"
           placeholder="${escapeHTML(activeEngine.placeholder)}"
         >
         <button type="button" class="hero-search-panel__submit" data-action="submit-engine-search">搜索</button>
@@ -946,84 +919,6 @@ function renderEngineSearchPanel(activeEngine) {
         `).join("")}
       </div>
     </section>
-  `;
-}
-
-function renderHeroSearch() {
-  const activeEngine = getActiveSearchEngine();
-  const preset = getThemePreset();
-
-  if (state.section === "blog-list") {
-    return `
-      <section class="space-stage__notice space-stage__notice--blog">
-        <div class="space-stage__notice-head">
-          <span class="space-stage__stamp">${escapeHTML(preset.badge)}</span>
-          <span class="space-stage__theme">${escapeHTML(preset.label)} · 日志区</span>
-        </div>
-        <div class="space-stage__notice-copy">
-          <p class="space-stage__eyebrow">空间日志</p>
-          <h2>日志、摘要和标签都挂在这一层</h2>
-          <p>装扮继续沿用 ${escapeHTML(preset.label)}，文章列表保持清楚可读，入口和装饰都留在首页壳层里。</p>
-        </div>
-        ${renderSpaceMusicBar(`正在播放 ${preset.charm}`)}
-      </section>
-      ${renderEngineSearchPanel(activeEngine)}
-    `;
-  }
-
-  const visibleSites = getVisibleSites();
-  const favoriteCount = sites.filter((site) => state.favorites.has(site.id)).length;
-  const recentCount = state.recent.filter((id) => siteIds.has(id)).length;
-  const filterParts = [];
-
-  if (state.view !== "all") {
-    filterParts.push(state.view === "favorites" ? "收藏视图" : "最近来访");
-  }
-  if (state.category !== "all") {
-    filterParts.push(state.category);
-  }
-  if (state.tag !== "all") {
-    filterParts.push(`#${state.tag}`);
-  }
-
-  const announcement = state.query
-    ? `正在检索“${state.query}”，这一页还有 ${visibleSites.length} 个可直达入口。`
-    : filterParts.length > 0
-      ? `空间已经切到 ${filterParts.join(" · ")}，可以先逛模块，再往下翻完整导航。`
-      : "常用入口、最新日志和个人工作台都收在这一页，像逛旧空间一样一路点开就行。";
-
-  return `
-    <section class="space-stage__notice">
-      <div class="space-stage__notice-head">
-        <span class="space-stage__stamp">${escapeHTML(preset.badge)}</span>
-        <span class="space-stage__theme">${escapeHTML(preset.label)} · ${escapeHTML(preset.mood)}</span>
-      </div>
-      <div class="space-stage__notice-copy">
-        <p class="space-stage__eyebrow">空间公告</p>
-        <h2>${escapeHTML(preset.label)} 空间已开启</h2>
-        <p>${escapeHTML(announcement)}</p>
-      </div>
-      <div class="space-stage__marquee">
-        <span>黄钻专区</span>
-        <span>收藏 ${favoriteCount}</span>
-        <span>来访 ${recentCount}</span>
-        <span>当前入口 ${visibleSites.length}</span>
-      </div>
-      ${renderSpaceMusicBar(`正在播放 ${preset.sticker}`)}
-    </section>
-    ${renderEngineSearchPanel(activeEngine)}
-  `;
-}
-
-function renderSpaceMusicBar(label) {
-  return `
-    <div class="space-stage__music">
-      <span class="space-stage__music-label">背景 BGM</span>
-      <span class="space-stage__music-bars" aria-hidden="true">
-        <i></i><i></i><i></i><i></i><i></i>
-      </span>
-      <small>${escapeHTML(label)}</small>
-    </div>
   `;
 }
 
@@ -1054,14 +949,14 @@ function renderNavToolbar() {
   return `
     <div class="toolbar-shell toolbar-shell--nav">
       <div class="toolbar__heading toolbar__heading--compact">
-        <span class="field-label">SPACE SHORTCUT</span>
-        <h2>空间快捷导航</h2>
-        <p>先用这一条快捷导航缩小范围，再去逛下面的收藏夹、日志区和完整入口列表。</p>
+        <span class="field-label">NAV TOOLKIT</span>
+        <h2>导航工具台</h2>
+        <p>先缩小范围，再进入站点。把常用工具入口、分类和标签压到同一工作面板。</p>
       </div>
       <section class="toolbar-panel toolbar-panel--search">
         <div class="toolbar-panel__head">
-          <span class="field-label">搜空间入口</span>
-          <small>按站点名、描述和标签即时过滤</small>
+          <span class="field-label">即时搜索</span>
+          <small>按站点名、描述、标签过滤</small>
         </div>
         <label class="search-field">
           <input
@@ -1070,7 +965,7 @@ function renderNavToolbar() {
             inputmode="search"
             autocomplete="off"
             spellcheck="false"
-            placeholder="搜空间入口、标签、描述，例如 GPT / 文档 / 视频"
+            placeholder="搜站点名、标签、描述，例如 GPT / 文档 / 视频"
           >
         </label>
       </section>
@@ -1087,24 +982,24 @@ function renderNavFilterRows() {
   return `
     <section class="filter-panel filter-row">
       <div class="filter-panel__head">
-        <span class="filter-label">空间看板</span>
-        <small>全部 / 收藏夹 / 最近来访</small>
+        <span class="filter-label">视图</span>
+        <small>全部 / 收藏 / 最近访问</small>
       </div>
       <div class="chip-group">${renderViewFilters()}</div>
     </section>
 
     <section class="filter-panel filter-row">
       <div class="filter-panel__head">
-        <span class="filter-label">空间分区</span>
-        <small>按导航区域切换当前页</small>
+        <span class="filter-label">分类</span>
+        <small>按工具区域收束结果</small>
       </div>
       <div class="chip-group">${renderCategoryFilters()}</div>
     </section>
 
     <section class="filter-panel filter-row">
       <div class="filter-panel__head">
-        <span class="filter-label">空间标签</span>
-        <small>适合跨分区交叉筛入口</small>
+        <span class="filter-label">标签</span>
+        <small>适合跨分类交叉筛选</small>
       </div>
       <div class="chip-group chip-group--dense">${renderTagFilters()}</div>
     </section>
@@ -1118,25 +1013,15 @@ function renderNavSearchState() {
   }
 
   refs.summary.textContent = buildSummary();
-  refs.heroSearch.innerHTML = renderHeroSearch();
-  refs.engineSearchInput = refs.heroSearch.querySelector('[data-role="engine-search"]');
-  syncHeroSearchBox();
   refs.stats.innerHTML = renderNavStats();
   refs.toolbar.querySelector('[data-role="nav-filters"]')?.replaceChildren();
   const navFilters = refs.toolbar.querySelector('[data-role="nav-filters"]');
   if (navFilters) {
     navFilters.innerHTML = renderNavFilterRows();
   }
-  const activeStateMarkup = renderActiveState();
-  const toolbarFooter = refs.toolbar.querySelector(".toolbar__footer");
-  if (activeStateMarkup) {
-    if (toolbarFooter) {
-      toolbarFooter.innerHTML = `<div class="active-state" data-role="nav-active-state">${activeStateMarkup}</div>`;
-    } else {
-      refs.toolbar.insertAdjacentHTML("beforeend", `<div class="toolbar__footer"><div class="active-state" data-role="nav-active-state">${activeStateMarkup}</div></div>`);
-    }
-  } else {
-    toolbarFooter?.remove();
+  const activeState = refs.toolbar.querySelector('[data-role="nav-active-state"]');
+  if (activeState) {
+    activeState.innerHTML = renderActiveState();
   }
   refs.content.innerHTML = renderNavContent();
   refs.workbenchTodoInput = refs.content.querySelector('[data-role="workbench-todo-input"]');
@@ -1341,273 +1226,6 @@ function renderWorkbenchSection() {
   `;
 }
 
-function renderSpaceModule({ eyebrow, title, summary = "", count = "", actionMarkup = "", body = "", moduleClass = "" }) {
-  const tools = `${count ? `<span class="space-module__count">${escapeHTML(String(count))}</span>` : ""}${actionMarkup}`;
-
-  return `
-    <section class="panel space-module ${moduleClass}">
-      <div class="space-module__bar">
-        <div class="space-module__head">
-          <div>
-            <p class="space-module__eyebrow">${escapeHTML(eyebrow)}</p>
-            <h2>${escapeHTML(title)}</h2>
-          </div>
-          <div class="space-module__tools">${tools}</div>
-        </div>
-        ${summary ? `<p class="space-module__summary">${escapeHTML(summary)}</p>` : ""}
-      </div>
-      <div class="space-module__body">${body}</div>
-    </section>
-  `;
-}
-
-function renderSpaceModuleAction(action, label, value = "") {
-  const valueMarkup = value ? ` data-value="${escapeHTML(value)}"` : "";
-
-  return `
-    <button type="button" class="space-module__action" data-action="${escapeHTML(action)}"${valueMarkup}>
-      ${escapeHTML(label)}
-    </button>
-  `;
-}
-
-function renderSpaceSiteEntry(site, subtitle = `${site.category} · ${getHost(site.url)}`) {
-  return `
-    <a
-      class="space-entry space-entry--site"
-      href="${escapeHTML(site.url)}"
-      target="_blank"
-      rel="noreferrer noopener"
-      data-site-id="${escapeHTML(site.id)}"
-    >
-      ${renderIcon(site)}
-      <span class="space-entry__body">
-        <strong>${escapeHTML(site.name)}</strong>
-        <small>${escapeHTML(subtitle)}</small>
-      </span>
-    </a>
-  `;
-}
-
-function renderSpacePostEntry(post) {
-  return `
-    <a class="space-entry space-entry--post" href="${escapeHTML(getPostHref(post.id))}" data-route-kind="post" data-post-id="${escapeHTML(post.id)}">
-      <span class="space-entry__date">${formatShortDate(post.publishedAt)}</span>
-      <span class="space-entry__body">
-        <strong>${escapeHTML(post.title)}</strong>
-        <small>${escapeHTML(post.summary)}</small>
-      </span>
-    </a>
-  `;
-}
-
-function renderFavoriteModule() {
-  const favoriteSites = sites.filter((site) => state.favorites.has(site.id)).slice(0, 4);
-  const body = favoriteSites.length > 0
-    ? `<div class="space-entry-list">${favoriteSites.map((site) => renderSpaceSiteEntry(site, `收藏夹 · ${getHost(site.url)}`)).join("")}</div>`
-    : '<div class="space-module__empty">还没有收藏入口，先在下方详细列表里点一下“收藏”。</div>';
-
-  return renderSpaceModule({
-    eyebrow: "FAVORITES",
-    title: "收藏夹",
-    summary: "把最常开的入口挂在空间首页。",
-    count: favoriteSites.length,
-    actionMarkup: renderSpaceModuleAction("set-view", "进入", "favorites"),
-    body,
-    moduleClass: "space-module--favorites",
-  });
-}
-
-function renderRecentModule() {
-  const recentSites = state.recent.map((id) => siteMap.get(id)).filter(Boolean).slice(0, 4);
-  const body = recentSites.length > 0
-    ? `<div class="space-entry-list">${recentSites.map((site) => renderSpaceSiteEntry(site, `最近来访 · ${getHost(site.url)}`)).join("")}</div>`
-    : '<div class="space-module__empty">最近来访还没有记录，点开几个站点之后这里会自动更新。</div>';
-
-  return renderSpaceModule({
-    eyebrow: "RECENT",
-    title: "最近来访",
-    summary: "最近点开的入口会自动挂在这里。",
-    count: recentSites.length,
-    actionMarkup: renderSpaceModuleAction("set-view", "进入", "recent"),
-    body,
-    moduleClass: "space-module--recent",
-  });
-}
-
-function renderLatestPostModule() {
-  const latestPosts = posts.slice(0, 3);
-  const body = latestPosts.length > 0
-    ? `<div class="space-entry-list">${latestPosts.map((post) => renderSpacePostEntry(post)).join("")}</div>`
-    : '<div class="space-module__empty">日志区暂时还没有更新。</div>';
-
-  return renderSpaceModule({
-    eyebrow: "JOURNAL",
-    title: "最新日志",
-    summary: "把最近更新的文章挂成空间日志模块。",
-    count: latestPosts.length,
-    actionMarkup: renderSpaceModuleAction("set-section", "去日志", "blog-list"),
-    body,
-    moduleClass: "space-module--journal",
-  });
-}
-
-function renderCategoryModule() {
-  const entries = getCategoryCounts()
-    .filter((entry) => entry.count > 0 || entry.category === state.category)
-    .sort((left, right) => right.count - left.count || left.category.localeCompare(right.category, "zh-CN"))
-    .slice(0, 6);
-
-  const body = entries.length > 0
-    ? `
-      <div class="space-pill-grid">
-        ${entries
-          .map(
-            (entry) => `
-              <button
-                type="button"
-                class="space-pill-card ${state.category === entry.category ? "is-active" : ""}"
-                data-action="set-category"
-                data-value="${escapeHTML(entry.category)}"
-              >
-                <strong>${escapeHTML(entry.category)}</strong>
-                <small>${escapeHTML(categoryDescriptions[entry.category] || `${entry.count} 个入口`)} · ${entry.count}</small>
-              </button>
-            `,
-          )
-          .join("")}
-      </div>
-    `
-    : '<div class="space-module__empty">当前筛选下没有可用分区。</div>';
-
-  return renderSpaceModule({
-    eyebrow: "DIRECTORY",
-    title: "导航分类",
-    summary: "先在空间分区里切一层，详细入口在下面展开。",
-    count: entries.length,
-    actionMarkup: renderSpaceModuleAction("reset-filters", "看全部"),
-    body,
-    moduleClass: "space-module--directory",
-  });
-}
-
-function renderTagModule() {
-  const entries = getTagCounts()
-    .sort((left, right) => right.count - left.count || left.tag.localeCompare(right.tag, "zh-CN"))
-    .slice(0, 10);
-
-  const body = entries.length > 0
-    ? `
-      <div class="space-pill-grid space-pill-grid--tags">
-        ${entries
-          .map(
-            (entry) => `
-              <button
-                type="button"
-                class="space-pill-chip ${state.tag === entry.tag ? "is-active" : ""}"
-                data-action="set-tag"
-                data-value="${escapeHTML(entry.tag)}"
-              >
-                <span>${escapeHTML(entry.tag)}</span>
-                <small>${entry.count}</small>
-              </button>
-            `,
-          )
-          .join("")}
-      </div>
-    `
-    : '<div class="space-module__empty">当前筛选下还没有可用标签。</div>';
-
-  return renderSpaceModule({
-    eyebrow: "TAGS",
-    title: "热门标签",
-    summary: "适合跨分类交叉筛选常用入口。",
-    count: entries.length,
-    actionMarkup: renderSpaceModuleAction("reset-filters", "清空"),
-    body,
-    moduleClass: "space-module--tags",
-  });
-}
-
-function renderWorkbenchPreviewModule() {
-  const pendingCount = state.workbenchTodos.filter((item) => !item.done).length;
-  const doneCount = state.workbenchTodos.length - pendingCount;
-  const notePreview = state.workbenchNote.trim()
-    ? state.workbenchNote.trim().slice(0, 84)
-    : "今天要查的内容、临时命令和灵感都会收进这里。";
-
-  const body = `
-    <div class="space-workbench-preview">
-      <div class="space-workbench-preview__metrics">
-        <span class="state-pill">待办 ${pendingCount}</span>
-        <span class="state-pill">已完成 ${doneCount}</span>
-        <span class="state-pill">便签 ${state.workbenchNote.trim().length}</span>
-      </div>
-      <p class="space-workbench-preview__note">${escapeHTML(notePreview)}</p>
-      <div class="space-workbench-preview__actions">
-        ${renderSpaceModuleAction("jump-workbench", "进入工作台")}
-        ${renderSpaceModuleAction("open-command", "全站搜")}
-      </div>
-    </div>
-  `;
-
-  return renderSpaceModule({
-    eyebrow: "WORKBENCH",
-    title: "个人工作台",
-    summary: "待办、便签和临时命令继续留在这一层。",
-    count: pendingCount,
-    body,
-    moduleClass: "space-module--workbench-preview",
-  });
-}
-
-function renderSpaceBulletin() {
-  const preset = getThemePreset();
-  const favoriteCount = sites.filter((site) => state.favorites.has(site.id)).length;
-  const recentCount = state.recent.filter((id) => siteIds.has(id)).length;
-
-  return `
-    <section class="panel space-bulletin">
-      <div class="space-bulletin__stamp">${escapeHTML(preset.badge)} · 主人寄语</div>
-      <div class="space-bulletin__body">
-        <div class="space-bulletin__copy">
-          <p class="space-module__eyebrow">SPACE NOTICE</p>
-          <h2>欢迎来到少昊导航的黄钻空间</h2>
-          <p>当前装扮 ${escapeHTML(preset.label)} · ${escapeHTML(preset.mood)}。收藏夹、最近来访、日志和工作台都改成了空间模块，先逛模块，再往下翻详细入口。</p>
-        </div>
-        <div class="space-bulletin__decor">
-          <div class="space-bulletin__chips">
-            <span>收藏 ${favoriteCount}</span>
-            <span>来访 ${recentCount}</span>
-            <span>${escapeHTML(preset.sticker)}</span>
-          </div>
-          ${renderSpaceMusicBar(`正在播放 ${preset.charm}`)}
-        </div>
-        <div class="space-bulletin__actions">
-          ${renderSpaceModuleAction("open-theme-shelf", "装扮空间")}
-          ${renderSpaceModuleAction("open-command", "全站搜")}
-        </div>
-      </div>
-    </section>
-  `;
-}
-
-function renderDetailedLayerLead(visibleSites) {
-  return `
-    <section class="space-detail-lead">
-      <div>
-        <p class="space-module__eyebrow">SPACE DIRECTORY</p>
-        <h2>详细导航区</h2>
-        <p>上面先挑收藏、日志和标签，下面再看完整入口列表。</p>
-      </div>
-      <div class="space-detail-lead__meta">
-        <span>当前可见 ${visibleSites.length}</span>
-        <span>分类 ${getGroupedSites(visibleSites).length}</span>
-      </div>
-    </section>
-  `;
-}
-
 function renderNavContent() {
   const visibleSites = getVisibleSites();
   const groups = getGroupedSites(visibleSites);
@@ -1623,18 +1241,6 @@ function renderNavContent() {
       ${workbench}
     `;
   }
-
-  const moduleDeck = `
-    ${renderSpaceBulletin()}
-    <div class="space-module-grid">
-      ${renderFavoriteModule()}
-      ${renderRecentModule()}
-      ${renderLatestPostModule()}
-      ${renderCategoryModule()}
-      ${renderTagModule()}
-      ${renderWorkbenchPreviewModule()}
-    </div>
-  `;
 
   const groupsMarkup = groups
     .map(
@@ -1655,7 +1261,7 @@ function renderNavContent() {
     )
     .join("");
 
-  return `${moduleDeck}${renderDetailedLayerLead(visibleSites)}${groupsMarkup}${workbench}`;
+  return `${groupsMarkup}${workbench}`;
 }
 function renderBlogList() {
   if (posts.length === 0) {
@@ -2610,25 +2216,7 @@ function buildSummary() {
     return post ? post.summary : "当前文章不存在，你可以返回博客列表重新选择。";
   }
 
-  const preset = getThemePreset();
-  const summaryParts = [];
-
-  if (state.view !== "all") {
-    summaryParts.push(state.view === "favorites" ? "收藏夹巡视中" : "最近来访巡视中");
-  }
-  if (state.category !== "all") {
-    summaryParts.push(`分区 ${state.category}`);
-  }
-  if (state.tag !== "all") {
-    summaryParts.push(`标签 ${state.tag}`);
-  }
-  if (state.query) {
-    return `正在空间里查找“${state.query}”，下面的模块和完整列表都会跟着收口。`;
-  }
-
-  return summaryParts.length > 0
-    ? `当前装扮 ${preset.label} · ${preset.mood}，这页正停在 ${summaryParts.join(" · ")}。`
-    : `当前装扮 ${preset.label} · ${preset.mood}，把常用入口、日志和个人工作台都挂进这间空间。`;
+  return "";
 }
 
 function getEmptyMessage() {
