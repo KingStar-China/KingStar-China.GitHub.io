@@ -5056,5 +5056,12 @@ body.is-command-open {
   background: transparent !important;
 }
 
+.article {
+  background: transparent !important;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
 
 
