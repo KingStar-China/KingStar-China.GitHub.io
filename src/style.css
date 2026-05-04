@@ -53,23 +53,35 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--text);
-  background:
-    radial-gradient(circle at top left, var(--bg-accent), transparent 32%),
-    radial-gradient(circle at top right, rgba(128, 163, 194, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 40%),
-    var(--bg);
+  position: relative;
+  isolation: isolate;
+  background: var(--bg);
 }
 
 body::before {
   content: "";
   position: fixed;
   inset: 0;
+  z-index: -1;
   pointer-events: none;
   background-image:
     linear-gradient(var(--theme-grid-color) 1px, transparent 1px),
     linear-gradient(90deg, var(--theme-grid-color) 1px, transparent 1px);
   background-size: 32px 32px;
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.6), transparent);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at top left, var(--bg-accent), transparent 32%),
+    radial-gradient(circle at top right, rgba(128, 163, 194, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 40%),
+    var(--bg);
 }
 
 button,
@@ -4977,7 +4989,7 @@ body.is-command-open {
   --surface-soft: rgba(7, 16, 25, 0.24);
 }
 
-body {
+[data-theme="dark"] body::after {
   background:
     linear-gradient(180deg, rgba(7, 9, 14, 0.18), rgba(7, 9, 14, 0.06)),
     radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.08), transparent 24%),
@@ -4986,7 +4998,7 @@ body {
     var(--bg);
 }
 
-[data-theme="light"] body {
+[data-theme="light"] body::after {
   background:
     linear-gradient(180deg, rgba(250, 240, 248, 0.62), rgba(243, 249, 251, 0.34)),
     radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.52), transparent 26%),
