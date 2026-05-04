@@ -4990,7 +4990,23 @@ body.is-command-open {
 }
 
 :root {
+  --site-bg-image: url("/backgrounds/极光.webp");
+}
+
+[data-theme-preset="mist"] {
+  --site-bg-image: url("/backgrounds/雾灰.webp");
+}
+
+[data-theme-preset="aurora"] {
+  --site-bg-image: url("/backgrounds/极光.webp");
+}
+
+[data-theme-preset="blossom"] {
   --site-bg-image: url("/backgrounds/夜樱.webp");
+}
+
+[data-theme-preset="sunset"] {
+  --site-bg-image: url("/backgrounds/暮橙.webp");
 }
 
 [data-theme="dark"] {
