@@ -12,7 +12,7 @@ export const themes = [
     previewGlow: "radial-gradient(circle at 22% 24%, rgba(255, 255, 255, 0.68), transparent 28%), radial-gradient(circle at 76% 80%, rgba(73, 162, 167, 0.34), transparent 34%)",
     vars: {
       light: {
-        "--site-bg-image": 'url("/backgrounds/雾灰.webp")',
+        "--site-bg-image": 'url("/backgrounds/极光.webp")',
         "--theme-bg-left": "rgba(118, 147, 170, 0.12)",
         "--theme-bg-right": "rgba(170, 191, 205, 0.1)",
         "--theme-bg-overlay": "rgba(255, 255, 255, 0.42)",
@@ -34,7 +34,7 @@ export const themes = [
         "--theme-accent-glow": "rgba(81, 170, 176, 0.22)",
       },
       dark: {
-        "--site-bg-image": 'url("/backgrounds/雾灰.webp")',
+        "--site-bg-image": 'url("/backgrounds/极光.webp")',
         "--theme-bg-left": "rgba(41, 93, 105, 0.2)",
         "--theme-bg-right": "rgba(170, 191, 205, 0.08)",
         "--theme-bg-overlay": "rgba(255, 255, 255, 0.04)",
@@ -128,7 +128,7 @@ export const themes = [
     previewGlow: "radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.76), transparent 26%), radial-gradient(circle at 80% 78%, rgba(255, 182, 207, 0.34), transparent 32%)",
     vars: {
       light: {
-        "--site-bg-image": 'url("/backgrounds/夜樱.webp")',
+        "--site-bg-image": 'url("/backgrounds/暮橙.webp")',
         "--theme-bg-left": "rgba(255, 183, 207, 0.2)",
         "--theme-bg-right": "rgba(255, 220, 178, 0.18)",
         "--theme-bg-overlay": "rgba(255, 250, 246, 0.5)",
@@ -150,7 +150,7 @@ export const themes = [
         "--theme-accent-glow": "rgba(238, 143, 183, 0.28)",
       },
       dark: {
-        "--site-bg-image": 'url("/backgrounds/夜樱.webp")',
+        "--site-bg-image": 'url("/backgrounds/暮橙.webp")',
         "--theme-bg-left": "rgba(183, 71, 112, 0.28)",
         "--theme-bg-right": "rgba(167, 102, 45, 0.2)",
         "--theme-bg-overlay": "rgba(255, 229, 236, 0.05)",
