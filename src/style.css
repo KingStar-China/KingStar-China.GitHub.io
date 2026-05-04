@@ -4967,5 +4967,30 @@ body.is-command-open {
   }
 }
 
+:root {
+  --site-bg-image: url("/backgrounds/sakura-girl.png");
+}
+
+body {
+  background:
+    linear-gradient(180deg, rgba(6, 18, 26, 0.72), rgba(6, 18, 26, 0.34)),
+    radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.12), transparent 24%),
+    radial-gradient(circle at top left, var(--bg-accent), transparent 32%),
+    radial-gradient(circle at top right, rgba(128, 163, 194, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 40%),
+    var(--site-bg-image) center top / cover no-repeat,
+    var(--bg);
+}
+
+[data-theme="light"] body {
+  background:
+    linear-gradient(180deg, rgba(255, 247, 250, 0.7), rgba(243, 249, 251, 0.42)),
+    radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.52), transparent 26%),
+    radial-gradient(circle at top center, var(--theme-bg-right), transparent 30%),
+    linear-gradient(180deg, var(--theme-bg-overlay), transparent 42%),
+    var(--site-bg-image) center top / cover no-repeat,
+    var(--bg);
+}
+
 
 
