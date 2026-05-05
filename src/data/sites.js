@@ -1,5 +1,18 @@
 export const sites = [
   {
+    "id": "site-1777980678811",
+    "name": "Petdex宠物",
+    "url": "https://petdex.crafter.run/zh",
+    "category": "AI",
+    "tags": [],
+    "icon": "https://petdex.crafter.run/apple-icon.png",
+    "description": "Petdex 是面向 Codex 的公共动画伙伴图库。浏览开源伙伴，预览它们的动画，并用一条命令安装。",
+    "aliases": [
+      "petdex.crafter.run",
+      "cw"
+    ]
+  },
+  {
     "id": "site-1777618726159",
     "name": "Gmail",
     "url": "https://mail.google.com/",
