@@ -1,5 +1,19 @@
 export const sites = [
   {
+    "id": "site-1778156484942",
+    "name": "HF抱抱脸",
+    "url": "https://huggingface.co/",
+    "category": "AI",
+    "tags": [],
+    "icon": "https://huggingface.co/front/assets/huggingface_logo-noborder.svg",
+    "description": "全球主流的开源 AI 协作平台，供开发者托管、分享、协作使用各类 AI 模型、数据集与机器学习应用，被称作AI 界的 GitHub。",
+    "aliases": [
+      "hf",
+      "huggingface",
+      "抱抱脸"
+    ]
+  },
+  {
     "id": "site-1778156348946",
     "name": "ModelScope 魔搭社区",
     "url": "https://www.modelscope.cn/",
