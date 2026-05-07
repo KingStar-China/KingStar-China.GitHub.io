@@ -1,5 +1,18 @@
 export const sites = [
   {
+    "id": "site-1778156348946",
+    "name": "ModelScope 魔搭社区",
+    "url": "https://www.modelscope.cn/",
+    "category": "AI",
+    "tags": [],
+    "icon": "https://g.alicdn.com/sail-web/maas/2.13.64/favicon/128.ico",
+    "description": "ModelScope——汇聚各领域先进的机器学习模型，提供模型探索体验、推理、训练、部署和应用的一站式服务。在这里，共建模型开源社区，发现、学习、定制和分享心仪的模型。",
+    "aliases": [
+      "modelscope.cn",
+      "www.modelscope.cn"
+    ]
+  },
+  {
     "id": "site-1777980678811",
     "name": "Petdex宠物",
     "url": "https://petdex.crafter.run/zh",
