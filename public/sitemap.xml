@@ -2,14 +2,22 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://845864204.xyz/</loc>
-    <lastmod>2026-04-17</lastmod>
+    <lastmod>2026-05-03</lastmod>
   </url>
   <url>
     <loc>https://845864204.xyz/?section=blog</loc>
-    <lastmod>2026-04-17</lastmod>
+    <lastmod>2026-05-03</lastmod>
   </url>
   <url>
-    <loc>https://845864204.xyz/?post=post-1776411444439</loc>
-    <lastmod>2026-04-17</lastmod>
+    <loc>https://845864204.xyz/?post=20260503102114</loc>
+    <lastmod>2026-05-03</lastmod>
+  </url>
+  <url>
+    <loc>https://845864204.xyz/?post=20260502113341</loc>
+    <lastmod>2026-04-26</lastmod>
+  </url>
+  <url>
+    <loc>https://845864204.xyz/?post=20260502113407</loc>
+    <lastmod>2026-04-21</lastmod>
   </url>
 </urlset>

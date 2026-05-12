@@ -1,0 +1,48 @@
+[2m17:01:49[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mReferenceError[22m: syncCommandScrollLock is not defined
+[39m > renderCommandPaletteState src/main.js:605:3
+    603 |  function renderCommandPaletteState({ maintainFocus = false } = {}) {
+    604 |    refs.commandPalette.innerHTML = renderCommandPalette();
+    605 |    syncCommandScrollLock();
+        |     ^
+    606 |  
+    607 |    refs.commandInput = refs.commandPalette.querySelector('[data-role="command-search"]');
+ > render src/main.js:570:3
+ > init src/main.js:166:3
+ > src/main.js:137:1
+
+[2m17:03:45[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mReferenceError[22m: syncCommandScrollLock is not defined
+[39m > renderCommandPaletteState src/main.js:605:3
+    603 |  function renderCommandPaletteState({ maintainFocus = false } = {}) {
+    604 |    refs.commandPalette.innerHTML = renderCommandPalette();
+    605 |    syncCommandScrollLock();
+        |     ^
+    606 |  
+    607 |    refs.commandInput = refs.commandPalette.querySelector('[data-role="command-search"]');
+ > render src/main.js:570:3
+ > init src/main.js:166:3
+ > src/main.js:137:1
+
+[2m17:03:51[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mReferenceError[22m: syncCommandScrollLock is not defined
+[39m > renderCommandPaletteState src/main.js:605:3
+    603 |  function renderCommandPaletteState({ maintainFocus = false } = {}) {
+    604 |    refs.commandPalette.innerHTML = renderCommandPalette();
+    605 |    syncCommandScrollLock();
+        |     ^
+    606 |  
+    607 |    refs.commandInput = refs.commandPalette.querySelector('[data-role="command-search"]');
+ > render src/main.js:570:3
+ > init src/main.js:166:3
+ > src/main.js:137:1
+
+[2m17:03:54[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mReferenceError[22m: syncCommandScrollLock is not defined
+[39m > renderCommandPaletteState src/main.js:605:3
+    603 |  function renderCommandPaletteState({ maintainFocus = false } = {}) {
+    604 |    refs.commandPalette.innerHTML = renderCommandPalette();
+    605 |    syncCommandScrollLock();
+        |     ^
+    606 |  
+    607 |    refs.commandInput = refs.commandPalette.querySelector('[data-role="command-search"]');
+ > render src/main.js:570:3
+ > init src/main.js:166:3
+ > src/main.js:137:1
+
