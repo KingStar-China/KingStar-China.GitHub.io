@@ -350,7 +350,7 @@ function handleClick(event) {
     }
 
     if (action === "set-section") {
-      state.section = value === "nav" ? "nav" : "blog-list";
+      state.section = getSectionId(value);
       state.nextRouteMode = "push";
       render();
       scrollPageTop();
@@ -684,6 +684,7 @@ function renderSectionTabs() {
   const items = [
     { value: "nav", label: "导航" },
     { value: "blog-list", label: "博客" },
+    { value: "promo", label: "宣传片" },
   ];
 
   return items
@@ -701,6 +702,10 @@ function renderSectionTabs() {
 }
 
 function renderNavStats() {
+  if (state.section === "promo") {
+    return renderPromoStats();
+  }
+
   const visibleSites = getVisibleSites();
   const favoriteCount = sites.filter((site) => state.favorites.has(site.id)).length;
   const recentCount = state.recent.filter((id) => siteIds.has(id)).length;
@@ -710,6 +715,15 @@ function renderNavStats() {
     createStatCard("当前命中", String(visibleSites.length)),
     createStatCard("已收藏", String(favoriteCount)),
     createStatCard("最近打开", String(recentCount)),
+  ].join("");
+}
+
+function renderPromoStats() {
+  return [
+    createStatCard("视频数量", "1"),
+    createStatCard("首条片长", "20s"),
+    createStatCard("格式", "MP4"),
+    createStatCard("布局", "单列"),
   ].join("");
 }
 
@@ -924,6 +938,18 @@ function renderToolbar() {
     return renderNavToolbar();
   }
 
+  if (state.section === "promo") {
+    return `
+      <div class="toolbar-shell toolbar-shell--promo">
+        <div class="toolbar__heading toolbar__heading--compact">
+          <span class="field-label">PROMO VIDEOS</span>
+          <h2>宣传片</h2>
+          <p>集中展示少昊导航的产品宣传视频。视频按单列排列，方便逐条观看和后续继续追加。</p>
+        </div>
+      </div>
+    `;
+  }
+
   if (state.section === "blog-list") {
     return renderBlogToolbar();
   }
@@ -1119,6 +1145,10 @@ function renderBlogDetailToolbar() {
   `;
 }
 function renderContent() {
+  if (state.section === "promo") {
+    return renderProductPromo();
+  }
+
   if (state.section === "nav") {
     return renderNavContent();
   }
@@ -1128,6 +1158,45 @@ function renderContent() {
   }
 
   return renderBlogDetail();
+}
+
+function renderProductPromo() {
+  const videos = [
+    {
+      title: "少昊导航 20 秒产品宣传片",
+      description: "展示少昊导航如何把搜索、常用站点、博客记录和个人工作流放进同一个浏览器起点。",
+      src: "/videos/shaohao-navigation-promo.mp4",
+      duration: "20 秒",
+      format: "MP4",
+    },
+  ];
+
+  return `
+    <section class="promo-video-list" aria-label="少昊导航宣传片列表">
+      ${videos.map((video, index) => `
+        <article class="promo-video-card">
+          <div class="promo-video-card__media">
+            <video
+              class="promo-video-card__player"
+              src="${escapeHTML(video.src)}"
+              controls
+              preload="${index === 0 ? "metadata" : "none"}"
+              playsinline
+            ></video>
+          </div>
+          <div class="promo-video-card__body">
+            <div class="promo-video-card__meta">
+              <span>第 ${index + 1} 个视频</span>
+              <span>${escapeHTML(video.duration)}</span>
+              <span>${escapeHTML(video.format)}</span>
+            </div>
+            <h2>${escapeHTML(video.title)}</h2>
+            <p>${escapeHTML(video.description)}</p>
+          </div>
+        </article>
+      `).join("")}
+    </section>
+  `;
 }
 
 function renderWorkbench() {
@@ -2201,6 +2270,10 @@ function getHost(url) {
 }
 
 function buildSummary() {
+  if (state.section === "promo") {
+    return "宣传片：集中观看少昊导航的产品宣传视频。";
+  }
+
   if (state.section === "blog-list") {
     return "";
   }
@@ -2252,6 +2325,14 @@ function isSectionActive(value) {
   }
 
   return state.section === value;
+}
+
+function getSectionId(value) {
+  if (value === "blog-list" || value === "promo") {
+    return value;
+  }
+
+  return "nav";
 }
 
 function resetNavFilters() {
@@ -2498,7 +2579,7 @@ function hydrateFromLocation() {
     return;
   }
 
-  state.section = route.type === "blog-list" ? "blog-list" : "nav";
+  state.section = getSectionId(route.type);
 }
 
 function syncRoute(mode = "replace") {
@@ -2535,6 +2616,10 @@ function syncRoute(mode = "replace") {
 }
 
 function buildRoutePath() {
+  if (state.section === "promo") {
+    return buildQueryRoute("promo");
+  }
+
   if (state.section === "blog-detail") {
     const post = getSelectedPost();
     if (post) {
@@ -2566,6 +2651,10 @@ function buildQueryRoute(type, { postId = "", blogSearch = "", blogTag = "", pag
 
   if (type === "blog-list") {
     params.set("section", "blog");
+  }
+
+  if (type === "promo") {
+    params.set("section", "promo");
   }
 
   if (blogSearch) {
@@ -2614,7 +2703,15 @@ function buildHashRoute(type, { postId = "", blogSearch = "", blogTag = "", page
 }
 
 function getSectionHref(section) {
-  return section === "blog-list" ? getBlogListHref() : getHomeHref();
+  if (section === "blog-list") {
+    return getBlogListHref();
+  }
+
+  if (section === "promo") {
+    return getPromoHref();
+  }
+
+  return getHomeHref();
 }
 
 function getHomeHref() {
@@ -2629,6 +2726,10 @@ function getBlogListHref() {
   });
 }
 
+function getPromoHref() {
+  return buildQueryRoute("promo");
+}
+
 function getPostHref(postId) {
   return buildQueryRoute("post", { postId });
 }
@@ -2640,6 +2741,16 @@ function parseLocationRoute(url) {
   const page = url.searchParams.get("page") || "";
   const section = url.searchParams.get("section") || "";
   const hasBlogQuery = blogSearch || blogTag || page;
+
+  if (section === "promo") {
+    return {
+      type: "promo",
+      postId: "",
+      blogSearch,
+      blogTag,
+      page,
+    };
+  }
 
   if (postId) {
     return {
@@ -2683,6 +2794,16 @@ function parseHashRoute(hash) {
   if (normalizedPath === "/blog") {
     return {
       type: "blog-list",
+      postId: "",
+      blogSearch: params.get("blogSearch") || "",
+      blogTag: params.get("blogTag") || "",
+      page: params.get("page") || "",
+    };
+  }
+
+  if (normalizedPath === "/promo") {
+    return {
+      type: "promo",
       postId: "",
       blogSearch: params.get("blogSearch") || "",
       blogTag: params.get("blogTag") || "",
