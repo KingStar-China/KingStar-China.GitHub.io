@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>少昊导航 20 秒产品宣传片</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        margin: 0;
+        overflow: hidden;
+        background: #071019;
+        color: #f4fbff;
+        font-family: "IBM Plex Sans", "Noto Sans SC", "Segoe UI", sans-serif;
+      }
+
+      #main {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background-color: #071019;
+      }
+
+      .background {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        background:
+          radial-gradient(circle at 16% 18%, rgba(85, 208, 183, 0.3), rgba(85, 208, 183, 0) 28%),
+          radial-gradient(circle at 82% 72%, rgba(158, 200, 255, 0.24), rgba(158, 200, 255, 0) 34%),
+          linear-gradient(180deg, rgba(7, 16, 25, 0.1), rgba(7, 16, 25, 0.92)),
+          url("assets/aurora.webp") center top / cover no-repeat;
+      }
+
+      .grid {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        opacity: 0.22;
+        background-image:
+          linear-gradient(rgba(148, 197, 214, 0.26) 1px, rgba(148, 197, 214, 0) 1px),
+          linear-gradient(90deg, rgba(148, 197, 214, 0.26) 1px, rgba(148, 197, 214, 0) 1px);
+        background-size: 40px 40px;
+      }
+
+      .scene {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        display: flex;
+        width: 100%;
+        height: 100%;
+        padding: 96px 118px;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      .scene-content {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        gap: 48px;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .copy {
+        width: 760px;
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+      }
+
+      .eyebrow {
+        width: fit-content;
+        padding: 12px 18px;
+        border: 1px solid rgba(123, 240, 218, 0.28);
+        border-radius: 999px;
+        color: #8bf0da;
+        background: rgba(85, 208, 183, 0.14);
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+      }
+
+      h1,
+      h2 {
+        margin: 0;
+        color: #f4fbff;
+        font-size: 108px;
+        line-height: 1.02;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+      }
+
+      h1 {
+        font-size: 144px;
+      }
+
+      p {
+        margin: 0;
+        color: #d9e6ee;
+        font-size: 34px;
+        line-height: 1.55;
+      }
+
+      .cta {
+        width: fit-content;
+        min-height: 62px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 28px;
+        border-radius: 999px;
+        color: #f4fbff;
+        background: #115e59;
+        font-size: 26px;
+        font-weight: 800;
+        box-shadow: 0 24px 56px rgba(85, 208, 183, 0.28);
+      }
+
+      .panel {
+        border: 1px solid rgba(148, 197, 214, 0.16);
+        border-radius: 24px;
+        background:
+          linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+          rgba(7, 16, 25, 0.54);
+        box-shadow:
+          0 32px 90px rgba(0, 0, 0, 0.34),
+          inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(18px);
+      }
+
+      .hero-ui {
+        width: 810px;
+        min-height: 590px;
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        padding: 28px;
+      }
+
+      .search-box {
+        height: 82px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 0 26px;
+        border-radius: 20px;
+        color: #f4fbff;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(148, 197, 214, 0.16);
+        font-size: 30px;
+      }
+
+      .search-box b {
+        color: #8bf0da;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+
+      .stat {
+        min-height: 130px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 10px;
+        padding: 22px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(148, 197, 214, 0.12);
+      }
+
+      .stat strong {
+        color: #f4fbff;
+        font-size: 54px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .stat span {
+        color: #b9c8d1;
+        font-size: 22px;
+      }
+
+      .theme-strip {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+      }
+
+      .theme-tile {
+        height: 190px;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background-size: cover;
+        background-position: center;
+      }
+
+      .tile-aurora {
+        background-image: url("assets/aurora.webp");
+      }
+
+      .tile-mist {
+        background-image: url("assets/mist.webp");
+      }
+
+      .tile-blossom {
+        background-image: url("assets/blossom.webp");
+      }
+
+      .tile-sunset {
+        background-image: url("assets/sunset.webp");
+      }
+
+      .card-grid {
+        width: 860px;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+      }
+
+      .site-card {
+        min-height: 170px;
+        display: flex;
+        gap: 18px;
+        align-items: center;
+        padding: 24px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(148, 197, 214, 0.14);
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.2);
+      }
+
+      .icon {
+        width: 64px;
+        height: 64px;
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 18px;
+        color: #f4fbff;
+        background: #115e59;
+        font-size: 28px;
+        font-weight: 900;
+      }
+
+      .site-card b {
+        display: block;
+        color: #f4fbff;
+        font-size: 32px;
+        margin-bottom: 10px;
+      }
+
+      .site-card span {
+        color: #9dd6d8;
+        font-size: 22px;
+      }
+
+      .workflow {
+        width: 820px;
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+      }
+
+      .work-row {
+        min-height: 132px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 24px 28px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(148, 197, 214, 0.14);
+      }
+
+      .work-row strong {
+        color: #f4fbff;
+        font-size: 34px;
+      }
+
+      .work-row span {
+        color: #8bf0da;
+        font-size: 24px;
+        font-weight: 800;
+      }
+
+      .blog-stack {
+        width: 850px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .blog-card {
+        min-height: 170px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 14px;
+        padding: 26px 30px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(148, 197, 214, 0.14);
+      }
+
+      .blog-card b {
+        color: #f4fbff;
+        font-size: 32px;
+      }
+
+      .blog-card span {
+        color: #b9c8d1;
+        font-size: 22px;
+      }
+
+      .final-lockup {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        gap: 30px;
+      }
+
+      .logo-mark {
+        width: 156px;
+        height: 156px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 42px;
+        color: #f4fbff;
+        background: #115e59;
+        font-size: 72px;
+        font-weight: 900;
+        box-shadow: 0 28px 72px rgba(85, 208, 183, 0.34);
+      }
+
+      .final-lockup h2 {
+        width: 900px;
+        font-size: 128px;
+      }
+
+      .progress {
+        position: absolute;
+        left: 118px;
+        right: 118px;
+        bottom: 58px;
+        z-index: 8;
+        height: 8px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.14);
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, #55d0b7, #9ec8ff, #f4fbff);
+        transform-origin: left center;
+      }
+
+      .wipe {
+        position: absolute;
+        inset: 0;
+        z-index: 7;
+        pointer-events: none;
+        background: #115e59;
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="main" data-composition-id="main" data-start="0" data-duration="20" data-width="1920" data-height="1080">
+      <div class="background" data-layout-ignore></div>
+      <div class="grid" data-layout-ignore></div>
+
+      <section id="scene-1" class="scene">
+        <div class="scene-content">
+          <div class="copy">
+            <div class="eyebrow">SIGNAL START PAGE</div>
+            <h1>少昊导航</h1>
+            <p>把常用网站、博客文章和个人工作流整理到一个高效入口。</p>
+            <div class="cta">845864204.xyz</div>
+          </div>
+          <div class="hero-ui panel">
+            <div class="search-box"><span>全站搜索</span><b>Ctrl + K</b></div>
+            <div class="theme-strip">
+              <div class="theme-tile tile-aurora"></div>
+              <div class="theme-tile tile-mist"></div>
+              <div class="theme-tile tile-blossom"></div>
+              <div class="theme-tile tile-sunset"></div>
+            </div>
+            <div class="stats">
+              <div class="stat"><strong>37</strong><span>常用入口</span></div>
+              <div class="stat"><strong>4</strong><span>视觉主题</span></div>
+              <div class="stat"><strong>3</strong><span>内容文章</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="scene-2" class="scene">
+        <div class="scene-content">
+          <div class="copy">
+            <div class="eyebrow">SEARCH FIRST</div>
+            <h2>搜索先行</h2>
+            <p>用一个输入框切到 Google、Bing、Baidu 或站内内容，减少工具之间的来回切换。</p>
+          </div>
+          <div class="workflow panel">
+            <div class="search-box"><span>今天要查什么？</span><b>Google</b></div>
+            <div class="work-row"><strong>AI 工具</strong><span>GPT / Kimi / Gemini</span></div>
+            <div class="work-row"><strong>学习资料</strong><span>MDN / W3Schools / Z-Library</span></div>
+            <div class="work-row"><strong>外网入口</strong><span>YouTube / GitHub / Reddit</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="scene-3" class="scene">
+        <div class="scene-content">
+          <div class="copy">
+            <div class="eyebrow">ORGANIZED FAVORITES</div>
+            <h2>常用网站成组摆好</h2>
+            <p>AI、学习、音乐、网盘、图片工具都有分类、别名和说明，打开速度更接近肌肉记忆。</p>
+          </div>
+          <div class="card-grid">
+            <div class="site-card"><div class="icon">AI</div><div><b>GPT</b><span>通用对话、写作、推理</span></div></div>
+            <div class="site-card"><div class="icon">KM</div><div><b>Kimi</b><span>中文长文阅读和总结</span></div></div>
+            <div class="site-card"><div class="icon">GH</div><div><b>GitHub</b><span>代码托管和协作入口</span></div></div>
+            <div class="site-card"><div class="icon">MD</div><div><b>MDN</b><span>前端 API 权威文档</span></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="scene-4" class="scene">
+        <div class="scene-content">
+          <div class="copy">
+            <div class="eyebrow">NOTES BECOME WORKFLOW</div>
+            <h2>经验也留在入口里</h2>
+            <p>博客区记录实际踩坑、安装实录和工具链方案，下一次需要时直接回到结论。</p>
+          </div>
+          <div class="blog-stack">
+            <div class="blog-card"><b>番茄小说 Google Play 版与国内版核心差异对比</b><span>广告、权限、体积和福利系统的关键差异。</span></div>
+            <div class="blog-card"><b>番茄国际版（无广告）安装实录</b><span>记录 Google Play 区域、安装包和联网管制处理。</span></div>
+            <div class="blog-card"><b>在线视频网站弹幕下载和硬解</b><span>把弹幕转换成字幕，保留氛围又能硬解播放。</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="scene-5" class="scene">
+        <div class="final-lockup">
+          <div class="logo-mark">少</div>
+          <div class="eyebrow">YOUR SIGNAL DESK</div>
+          <h2>从一个页面开始今天的工作</h2>
+          <p>少昊导航，给常用入口、资料和记录一个固定坐标。</p>
+          <div class="cta">访问 845864204.xyz</div>
+        </div>
+      </section>
+
+      <div class="wipe" data-layout-ignore></div>
+      <div class="progress" data-layout-ignore><div class="progress-bar"></div></div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+
+      const tl = gsap.timeline({ paused: true });
+      const scenes = ["#scene-1", "#scene-2", "#scene-3", "#scene-4", "#scene-5"];
+
+      function addFromTo(selector, fromVars, toVars, at) {
+        if (document.querySelector(selector)) {
+          tl.fromTo(selector, fromVars, toVars, at);
+        }
+      }
+
+      function addTo(selector, vars, at) {
+        if (document.querySelector(selector)) {
+          tl.to(selector, vars, at);
+        }
+      }
+
+      function enterScene(selector, start, options = {}) {
+        const root = document.querySelector(selector);
+        const els = root.querySelectorAll(".eyebrow, h1, h2, p, .cta, .panel, .site-card, .work-row, .blog-card, .logo-mark");
+
+        tl.set(selector, { autoAlpha: 1 }, start);
+        addFromTo(`${selector} .eyebrow`, { opacity: 0, y: 34 }, { opacity: 1, y: 0, duration: 0.52, ease: "power3.out" }, start + 0.18);
+        addFromTo(`${selector} h1, ${selector} h2`, { opacity: 0, y: 58, scale: 0.98 }, { opacity: 1, y: 0, scale: 1, duration: 0.72, ease: "expo.out" }, start + 0.34);
+        addFromTo(`${selector} p`, { opacity: 0, y: 38 }, { opacity: 1, y: 0, duration: 0.58, ease: "sine.out" }, start + 0.68);
+        addFromTo(`${selector} .cta`, { opacity: 0, y: 28, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.48, ease: "back.out(1.5)" }, start + 0.92);
+        addFromTo(`${selector} .panel, ${selector} .card-grid, ${selector} .blog-stack`, { opacity: 0, x: 64, scale: 0.98 }, { opacity: 1, x: 0, scale: 1, duration: 0.78, ease: "power4.out" }, start + 0.48);
+        addFromTo(`${selector} .site-card, ${selector} .work-row, ${selector} .blog-card, ${selector} .theme-tile, ${selector} .stat`, { opacity: 0, y: 34 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out", stagger: 0.08 }, start + 0.78);
+        addFromTo(`${selector} .logo-mark`, { opacity: 0, scale: 0.72, rotation: -6 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.74, ease: "back.out(1.7)" }, start + 0.18);
+
+        if (options.float) {
+          addTo(`${selector} .panel, ${selector} .card-grid, ${selector} .blog-stack`, { y: -10, duration: 1.5, ease: "sine.inOut", yoyo: true, repeat: 1 }, start + 1.3);
+          addTo(`${selector} .site-card, ${selector} .work-row, ${selector} .blog-card`, { y: -8, duration: 1.1, ease: "sine.inOut", yoyo: true, repeat: 1, stagger: 0.07 }, start + 1.5);
+        }
+
+        tl.set(els, { clearProps: "transform" }, start + 3.72);
+      }
+
+      function transition(at, nextScene) {
+        tl.to(".wipe", { opacity: 0.92, duration: 0.16, ease: "power4.in", overwrite: "auto" }, at);
+        tl.set(scenes.filter((scene) => scene !== nextScene).join(","), { autoAlpha: 0 }, at + 0.17);
+        tl.to(".wipe", { opacity: 0, duration: 0.26, ease: "power3.out", overwrite: "auto" }, at + 0.18);
+      }
+
+      enterScene("#scene-1", 0, { float: true });
+      transition(3.78, "#scene-2");
+      enterScene("#scene-2", 4, { float: true });
+      transition(7.78, "#scene-3");
+      enterScene("#scene-3", 8, { float: true });
+      transition(11.78, "#scene-4");
+      enterScene("#scene-4", 12, { float: true });
+      transition(15.78, "#scene-5");
+      enterScene("#scene-5", 16, { float: false });
+
+      tl.fromTo(".background", { scale: 1 }, { scale: 1.04, duration: 20, ease: "none" }, 0);
+      tl.fromTo(".grid", { opacity: 0.14 }, { opacity: 0.32, duration: 20, ease: "sine.inOut" }, 0);
+      tl.fromTo(".progress-bar", { scaleX: 0 }, { scaleX: 1, duration: 20, ease: "none" }, 0);
+      tl.to("#scene-5", { autoAlpha: 0, duration: 0.5, ease: "sine.inOut" }, 19.45);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
