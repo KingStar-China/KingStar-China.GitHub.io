@@ -1,5 +1,17 @@
 export const sites = [
   {
+    "id": "site-1779329382016",
+    "name": "Codex 重置雷达",
+    "url": "https://codex-reset-radar.pages.dev/",
+    "category": "AI",
+    "tags": [],
+    "icon": "https://codex-reset-radar.pages.dev/favicon.ico",
+    "description": "在 Tibo 踩下重置键之前，把 Token 蹬完！十几个小时的速蹬窗口，最多可以蹬出额外 2000 美元的价值！",
+    "aliases": [
+      "codex-reset-radar.pages.dev"
+    ]
+  },
+  {
     "id": "site-1778156484942",
     "name": "HF抱抱脸",
     "url": "https://huggingface.co/",
@@ -204,7 +216,9 @@ export const sites = [
     "icon": "icon/wushunyinyuexiazai.png",
     "description": "酷我、网易云音乐解析下载",
     "aliases": [
-      "wsyyxz"
+      "wsyyxz",
+      "flac.music.hi.cn",
+      "wusunyinyuexiazai"
     ]
   },
   {
