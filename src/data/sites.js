@@ -5,7 +5,7 @@ export const sites = [
     "url": "https://codex-reset-radar.pages.dev/",
     "category": "AI",
     "tags": [],
-    "icon": "https://codex-reset-radar.pages.dev/favicon.ico",
+    "icon": "https://codex-reset-radar.pages.dev/assets/codex-logo.svg",
     "description": "在 Tibo 踩下重置键之前，把 Token 蹬完！十几个小时的速蹬窗口，最多可以蹬出额外 2000 美元的价值！",
     "aliases": [
       "codex-reset-radar.pages.dev"
