@@ -10,7 +10,8 @@ export const sites = [
     "icon": "https://mail.qq.com/zh_CN/htmledition/images/favicon/qqmail_favicon_96h.png",
     "description": "QQ邮箱，常联系！到头来，我们记住的，不是敌人的攻击，而是朋友的沉默。——马丁·路德·金",
     "aliases": [
-      "wx.mail.qq.com"
+      "wx.mail.qq.com",
+      "qqyx"
     ]
   },
   {
