@@ -32,6 +32,45 @@ npm test
 - 搜索匹配和评分逻辑
 - RSS、sitemap、robots.txt 生成
 
+## Supabase 云端同步
+
+项目支持可选的 Supabase 同步。未配置时仍然使用浏览器本地存储；配置后可以在首页“个人工作台”的“云端同步”卡片里登录，同步收藏、最近访问、快速便签和待办。
+
+### 1. 创建 Supabase 项目
+
+在 Supabase 新建项目后，到 SQL Editor 执行：
+
+```sql
+-- 文件位置：supabase/nav_user_state.sql
+```
+
+也可以直接复制 [`supabase/nav_user_state.sql`](./supabase/nav_user_state.sql) 的全部内容执行。
+
+### 2. 配置前端环境变量
+
+复制示例环境变量：
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+把 `.env.local` 改成自己的 Supabase 信息：
+
+```bash
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+这两个值在 Supabase 项目的 `Project Settings -> API` 里可以找到。只填写 `anon public` key，不要把 `service_role` key 放进前端项目。
+
+### 3. 本地验证
+
+```bash
+npm run dev
+```
+
+打开首页底部“个人工作台”的“云端同步”卡片，先注册或登录。Supabase 如果开启邮箱确认，需要先完成邮件确认后再登录。
+
 ## 构建发布
 
 ```bash
