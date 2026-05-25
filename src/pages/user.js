@@ -131,12 +131,41 @@ function renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrd
         </datalist>
         <input class="workbench-input" data-user-site-field="tags" value="${escapeHTML(state.userSiteDraft.tags)}" placeholder="标签，用逗号分隔" ${disabled}>
         <input class="workbench-input user-site-form__description" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="一句话说明" ${disabled}>
-        <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>${isEditing ? "保存修改" : "添加站点"}</button>
-        ${isEditing ? `<button type="button" class="inline-reset user-site-form__cancel" data-action="cancel-edit-user-site" ${disabled}>取消编辑</button>` : ""}
+        <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>添加站点</button>
       </div>
       <p class="workbench-helper">自定义站点只保存到你的账号，不会写入全站公共导航。</p>
       ${state.userSites.length > 0 ? renderUserSitesList({ state, escapeHTML, renderSiteCard }) : '<div class="workbench-empty">还没有自定义站点。</div>'}
+      ${isEditing ? renderUserSiteEditModal({ state, escapeHTML, disabled }) : ""}
     </section>
+  `;
+}
+
+function renderUserSiteEditModal({ state, escapeHTML, disabled }) {
+  return `
+    <div class="user-site-modal" role="dialog" aria-modal="true" aria-labelledby="user-site-edit-title">
+      <button type="button" class="user-site-modal__backdrop" data-action="cancel-edit-user-site" aria-label="关闭编辑"></button>
+      <article class="panel user-site-modal__card">
+        <div class="user-site-modal__head">
+          <div>
+            <p class="section-head__eyebrow">EDIT SITE</p>
+            <h2 id="user-site-edit-title">编辑自定义站点</h2>
+          </div>
+          <button type="button" class="user-site-modal__close" data-action="cancel-edit-user-site" aria-label="关闭编辑">×</button>
+        </div>
+        <div class="user-site-edit-form">
+          <input class="workbench-input" data-user-site-field="name" value="${escapeHTML(state.userSiteDraft.name)}" placeholder="站点名称" ${disabled}>
+          <input class="workbench-input" data-user-site-field="url" value="${escapeHTML(state.userSiteDraft.url)}" placeholder="https://example.com" ${disabled}>
+          <input class="workbench-input" data-user-site-field="icon" value="${escapeHTML(state.userSiteDraft.icon)}" placeholder="图标地址（可选）" ${disabled}>
+          <input class="workbench-input" data-user-site-field="category" value="${escapeHTML(state.userSiteDraft.category)}" placeholder="分类" list="user-site-category-options" ${disabled}>
+          <input class="workbench-input" data-user-site-field="tags" value="${escapeHTML(state.userSiteDraft.tags)}" placeholder="标签，用逗号分隔" ${disabled}>
+          <input class="workbench-input user-site-edit-form__wide" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="一句话说明" ${disabled}>
+        </div>
+        <div class="user-site-modal__actions">
+          <button type="button" class="inline-reset" data-action="cancel-edit-user-site" ${disabled}>取消</button>
+          <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>保存修改</button>
+        </div>
+      </article>
+    </div>
   `;
 }
 
