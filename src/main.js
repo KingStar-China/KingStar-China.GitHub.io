@@ -283,6 +283,12 @@ function handleInput(event) {
     return;
   }
 
+  if (event.target.matches("[data-user-site-category-select]")) {
+    state.userSiteDraft.category = event.target.value;
+    render();
+    return;
+  }
+
   const userSiteField = event.target.closest("[data-user-site-field]");
   if (userSiteField) {
     const field = userSiteField.dataset.userSiteField;

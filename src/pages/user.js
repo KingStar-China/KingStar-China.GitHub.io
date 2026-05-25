@@ -125,22 +125,19 @@ function renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrd
         <input class="workbench-input" data-user-site-field="name" value="${escapeHTML(state.userSiteDraft.name)}" placeholder="站点名称" ${disabled}>
         <input class="workbench-input" data-user-site-field="url" value="${escapeHTML(state.userSiteDraft.url)}" placeholder="https://example.com" ${disabled}>
         <input class="workbench-input user-site-form__icon" data-user-site-field="icon" value="${escapeHTML(state.userSiteDraft.icon)}" placeholder="图标地址（可选）" ${disabled}>
-        <input class="workbench-input" data-user-site-field="category" value="${escapeHTML(state.userSiteDraft.category)}" placeholder="分类" list="user-site-category-options" ${disabled}>
-        <datalist id="user-site-category-options">
-          ${categoryOptions.map((category) => `<option value="${escapeHTML(category)}"></option>`).join("")}
-        </datalist>
+        ${renderCategoryControl({ value: state.userSiteDraft.category, categoryOptions, escapeHTML, disabled })}
         <input class="workbench-input" data-user-site-field="tags" value="${escapeHTML(state.userSiteDraft.tags)}" placeholder="标签，用逗号分隔" ${disabled}>
         <input class="workbench-input user-site-form__description" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="一句话说明" ${disabled}>
         <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>添加站点</button>
       </div>
       <p class="workbench-helper">自定义站点只保存到你的账号，不会写入全站公共导航。</p>
       ${state.userSites.length > 0 ? renderUserSitesList({ state, escapeHTML, renderSiteCard }) : '<div class="workbench-empty">还没有自定义站点。</div>'}
-      ${isEditing ? renderUserSiteEditModal({ state, escapeHTML, disabled }) : ""}
+      ${isEditing ? renderUserSiteEditModal({ state, escapeHTML, categoryOptions, disabled }) : ""}
     </section>
   `;
 }
 
-function renderUserSiteEditModal({ state, escapeHTML, disabled }) {
+function renderUserSiteEditModal({ state, escapeHTML, categoryOptions, disabled }) {
   return `
     <div class="user-site-modal" role="dialog" aria-modal="true" aria-labelledby="user-site-edit-title">
       <button type="button" class="user-site-modal__backdrop" data-action="cancel-edit-user-site" aria-label="关闭编辑"></button>
@@ -156,7 +153,7 @@ function renderUserSiteEditModal({ state, escapeHTML, disabled }) {
           <input class="workbench-input" data-user-site-field="name" value="${escapeHTML(state.userSiteDraft.name)}" placeholder="站点名称" ${disabled}>
           <input class="workbench-input" data-user-site-field="url" value="${escapeHTML(state.userSiteDraft.url)}" placeholder="https://example.com" ${disabled}>
           <input class="workbench-input" data-user-site-field="icon" value="${escapeHTML(state.userSiteDraft.icon)}" placeholder="图标地址（可选）" ${disabled}>
-          <input class="workbench-input" data-user-site-field="category" value="${escapeHTML(state.userSiteDraft.category)}" placeholder="分类" list="user-site-category-options" ${disabled}>
+          ${renderCategoryControl({ value: state.userSiteDraft.category, categoryOptions, escapeHTML, disabled })}
           <input class="workbench-input" data-user-site-field="tags" value="${escapeHTML(state.userSiteDraft.tags)}" placeholder="标签，用逗号分隔" ${disabled}>
           <input class="workbench-input user-site-edit-form__wide" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="一句话说明" ${disabled}>
         </div>
@@ -165,6 +162,18 @@ function renderUserSiteEditModal({ state, escapeHTML, disabled }) {
           <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>保存修改</button>
         </div>
       </article>
+    </div>
+  `;
+}
+
+function renderCategoryControl({ value, categoryOptions, escapeHTML, disabled }) {
+  return `
+    <div class="user-site-category-control">
+      <input class="workbench-input" data-user-site-field="category" value="${escapeHTML(value)}" placeholder="分类" ${disabled}>
+      <select class="workbench-input user-site-category-select" data-user-site-category-select ${disabled}>
+        <option value="">选择分类</option>
+        ${categoryOptions.map((category) => `<option value="${escapeHTML(category)}"${category === value ? " selected" : ""}>${escapeHTML(category)}</option>`).join("")}
+      </select>
     </div>
   `;
 }
