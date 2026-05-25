@@ -3196,11 +3196,6 @@ a {
   grid-column: span 2;
 }
 
-.user-site-form__cancel {
-  align-self: center;
-  justify-self: start;
-}
-
 .user-site-list {
   display: grid;
   gap: 18px;
@@ -3209,6 +3204,69 @@ a {
 
 .user-site-category {
   padding: 18px;
+}
+
+.user-site-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.user-site-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(2, 8, 14, 0.62);
+  backdrop-filter: blur(16px);
+}
+
+.user-site-modal__card {
+  position: relative;
+  z-index: 1;
+  width: min(760px, 100%);
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.user-site-modal__head,
+.user-site-modal__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.user-site-modal__head h2 {
+  margin: 0;
+  color: var(--heading);
+}
+
+.user-site-modal__close {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--heading);
+  font-size: 1.4rem;
+}
+
+.user-site-edit-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.user-site-edit-form__wide {
+  grid-column: 1 / -1;
+}
+
+.user-site-modal__actions {
+  justify-content: end;
 }
 
 .workbench-input,
