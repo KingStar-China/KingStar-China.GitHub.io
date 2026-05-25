@@ -123,13 +123,21 @@ function renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrd
         <span class="section-count">${state.userSites.length}</span>
       </div>
       <div class="user-site-form">
-        ${renderUrlControl({ value: state.userSiteDraft.url, escapeHTML, disabled })}
-        <input class="workbench-input" data-user-site-field="name" value="${escapeHTML(state.userSiteDraft.name)}" placeholder="站点名称" ${disabled}>
-        <input class="workbench-input user-site-form__icon" data-user-site-field="icon" value="${escapeHTML(state.userSiteDraft.icon)}" placeholder="图标地址（可选）" ${disabled}>
-        ${renderCategoryControl({ value: state.userSiteDraft.category, categoryOptions, escapeHTML, disabled })}
-        ${renderTagControl({ value: state.userSiteDraft.tags, tagOptions, escapeHTML, disabled })}
-        <input class="workbench-input user-site-form__description" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="说明（可选）" ${disabled}>
-        <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>添加站点</button>
+        <div class="user-site-form__row user-site-form__row--url">
+          ${renderUrlControl({ value: state.userSiteDraft.url, escapeHTML, disabled })}
+        </div>
+        <div class="user-site-form__row user-site-form__row--details">
+          <input class="workbench-input" data-user-site-field="name" value="${escapeHTML(state.userSiteDraft.name)}" placeholder="站点名称" ${disabled}>
+          <input class="workbench-input" data-user-site-field="icon" value="${escapeHTML(state.userSiteDraft.icon)}" placeholder="图标地址（可选）" ${disabled}>
+        </div>
+        <div class="user-site-form__row user-site-form__row--meta">
+          ${renderCategoryControl({ value: state.userSiteDraft.category, categoryOptions, escapeHTML, disabled })}
+          ${renderTagControl({ value: state.userSiteDraft.tags, tagOptions, escapeHTML, disabled })}
+        </div>
+        <div class="user-site-form__row user-site-form__row--submit">
+          <input class="workbench-input" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="说明（可选）" ${disabled}>
+          <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>添加站点</button>
+        </div>
       </div>
       <p class="workbench-helper">自定义站点只保存到你的账号，不会写入全站公共导航。</p>
       ${state.userSites.length > 0 ? renderUserSitesList({ state, escapeHTML, renderSiteCard }) : '<div class="workbench-empty">还没有自定义站点。</div>'}

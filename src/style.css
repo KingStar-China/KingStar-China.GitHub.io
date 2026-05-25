@@ -3187,20 +3187,28 @@ a {
 
 .user-site-form {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  gap: 12px;
+}
+
+.user-site-form__row {
+  display: grid;
   gap: 10px;
 }
 
-.user-site-form__icon,
-.user-site-form__description {
-  grid-column: span 2;
+.user-site-form__row--details,
+.user-site-form__row--meta {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.user-site-form__row--submit {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
 }
 
 .user-site-url-control {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
-  grid-column: span 2;
 }
 
 .user-site-identify-button {
@@ -3465,9 +3473,13 @@ a {
     grid-template-columns: 1fr;
   }
 
-  .user-site-form__icon,
-  .user-site-form__description {
-    grid-column: auto;
+  .user-site-form__row--details,
+  .user-site-form__row--meta,
+  .user-site-form__row--submit,
+  .user-site-url-control,
+  .user-site-category-control,
+  .user-site-tag-control {
+    grid-template-columns: 1fr;
   }
 }
 
