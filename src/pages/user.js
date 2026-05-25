@@ -7,7 +7,7 @@ export function renderUserStats({ state, createStatCard }) {
   ].join("");
 }
 
-export function renderUserPage({ state, escapeHTML, getHost, renderSiteCard, categoryOrder }) {
+export function renderUserPage({ state, escapeHTML, getHost, renderSiteCard, categoryOrder, allSites }) {
   if (!state.sync.signedIn) {
     return renderSignedOutUserPage({ state, escapeHTML });
   }
@@ -27,7 +27,7 @@ export function renderUserPage({ state, escapeHTML, getHost, renderSiteCard, cat
       </div>
       ${renderUserOverview({ state })}
       ${renderAccountSyncPanel({ state, escapeHTML })}
-      ${renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrder })}
+      ${renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrder, allSites })}
     </section>
   `;
 }
@@ -107,10 +107,10 @@ function renderAccountSyncPanel({ state, escapeHTML }) {
   `;
 }
 
-function renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrder }) {
+function renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrder, allSites }) {
   const disabled = state.sync.busy ? "disabled" : "";
   const categoryOptions = getUserSiteCategories(categoryOrder, state.userSites);
-  const tagOptions = getUserSiteTags(state.userSites);
+  const tagOptions = getUserSiteTags(allSites);
   const isEditing = Boolean(state.userSiteEditingId);
 
   return `
@@ -123,8 +123,8 @@ function renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrd
         <span class="section-count">${state.userSites.length}</span>
       </div>
       <div class="user-site-form">
+        ${renderUrlControl({ value: state.userSiteDraft.url, escapeHTML, disabled })}
         <input class="workbench-input" data-user-site-field="name" value="${escapeHTML(state.userSiteDraft.name)}" placeholder="站点名称" ${disabled}>
-        <input class="workbench-input" data-user-site-field="url" value="${escapeHTML(state.userSiteDraft.url)}" placeholder="https://example.com" ${disabled}>
         <input class="workbench-input user-site-form__icon" data-user-site-field="icon" value="${escapeHTML(state.userSiteDraft.icon)}" placeholder="图标地址（可选）" ${disabled}>
         ${renderCategoryControl({ value: state.userSiteDraft.category, categoryOptions, escapeHTML, disabled })}
         ${renderTagControl({ value: state.userSiteDraft.tags, tagOptions, escapeHTML, disabled })}
@@ -151,8 +151,8 @@ function renderUserSiteEditModal({ state, escapeHTML, categoryOptions, tagOption
           <button type="button" class="user-site-modal__close" data-action="cancel-edit-user-site" aria-label="关闭编辑">×</button>
         </div>
         <div class="user-site-edit-form">
+          ${renderUrlControl({ value: state.userSiteDraft.url, escapeHTML, disabled })}
           <input class="workbench-input" data-user-site-field="name" value="${escapeHTML(state.userSiteDraft.name)}" placeholder="站点名称" ${disabled}>
-          <input class="workbench-input" data-user-site-field="url" value="${escapeHTML(state.userSiteDraft.url)}" placeholder="https://example.com" ${disabled}>
           <input class="workbench-input" data-user-site-field="icon" value="${escapeHTML(state.userSiteDraft.icon)}" placeholder="图标地址（可选）" ${disabled}>
           ${renderCategoryControl({ value: state.userSiteDraft.category, categoryOptions, escapeHTML, disabled })}
           ${renderTagControl({ value: state.userSiteDraft.tags, tagOptions, escapeHTML, disabled })}
@@ -163,6 +163,15 @@ function renderUserSiteEditModal({ state, escapeHTML, categoryOptions, tagOption
           <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>保存修改</button>
         </div>
       </article>
+    </div>
+  `;
+}
+
+function renderUrlControl({ value, escapeHTML, disabled }) {
+  return `
+    <div class="user-site-url-control">
+      <input class="workbench-input" data-user-site-field="url" value="${escapeHTML(value)}" placeholder="https://example.com" ${disabled}>
+      <button type="button" class="workbench-button user-site-identify-button" data-action="identify-user-site" ${disabled}>一键识别</button>
     </div>
   `;
 }
@@ -213,7 +222,7 @@ function getUserSiteCategories(categoryOrder, sites) {
 
 function getUserSiteTags(sites) {
   const seen = new Set();
-  return sites
+  return (Array.isArray(sites) ? sites : [])
     .flatMap((site) => Array.isArray(site.tags) ? site.tags : [])
     .map((tag) => String(tag || "").trim())
     .filter((tag) => {

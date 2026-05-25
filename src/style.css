@@ -3196,10 +3196,21 @@ a {
   grid-column: span 2;
 }
 
+.user-site-url-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  grid-column: span 2;
+}
+
+.user-site-identify-button {
+  white-space: nowrap;
+}
+
 .user-site-category-control,
 .user-site-tag-control {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(130px, 0.58fr);
+  grid-template-columns: minmax(180px, 1.25fr) minmax(180px, 0.75fr);
   gap: 10px;
 }
 
@@ -3274,6 +3285,10 @@ a {
 }
 
 .user-site-edit-form__wide {
+  grid-column: 1 / -1;
+}
+
+.user-site-edit-form .user-site-url-control {
   grid-column: 1 / -1;
 }
 

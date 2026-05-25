@@ -527,6 +527,11 @@ function handleClick(event) {
       return;
     }
 
+    if (action === "identify-user-site") {
+      identifyUserSiteFromUrl();
+      return;
+    }
+
     if (action === "edit-user-site" && siteId) {
       startEditingUserSite(siteId);
       return;
@@ -1276,7 +1281,7 @@ function renderContent() {
 }
 
 function renderUserPage() {
-  return renderUserPageView({ state, escapeHTML, getHost, renderSiteCard, categoryOrder });
+  return renderUserPageView({ state, escapeHTML, getHost, renderSiteCard, categoryOrder, allSites: sites });
 }
 
 function renderWorkbench() {
@@ -2974,7 +2979,7 @@ function startEditingUserSite(siteId) {
     icon: site.icon || "",
     category: site.category,
     tags: Array.isArray(site.tags) ? site.tags.join("，") : "",
-    description: site.description || "",
+    description: getEditableUserSiteDescription(site.description),
   };
   setSyncMessage("正在编辑自定义站点，保存后会更新原记录。");
   render();
@@ -2998,6 +3003,80 @@ function appendUserSiteDraftTag(tag) {
     .filter(Boolean);
   const hasTag = tags.some((item) => item.toLocaleLowerCase() === normalizedTag.toLocaleLowerCase());
   state.userSiteDraft.tags = (hasTag ? tags : [...tags, normalizedTag]).join("，");
+}
+
+function identifyUserSiteFromUrl() {
+  const url = normalizeUserInputUrl(state.userSiteDraft.url);
+  if (!url) {
+    setSyncMessage("请先填写有效网址。");
+    render();
+    return;
+  }
+
+  const parsedUrl = new URL(url);
+  const matchedSite = findKnownSiteByUrl(parsedUrl.href, state.userSiteEditingId);
+  state.userSiteDraft.url = parsedUrl.href;
+
+  if (matchedSite) {
+    state.userSiteDraft.name = matchedSite.name || state.userSiteDraft.name;
+    state.userSiteDraft.icon = matchedSite.icon || state.userSiteDraft.icon;
+    state.userSiteDraft.category = matchedSite.category || state.userSiteDraft.category;
+    state.userSiteDraft.tags = Array.isArray(matchedSite.tags) ? matchedSite.tags.join("，") : state.userSiteDraft.tags;
+    state.userSiteDraft.description = matchedSite.description || "";
+    setSyncMessage("已从前台站点库识别并填充信息。");
+    render();
+    return;
+  }
+
+  state.userSiteDraft.name = inferNameFromHost(parsedUrl.hostname);
+  state.userSiteDraft.icon = `${parsedUrl.origin}/favicon.ico`;
+  setSyncMessage("已根据网址填充站点名和图标建议。");
+  render();
+}
+
+function findKnownSiteByUrl(url, editingSiteId = "") {
+  const normalizedUrl = normalizeUserInputUrl(url);
+  const host = getComparableHost(normalizedUrl);
+  return sites.find((site) => {
+    if (site.id === editingSiteId) {
+      return false;
+    }
+
+    const siteUrl = normalizeUserInputUrl(site.url);
+    return siteUrl === normalizedUrl || getComparableHost(siteUrl) === host;
+  });
+}
+
+function getComparableHost(value) {
+  try {
+    return new URL(value).hostname.replace(/^www\./i, "").toLocaleLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function normalizeUserInputUrl(value) {
+  try {
+    const rawValue = String(value || "").trim();
+    if (!rawValue) {
+      return "";
+    }
+
+    const url = new URL(/^https?:\/\//i.test(rawValue) ? rawValue : `https://${rawValue}`);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
+function inferNameFromHost(hostname) {
+  const hostParts = String(hostname || "").replace(/^www\./i, "").split(".");
+  return hostParts[0] || hostname;
+}
+
+function getEditableUserSiteDescription(description) {
+  const value = String(description || "").trim();
+  return value === "我的自定义站点" ? "" : value;
 }
 
 function resetUserSiteDraft() {
