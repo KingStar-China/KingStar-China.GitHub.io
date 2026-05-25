@@ -3196,13 +3196,15 @@ a {
   grid-column: span 2;
 }
 
-.user-site-category-control {
+.user-site-category-control,
+.user-site-tag-control {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(130px, 0.58fr);
   gap: 10px;
 }
 
-.user-site-category-select {
+.user-site-category-select,
+.user-site-tag-select {
   cursor: pointer;
 }
 
