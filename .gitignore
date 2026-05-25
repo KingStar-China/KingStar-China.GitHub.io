@@ -7,4 +7,6 @@ dist/
 .preview.err.log
 .admin.log
 .admin.err.log
+admin-server.log
+admin-server.err.log
 
