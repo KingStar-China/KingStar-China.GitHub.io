@@ -3288,16 +3288,7 @@ a {
 
 .user-site-edit-form {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.user-site-edit-form__wide {
-  grid-column: 1 / -1;
-}
-
-.user-site-edit-form .user-site-url-control {
-  grid-column: 1 / -1;
+  gap: 12px;
 }
 
 .user-site-modal__actions {
