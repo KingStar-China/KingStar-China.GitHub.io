@@ -3022,10 +3022,10 @@ a {
 
 .user-login-card {
   position: relative;
-  width: min(430px, 100%);
+  width: min(520px, 100%);
   display: grid;
-  gap: 18px;
-  padding: 32px;
+  gap: 20px;
+  padding: 34px 36px 30px;
   border-radius: 18px;
   border-color: rgba(143, 231, 223, 0.14);
   background:
@@ -3052,9 +3052,8 @@ a {
 }
 
 .user-login-card__head {
-  display: grid;
-  gap: 8px;
-  padding-right: 46px;
+  padding: 0 46px 2px;
+  text-align: center;
 }
 
 .user-login-card__head h2,
@@ -3063,35 +3062,44 @@ a {
 }
 
 .user-login-card__head h2 {
-  font-size: 2rem;
+  font-size: 2.2rem;
   line-height: 1.12;
 }
 
 .user-login-card__form {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 16px;
 }
 
-.user-login-card__actions {
-  justify-content: flex-start;
-  gap: 12px;
-  align-items: center;
+.user-login-field {
+  display: grid;
+  gap: 8px;
+}
+
+.user-login-field span {
+  color: var(--heading);
+  font-size: 0.98rem;
+  font-weight: 700;
 }
 
 .user-login-card .workbench-input {
-  min-height: 54px;
+  min-height: 56px;
   border-radius: 14px;
   background: rgba(5, 17, 24, 0.92);
   font-size: 1rem;
 }
 
 .user-login-card .workbench-button {
-  min-width: 112px;
-  min-height: 52px;
+  min-height: 56px;
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(15, 118, 110, 0.96), rgba(20, 128, 119, 0.82));
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.98), rgba(32, 150, 139, 0.82));
   color: #f8fffe;
+}
+
+.user-login-card__primary {
+  width: 100%;
+  margin-top: 2px;
 }
 
 .user-login-card__status {
@@ -3100,6 +3108,32 @@ a {
   color: var(--muted);
   line-height: 1.6;
   font-size: 0.95rem;
+}
+
+.user-login-card__divider {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  color: var(--muted);
+}
+
+.user-login-card__divider::before,
+.user-login-card__divider::after {
+  content: "";
+  height: 1px;
+  background: var(--border);
+}
+
+.user-login-card__register {
+  margin: 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+.user-login-card__register .inline-reset {
+  color: var(--brand-strong);
+  font-weight: 700;
 }
 
 .user-portal__head {
