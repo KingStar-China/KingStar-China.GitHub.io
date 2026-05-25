@@ -129,7 +129,7 @@ function renderUserSitesManager({ state, escapeHTML, renderSiteCard }) {
         <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>添加站点</button>
       </div>
       <p class="workbench-helper">自定义站点只保存到你的账号，不会写入全站公共导航。</p>
-      ${state.userSites.length > 0 ? renderUserSitesList({ state, renderSiteCard }) : '<div class="workbench-empty">还没有自定义站点。</div>'}
+      ${state.userSites.length > 0 ? renderUserSitesList({ state, escapeHTML, renderSiteCard }) : '<div class="workbench-empty">还没有自定义站点。</div>'}
     </section>
   `;
 }
@@ -138,10 +138,43 @@ function getUserDisplayName(state) {
   return state.sync.userEmail || state.sync.email || "我的账号";
 }
 
-function renderUserSitesList({ state, renderSiteCard }) {
+function renderUserSitesList({ state, escapeHTML, renderSiteCard }) {
+  const groups = groupUserSitesByCategory(state.userSites);
+
   return `
-    <div class="site-grid user-site-list">
-      ${state.userSites.map((site) => renderSiteCard(site)).join("")}
+    <div class="user-site-list">
+      ${groups.map((group) => `
+        <section class="panel category-block user-site-category" data-category-anchor="${escapeHTML(group.title)}">
+          <div class="section-head">
+            <div>
+              <p class="section-head__eyebrow">CUSTOM SITES</p>
+              <h2>${escapeHTML(group.title)}</h2>
+            </div>
+            <span class="section-count">${group.sites.length}</span>
+          </div>
+          <div class="site-grid">
+            ${group.sites.map((site) => renderSiteCard(site)).join("")}
+          </div>
+        </section>
+      `).join("")}
     </div>
   `;
+}
+
+function groupUserSitesByCategory(sites) {
+  const groups = new Map();
+
+  for (const site of sites) {
+    const category = site.category || "个人";
+    if (!groups.has(category)) {
+      groups.set(category, []);
+    }
+
+    groups.get(category).push(site);
+  }
+
+  return [...groups.entries()].map(([title, groupSites]) => ({
+    title,
+    sites: groupSites,
+  }));
 }
