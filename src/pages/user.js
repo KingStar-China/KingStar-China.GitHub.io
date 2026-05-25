@@ -7,47 +7,107 @@ export function renderUserStats({ state, createStatCard }) {
   ].join("");
 }
 
-export function renderUserPage({ state, renderSyncCard, escapeHTML, getHost }) {
+export function renderUserPage({ state, escapeHTML, getHost }) {
+  if (!state.sync.signedIn) {
+    return renderSignedOutUserPage({ state, escapeHTML });
+  }
+
   return `
     <section class="user-portal">
-      <div class="panel user-portal__intro">
-        <p class="section-head__eyebrow">USER CENTER</p>
-        <h2>用户中心</h2>
-        <p>这里管理你的个人账号、个人站点、收藏、待办和云端同步。普通用户的内容只保存到自己的账号，不会改动全站公共导航。</p>
-      </div>
-      <div class="section-head user-portal__head">
+      <div class="panel user-profile">
         <div>
-          <p class="section-head__eyebrow">ACCOUNT</p>
-          <h2>我的账号</h2>
+          <p class="section-head__eyebrow">USER CENTER</p>
+          <h2>${escapeHTML(getUserDisplayName(state))}</h2>
+          <p>你的收藏、最近访问、待办和个人站点会跟随账号同步。</p>
         </div>
-        <a class="inline-reset" href="/admin/">站长后台说明</a>
+        <div class="user-profile__actions">
+          <span class="state-pill">已登录</span>
+          <button type="button" class="inline-reset" data-action="sync-sign-out" ${state.sync.busy ? "disabled" : ""}>退出登录</button>
+        </div>
       </div>
-      <div class="user-portal__grid">
-        ${renderSyncCard()}
-        <article class="panel workbench-card workbench-card--sync">
-          <div class="workbench-card__head">
-            <div>
-              <p class="section-head__eyebrow">ADMIN</p>
-              <h2>站长后台说明</h2>
-            </div>
-            <span class="section-count">/admin</span>
-          </div>
-          <p class="workbench-helper">全站内容管理只在站长本机运行。请在项目目录执行 npm run admin:open，打开 http://127.0.0.1:3214/ 后编辑站点和博客。</p>
-          <div class="sync-actions">
-            <a class="workbench-button" href="/admin/">查看站长后台说明</a>
-          </div>
-        </article>
-      </div>
+      ${renderUserOverview({ state })}
+      ${renderAccountSyncPanel({ state, escapeHTML })}
       ${renderUserSitesManager({ state, escapeHTML, getHost })}
     </section>
   `;
 }
 
+function renderSignedOutUserPage({ state, escapeHTML }) {
+  const disabled = state.sync.busy ? "disabled" : "";
+
+  return `
+    <section class="user-login-page">
+      <article class="panel user-login-card">
+        <div class="user-login-card__head">
+          <p class="section-head__eyebrow">USER CENTER</p>
+          <h2>登录少昊导航</h2>
+          <p>登录后同步收藏、最近访问、待办和你的个人站点。</p>
+        </div>
+        <div class="sync-form user-login-card__form">
+          <input
+            type="email"
+            data-role="sync-email"
+            class="workbench-input"
+            placeholder="邮箱"
+            autocomplete="email"
+            value="${escapeHTML(state.sync.email)}"
+            ${disabled}
+          >
+          <input
+            type="password"
+            data-role="sync-password"
+            class="workbench-input"
+            placeholder="密码"
+            autocomplete="current-password"
+            value="${escapeHTML(state.sync.password)}"
+            ${disabled}
+          >
+        </div>
+        <div class="sync-actions user-login-card__actions">
+          <button type="button" class="workbench-button" data-action="sync-sign-in" ${disabled}>登录</button>
+          <button type="button" class="inline-reset" data-action="sync-sign-up" ${disabled}>注册账号</button>
+        </div>
+        <p class="workbench-helper" data-role="sync-status">${escapeHTML(state.sync.message)}</p>
+      </article>
+    </section>
+  `;
+}
+
+function renderUserOverview({ state }) {
+  const items = [
+    ["我的站点", state.userSites.length],
+    ["收藏", state.favorites.size],
+    ["最近访问", state.recent.length],
+    ["待办", state.workbenchTodos.length],
+  ];
+
+  return `
+    <div class="user-overview">
+      ${items.map(([label, value]) => `
+        <article class="panel user-overview-card">
+          <span>${label}</span>
+          <strong>${value}</strong>
+        </article>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderAccountSyncPanel({ state, escapeHTML }) {
+  return `
+    <article class="panel user-account-panel">
+      <div>
+        <p class="section-head__eyebrow">SYNC</p>
+        <h2>云端同步</h2>
+        <p class="workbench-helper" data-role="sync-status">${escapeHTML(state.sync.message)}</p>
+      </div>
+      <button type="button" class="workbench-button" data-action="sync-now" ${state.sync.busy ? "disabled" : ""}>立即同步</button>
+    </article>
+  `;
+}
+
 function renderUserSitesManager({ state, escapeHTML, getHost }) {
-  const disabled = !state.sync.signedIn || state.sync.busy ? "disabled" : "";
-  const helper = state.sync.signedIn
-    ? "自定义站点只保存到你的 Supabase 账号，不会写入全局站点文件。"
-    : "登录云端同步后，可以添加只属于你的站点。";
+  const disabled = state.sync.busy ? "disabled" : "";
 
   return `
     <section class="user-sites-manager">
@@ -66,10 +126,14 @@ function renderUserSitesManager({ state, escapeHTML, getHost }) {
         <input class="workbench-input user-site-form__description" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="一句话说明" ${disabled}>
         <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>添加站点</button>
       </div>
-      <p class="workbench-helper">${escapeHTML(helper)}</p>
+      <p class="workbench-helper">自定义站点只保存到你的账号，不会写入全站公共导航。</p>
       ${state.userSites.length > 0 ? renderUserSitesList({ state, escapeHTML, getHost }) : '<div class="workbench-empty">还没有自定义站点。</div>'}
     </section>
   `;
+}
+
+function getUserDisplayName(state) {
+  return state.sync.userEmail || state.sync.email || "我的账号";
 }
 
 function renderUserSitesList({ state, escapeHTML, getHost }) {

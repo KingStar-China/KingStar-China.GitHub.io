@@ -1041,7 +1041,7 @@ function renderToolbar() {
         <div class="toolbar__heading toolbar__heading--compact">
           <span class="field-label">ACCOUNT</span>
           <h2>用户中心</h2>
-          <p>普通用户登录后只管理自己的站点、收藏、待办和云端同步；站长后台是本机内容管理器。</p>
+          <p>登录后同步你的收藏、最近访问、待办和个人站点。</p>
         </div>
       </div>
     `;
@@ -1258,7 +1258,7 @@ function renderContent() {
 }
 
 function renderUserPage() {
-  return renderUserPageView({ state, renderSyncCard, escapeHTML, getHost });
+  return renderUserPageView({ state, escapeHTML, getHost });
 }
 
 function renderWorkbench() {
