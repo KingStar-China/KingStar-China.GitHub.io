@@ -128,6 +128,7 @@ const state = {
   userSiteDraft: {
     name: "",
     url: "",
+    icon: "",
     category: "个人",
     tags: "",
     description: "",
@@ -2863,7 +2864,7 @@ async function addUserSite() {
       headers: { Prefer: "return=minimal" },
       body: JSON.stringify(savedSite),
     });
-    state.userSiteDraft = { name: "", url: "", category: "个人", tags: "", description: "" };
+    state.userSiteDraft = { name: "", url: "", icon: "", category: "个人", tags: "", description: "" };
     await loadRemoteUserSites();
     setSyncMessage("自定义站点已添加。");
   } catch (error) {

@@ -3191,6 +3191,7 @@ a {
   gap: 10px;
 }
 
+.user-site-form__icon,
 .user-site-form__description {
   grid-column: span 2;
 }
@@ -3380,6 +3381,7 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .user-site-form__icon,
   .user-site-form__description {
     grid-column: auto;
   }
