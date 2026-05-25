@@ -53,6 +53,7 @@ const STORAGE_KEYS = {
   workbenchNote: "nav-tool.workbench.note",
   workbenchTodos: "nav-tool.workbench.todos",
   personalUpdatedAt: "nav-tool.personal.updatedAt",
+  userSites: "nav-tool.userSites",
   syncSession: "nav-tool.sync.session",
   searchEngine: "nav-tool.search.engine",
 };
@@ -143,6 +144,7 @@ const state = {
     userId: "",
     accessToken: "",
     refreshToken: "",
+    expiresAt: 0,
     saveTimer: 0,
     message: SUPABASE_CONFIG.enabled
       ? "登录后会同步收藏、最近访问、便签和待办。"
@@ -2662,7 +2664,8 @@ async function syncPersonalDataNow() {
   setSyncBusy(true, "正在同步...");
 
   try {
-    await saveRemotePersonalData();
+    await ensureActiveSyncSession();
+    await mergeRemotePersonalData();
     setSyncMessage("已同步到 Supabase。");
   } catch (error) {
     setSyncMessage(`同步失败：${getErrorMessage(error)}`);
@@ -2728,6 +2731,7 @@ function signOutSyncAccount() {
   state.sync.userId = "";
   state.sync.accessToken = "";
   state.sync.refreshToken = "";
+  state.sync.expiresAt = 0;
   state.sync.password = "";
   state.sync.message = "已退出云端同步，本机数据仍保留。";
   render();
@@ -2749,13 +2753,24 @@ async function restoreSyncSession() {
   state.sync.userId = session.userId;
   state.sync.accessToken = session.accessToken;
   state.sync.refreshToken = session.refreshToken;
-  setSyncMessage("正在恢复同步会话...");
+  state.sync.expiresAt = session.expiresAt || 0;
+  const cachedUserSites = loadCachedUserSites(state.sync.userId);
+  state.userSites = cachedUserSites || [];
+  rebuildSiteIndexes();
+  setSyncMessage(cachedUserSites ? "已从本机缓存恢复账号数据。" : "正在恢复同步会话...");
   render();
 
   try {
-    await refreshSyncSession();
-    await mergeRemotePersonalData();
-    setSyncMessage("已恢复云端同步。");
+    if (isSyncSessionExpired()) {
+      await refreshSyncSession();
+    }
+
+    if (!cachedUserSites) {
+      await loadRemoteUserSites();
+      render();
+    }
+
+    setSyncMessage("已恢复登录。本机缓存优先，点立即同步可更新云端数据。");
   } catch (error) {
     signOutSyncAccount();
     setSyncMessage(`同步登录已过期，请重新登录：${getErrorMessage(error)}`);
@@ -2771,6 +2786,7 @@ function applySyncSession(session) {
     email: state.sync.email,
     userId: state.sync.userId,
     refreshToken: state.sync.refreshToken,
+    expiresAt: state.sync.expiresAt,
   }));
 }
 
@@ -2784,6 +2800,16 @@ async function refreshSyncSession() {
   });
   applySyncSession(session);
   persistSyncSession();
+}
+
+async function ensureActiveSyncSession() {
+  if (isSyncSessionExpired()) {
+    await refreshSyncSession();
+  }
+}
+
+function isSyncSessionExpired() {
+  return !state.sync.expiresAt || Date.now() >= state.sync.expiresAt - 60_000;
 }
 
 async function mergeRemotePersonalData() {
@@ -2807,6 +2833,7 @@ async function loadRemoteUserSites() {
     `/rest/v1/user_sites?user_id=eq.${encodeURIComponent(state.sync.userId)}&select=id,name,url,category,tags,icon,description,created_at&order=created_at.desc`,
   );
   state.userSites = Array.isArray(rows) ? rows.map(normalizeRemoteUserSite).filter(Boolean) : [];
+  persistCachedUserSites();
   rebuildSiteIndexes();
 }
 
@@ -2889,6 +2916,7 @@ async function removeUserSite(siteId) {
     state.userSites = state.userSites.filter((site) => site.id !== siteId);
     state.favorites.delete(siteId);
     state.recent = state.recent.filter((id) => id !== siteId);
+    persistCachedUserSites();
     rebuildSiteIndexes();
     saveFavorites();
     saveRecent();
@@ -2923,6 +2951,31 @@ function applyPersonalDataSnapshot(snapshot) {
   localStorage.setItem(STORAGE_KEYS.workbenchNote, data.workbenchNote);
   localStorage.setItem(STORAGE_KEYS.workbenchTodos, JSON.stringify(data.workbenchTodos));
   localStorage.setItem(STORAGE_KEYS.personalUpdatedAt, new Date().toISOString());
+}
+
+function loadCachedUserSites(userId) {
+  try {
+    const value = JSON.parse(localStorage.getItem(STORAGE_KEYS.userSites) || "null");
+    if (!value || value.userId !== userId || !Array.isArray(value.sites)) {
+      return null;
+    }
+
+    return value.sites.map(normalizeRemoteUserSite).filter(Boolean);
+  } catch {
+    return null;
+  }
+}
+
+function persistCachedUserSites() {
+  if (!state.sync.userId) {
+    return;
+  }
+
+  localStorage.setItem(STORAGE_KEYS.userSites, JSON.stringify({
+    userId: state.sync.userId,
+    sites: state.userSites,
+    updatedAt: new Date().toISOString(),
+  }));
 }
 
 async function requestSupabaseAuth(path, body) {
