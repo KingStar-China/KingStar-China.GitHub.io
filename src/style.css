@@ -3022,7 +3022,9 @@ a {
 
 .user-login-card {
   position: relative;
-  width: min(390px, 100%);
+  width: fit-content;
+  min-width: min(390px, 100%);
+  max-width: calc(100vw - 44px);
   display: grid;
   gap: 14px;
   padding: 25px 29px 23px;
@@ -3069,6 +3071,7 @@ a {
   display: grid;
   grid-template-columns: 1fr;
   gap: 12px;
+  min-width: 390px;
 }
 
 .user-login-field {
@@ -3113,6 +3116,7 @@ a {
   line-height: 1.5;
   font-size: 0.84rem;
   text-align: center;
+  white-space: nowrap;
   transition: color 0.18s ease;
 }
 
@@ -3517,6 +3521,14 @@ a {
   .user-site-form,
   .sync-form {
     grid-template-columns: 1fr;
+  }
+
+  .user-login-card__form {
+    min-width: 0;
+  }
+
+  .user-login-card__status {
+    white-space: normal;
   }
 
   .user-site-form__row--details,
