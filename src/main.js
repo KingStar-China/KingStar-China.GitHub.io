@@ -781,7 +781,7 @@ function renderSectionTabs() {
   const items = [
     { value: "nav", label: "导航" },
     { value: "blog-list", label: "博客" },
-    { value: "user", label: "登录" },
+    { value: "user", label: "用户" },
   ];
 
   return items
@@ -819,8 +819,8 @@ function renderUserStats() {
   return [
     createStatCard("账号状态", state.sync.signedIn ? "已登录" : "未登录"),
     createStatCard("我的站点", String(state.userSites.length)),
-    createStatCard("云端同步", state.sync.enabled ? "可用" : "本地"),
-    createStatCard("站长后台", "本机"),
+    createStatCard("同步状态", state.sync.enabled ? "可用" : "本地"),
+    createStatCard("权限范围", "个人"),
   ].join("");
 }
 
@@ -1260,9 +1260,14 @@ function renderContent() {
 function renderUserPage() {
   return `
     <section class="user-portal">
+      <div class="panel user-portal__intro">
+        <p class="section-head__eyebrow">USER CENTER</p>
+        <h2>用户中心</h2>
+        <p>这里管理你的个人账号、个人站点、收藏、待办和云端同步。普通用户的内容只保存到自己的账号，不会改动全站公共导航。</p>
+      </div>
       <div class="section-head user-portal__head">
         <div>
-          <p class="section-head__eyebrow">USER CENTER</p>
+          <p class="section-head__eyebrow">ACCOUNT</p>
           <h2>我的账号</h2>
         </div>
         <a class="inline-reset" href="/admin/">站长后台说明</a>
@@ -2499,7 +2504,7 @@ function getHost(url) {
 
 function buildSummary() {
   if (state.section === "user") {
-    return state.sync.signedIn ? "账号中心：管理云端同步和你的自定义站点。" : "登录：注册或登录账号后同步收藏、待办和自定义站点。";
+    return state.sync.signedIn ? "用户中心：管理云端同步和你的自定义站点。" : "用户中心：登录后同步收藏、待办和自定义站点。";
   }
 
   if (state.section === "blog-list") {
@@ -3626,7 +3631,7 @@ function buildPageTitle() {
   }
 
   if (state.section === "user") {
-    return `登录 | ${siteMeta.name}`;
+    return `用户中心 | ${siteMeta.name}`;
   }
 
   if (state.query || state.category !== "all" || state.tag !== "all" || state.view !== "all") {
@@ -3651,7 +3656,7 @@ function buildPageDescription() {
   }
 
   if (state.section === "user") {
-    return "注册或登录账号，管理云端同步和个人自定义站点。";
+    return "用户中心用于管理个人账号、云端同步和自定义站点。";
   }
 
   return siteMeta.description;

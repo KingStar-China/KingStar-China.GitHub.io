@@ -3011,6 +3011,22 @@ a {
   align-items: center;
 }
 
+.user-portal__intro {
+  display: grid;
+  gap: 8px;
+}
+
+.user-portal__intro h2,
+.user-portal__intro p {
+  margin: 0;
+}
+
+.user-portal__intro p:not(.section-head__eyebrow) {
+  max-width: 760px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
 .user-portal__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
