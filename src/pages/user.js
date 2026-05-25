@@ -34,6 +34,10 @@ export function renderUserPage({ state, escapeHTML, getHost, renderSiteCard, cat
 
 function renderSignedOutUserPage({ state, escapeHTML }) {
   const disabled = state.sync.busy ? "disabled" : "";
+  const isSigningIn = state.sync.busy && state.sync.authMode === "sign-in";
+  const isSigningUp = state.sync.busy && state.sync.authMode === "sign-up";
+  const signInLabel = isSigningIn ? "登录中..." : "登录";
+  const signUpLabel = isSigningUp ? "注册中..." : "立即注册";
 
   return `
     <section class="user-login-page">
@@ -68,11 +72,11 @@ function renderSignedOutUserPage({ state, escapeHTML }) {
               ${disabled}
             >
           </label>
-          <button type="button" class="workbench-button user-login-card__primary" data-action="sync-sign-in" ${disabled}>登录</button>
+          <button type="button" class="workbench-button user-login-card__primary" data-action="sync-sign-in" ${disabled}>${signInLabel}</button>
         </div>
-        <p class="user-login-card__status" data-role="sync-status">${escapeHTML(state.sync.message)}</p>
+        <p class="user-login-card__status${state.sync.busy ? " is-busy" : ""}" data-role="sync-status">${escapeHTML(state.sync.message)}</p>
         <div class="user-login-card__divider"><span>或</span></div>
-        <p class="user-login-card__register">还没有账号？ <button type="button" class="inline-reset" data-action="sync-sign-up" ${disabled}>立即注册</button></p>
+        <p class="user-login-card__register">还没有账号？ <button type="button" class="inline-reset" data-action="sync-sign-up" ${disabled}>${signUpLabel}</button></p>
       </article>
     </section>
   `;

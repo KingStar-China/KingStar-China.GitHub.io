@@ -139,6 +139,7 @@ const state = {
     enabled: SUPABASE_CONFIG.enabled,
     signedIn: false,
     busy: false,
+    authMode: "",
     email: "",
     password: "",
     userEmail: "",
@@ -2732,7 +2733,8 @@ async function submitSyncAuth(mode) {
     return;
   }
 
-  setSyncBusy(true, mode === "sign-up" ? "正在注册..." : "正在登录...");
+  state.sync.authMode = mode;
+  setSyncBusy(true, mode === "sign-up" ? "正在创建账号..." : "正在验证账号...");
 
   try {
     const session = mode === "sign-up"
@@ -2740,9 +2742,7 @@ async function submitSyncAuth(mode) {
       : await requestSupabaseAuth("/auth/v1/token?grant_type=password", { email, password });
 
     if (!getAuthAccessToken(session)) {
-      setSyncMessage(mode === "sign-up"
-        ? "注册已提交。如果 Supabase 开启了邮箱确认，请先到邮箱完成确认。"
-        : "登录没有返回有效会话，请检查账号是否已完成邮箱确认。");
+      setSyncMessage(getAuthPendingMessage(mode, session));
       return;
     }
 
@@ -2752,8 +2752,9 @@ async function submitSyncAuth(mode) {
     await mergeRemotePersonalData();
     setSyncMessage("已登录并同步。");
   } catch (error) {
-    setSyncMessage(`${mode === "sign-up" ? "注册" : "登录"}失败：${getErrorMessage(error)}`);
+    setSyncMessage(`${mode === "sign-up" ? "注册" : "登录"}失败：${getAuthErrorMessage(mode, error)}`);
   } finally {
+    state.sync.authMode = "";
     setSyncBusy(false, "", { rerender: true });
   }
 }
@@ -3199,6 +3200,36 @@ function syncStatusText() {
 
 function getErrorMessage(error) {
   return error instanceof Error && error.message ? error.message : "未知错误";
+}
+
+function getAuthPendingMessage(mode, session) {
+  if (mode !== "sign-up") {
+    return "登录没有返回有效会话，请检查邮箱是否已确认，或确认密码是否正确。";
+  }
+
+  if (isExistingSignupResponse(session)) {
+    return "这个邮箱已经注册过。请直接登录，或换一个邮箱注册。";
+  }
+
+  return "注册已提交。请到邮箱完成确认，然后回到这里登录。";
+}
+
+function getAuthErrorMessage(mode, error) {
+  const message = getErrorMessage(error);
+  if (mode === "sign-up" && /already|registered|exists|用户已存在|已注册/i.test(message)) {
+    return "这个邮箱已经注册过。请直接登录，或换一个邮箱注册。";
+  }
+
+  return message;
+}
+
+function isExistingSignupResponse(session) {
+  const user = session?.user;
+  if (!user || !Array.isArray(user.identities)) {
+    return false;
+  }
+
+  return user.identities.length === 0;
 }
 
 function focusWorkbenchTodoInput() {

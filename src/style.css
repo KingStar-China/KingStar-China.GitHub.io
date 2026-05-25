@@ -3104,6 +3104,11 @@ a {
   color: #f8fffe;
 }
 
+.user-login-card .workbench-button:disabled,
+.user-login-card .inline-reset:disabled {
+  cursor: wait;
+}
+
 .user-login-card__primary {
   width: 100%;
   margin-top: 2px;
@@ -3115,6 +3120,12 @@ a {
   color: var(--muted);
   line-height: 1.6;
   font-size: 0.95rem;
+  text-align: center;
+  transition: color 0.18s ease;
+}
+
+.user-login-card__status.is-busy {
+  color: var(--brand-strong);
 }
 
 .user-login-card__divider {
