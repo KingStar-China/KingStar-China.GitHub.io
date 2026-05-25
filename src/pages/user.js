@@ -38,6 +38,7 @@ function renderSignedOutUserPage({ state, escapeHTML }) {
   return `
     <section class="user-login-page">
       <article class="panel user-login-card">
+        <button type="button" class="user-login-card__close" data-action="set-section" data-value="nav" aria-label="关闭登录">×</button>
         <div class="user-login-card__head">
           <p class="section-head__eyebrow">USER CENTER</p>
           <h2>登录少昊导航</h2>

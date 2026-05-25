@@ -660,7 +660,7 @@ function render() {
   refs.sectionTabs.innerHTML = renderSectionTabs();
   refs.summary.textContent = buildSummary();
   refs.heroSearch.innerHTML = state.section === "nav" || state.section === "blog-list" ? renderHeroSearch() : "";
-  refs.stats.innerHTML = state.section === "blog-list" || state.section === "blog-detail" ? renderBlogStats() : renderNavStats();
+  refs.stats.innerHTML = state.section === "user" ? "" : state.section === "blog-list" || state.section === "blog-detail" ? renderBlogStats() : renderNavStats();
   refs.toolbar.innerHTML = renderToolbar();
   refs.content.innerHTML = renderContent();
   renderCommandPaletteState({ maintainFocus: state.commandOpen });
@@ -1036,15 +1036,7 @@ function renderToolbar() {
   }
 
   if (state.section === "user") {
-    return `
-      <div class="toolbar-shell toolbar-shell--user">
-        <div class="toolbar__heading toolbar__heading--compact">
-          <span class="field-label">ACCOUNT</span>
-          <h2>用户中心</h2>
-          <p>登录后同步你的收藏、最近访问、待办和个人站点。</p>
-        </div>
-      </div>
-    `;
+    return "";
   }
 
   if (state.section === "blog-list") {
@@ -2908,7 +2900,7 @@ async function removeUserSite(siteId) {
 }
 
 function rebuildSiteIndexes() {
-  sites = [...defaultSites, ...state.userSites];
+  sites = [...state.userSites, ...defaultSites];
   categoryOrder = [...new Set(sites.map((site) => site.category))];
   siteIds = new Set(sites.map((site) => site.id));
   siteMap = new Map(sites.map((site) => [site.id, site]));

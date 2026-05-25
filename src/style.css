@@ -3008,21 +3008,46 @@ a {
 }
 
 .user-login-page {
-  min-height: 520px;
+  position: fixed;
+  inset: 0;
+  z-index: 30;
   display: grid;
   place-items: center;
-  padding: 24px 0;
+  padding: 24px;
+  background: rgba(3, 10, 18, 0.5);
+  backdrop-filter: blur(14px);
 }
 
 .user-login-card {
-  width: min(460px, 100%);
+  position: relative;
+  width: min(380px, 100%);
   display: grid;
-  gap: 18px;
+  gap: 16px;
+  padding: 28px;
+  border-radius: 14px;
+  background: rgba(8, 18, 26, 0.88);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+}
+
+.user-login-card__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(235, 247, 249, 0.82);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
 }
 
 .user-login-card__head {
   display: grid;
-  gap: 8px;
+  gap: 6px;
+  padding-right: 32px;
 }
 
 .user-login-card__head h2,
@@ -3030,18 +3055,39 @@ a {
   margin: 0;
 }
 
+.user-login-card__head h2 {
+  font-size: 1.6rem;
+  line-height: 1.2;
+}
+
 .user-login-card__head p:not(.section-head__eyebrow) {
   color: var(--muted);
-  line-height: 1.7;
+  line-height: 1.6;
+  font-size: 0.95rem;
 }
 
 .user-login-card__form {
   display: grid;
-  gap: 10px;
+  grid-template-columns: 1fr;
+  gap: 12px;
 }
 
 .user-login-card__actions {
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.user-login-card .workbench-input {
+  min-height: 48px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.user-login-card .workbench-button {
+  min-width: 96px;
+  border-radius: 10px;
+  background: rgba(15, 118, 110, 0.78);
+  color: #f8fffe;
 }
 
 .user-portal__head {
