@@ -42,7 +42,6 @@ function renderSignedOutUserPage({ state, escapeHTML }) {
         <div class="user-login-card__head">
           <p class="section-head__eyebrow">USER CENTER</p>
           <h2>登录少昊导航</h2>
-          <p>登录后同步收藏、最近访问、待办和你的个人站点。</p>
         </div>
         <div class="sync-form user-login-card__form">
           <input
@@ -68,7 +67,7 @@ function renderSignedOutUserPage({ state, escapeHTML }) {
           <button type="button" class="workbench-button" data-action="sync-sign-in" ${disabled}>登录</button>
           <button type="button" class="inline-reset" data-action="sync-sign-up" ${disabled}>注册账号</button>
         </div>
-        <p class="workbench-helper" data-role="sync-status">${escapeHTML(state.sync.message)}</p>
+        <p class="user-login-card__status" data-role="sync-status">${escapeHTML(state.sync.message)}</p>
       </article>
     </section>
   `;
