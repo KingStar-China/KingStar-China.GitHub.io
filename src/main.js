@@ -655,7 +655,7 @@ function render() {
   refs.sectionTabs.innerHTML = renderSectionTabs();
   refs.summary.textContent = buildSummary();
   refs.heroSearch.innerHTML = state.section === "nav" || state.section === "blog-list" ? renderHeroSearch() : "";
-  refs.stats.innerHTML = state.section === "nav" ? renderNavStats() : renderBlogStats();
+  refs.stats.innerHTML = state.section === "blog-list" || state.section === "blog-detail" ? renderBlogStats() : renderNavStats();
   refs.toolbar.innerHTML = renderToolbar();
   refs.content.innerHTML = renderContent();
   renderCommandPaletteState({ maintainFocus: state.commandOpen });
@@ -781,7 +781,7 @@ function renderSectionTabs() {
   const items = [
     { value: "nav", label: "导航" },
     { value: "blog-list", label: "博客" },
-    { value: "promo", label: "宣传片" },
+    { value: "user", label: "登录" },
   ];
 
   return items
@@ -799,8 +799,8 @@ function renderSectionTabs() {
 }
 
 function renderNavStats() {
-  if (state.section === "promo") {
-    return renderPromoStats();
+  if (state.section === "user") {
+    return renderUserStats();
   }
 
   const visibleSites = getVisibleSites();
@@ -815,12 +815,12 @@ function renderNavStats() {
   ].join("");
 }
 
-function renderPromoStats() {
+function renderUserStats() {
   return [
-    createStatCard("视频数量", "1"),
-    createStatCard("首条片长", "20s"),
-    createStatCard("格式", "MP4"),
-    createStatCard("布局", "单列"),
+    createStatCard("账号状态", state.sync.signedIn ? "已登录" : "未登录"),
+    createStatCard("我的站点", String(state.userSites.length)),
+    createStatCard("云端同步", state.sync.enabled ? "可用" : "本地"),
+    createStatCard("站长后台", "/admin"),
   ].join("");
 }
 
@@ -1035,13 +1035,13 @@ function renderToolbar() {
     return renderNavToolbar();
   }
 
-  if (state.section === "promo") {
+  if (state.section === "user") {
     return `
-      <div class="toolbar-shell toolbar-shell--promo">
+      <div class="toolbar-shell toolbar-shell--user">
         <div class="toolbar__heading toolbar__heading--compact">
-          <span class="field-label">PROMO VIDEOS</span>
-          <h2>宣传片</h2>
-          <p>集中展示少昊导航的产品宣传视频。视频按单列排列，方便逐条观看和后续继续追加。</p>
+          <span class="field-label">ACCOUNT</span>
+          <h2>注册登录</h2>
+          <p>登录后管理你的自定义站点和云端同步；站长后台固定在 /admin。</p>
         </div>
       </div>
     `;
@@ -1242,8 +1242,8 @@ function renderBlogDetailToolbar() {
   `;
 }
 function renderContent() {
-  if (state.section === "promo") {
-    return renderProductPromo();
+  if (state.section === "user") {
+    return renderUserPage();
   }
 
   if (state.section === "nav") {
@@ -1257,41 +1257,33 @@ function renderContent() {
   return renderBlogDetail();
 }
 
-function renderProductPromo() {
-  const videos = [
-    {
-      title: "少昊导航 20 秒产品宣传片",
-      description: "展示少昊导航如何把搜索、常用站点、博客记录和个人工作流放进同一个浏览器起点。",
-      src: "/videos/shaohao-navigation-promo.mp4",
-      duration: "20 秒",
-      format: "MP4",
-    },
-  ];
-
+function renderUserPage() {
   return `
-    <section class="promo-video-list" aria-label="少昊导航宣传片列表">
-      ${videos.map((video, index) => `
-        <article class="promo-video-card">
-          <div class="promo-video-card__media">
-            <video
-              class="promo-video-card__player"
-              src="${escapeHTML(video.src)}"
-              controls
-              preload="${index === 0 ? "metadata" : "none"}"
-              playsinline
-            ></video>
-          </div>
-          <div class="promo-video-card__body">
-            <div class="promo-video-card__meta">
-              <span>第 ${index + 1} 个视频</span>
-              <span>${escapeHTML(video.duration)}</span>
-              <span>${escapeHTML(video.format)}</span>
+    <section class="user-portal">
+      <div class="section-head user-portal__head">
+        <div>
+          <p class="section-head__eyebrow">USER CENTER</p>
+          <h2>${state.sync.signedIn ? "我的账号" : "注册登录"}</h2>
+        </div>
+        <a class="inline-reset" href="/admin">站长后台 /admin</a>
+      </div>
+      <div class="user-portal__grid">
+        ${renderSyncCard()}
+        <article class="panel workbench-card workbench-card--sync">
+          <div class="workbench-card__head">
+            <div>
+              <p class="section-head__eyebrow">ADMIN</p>
+              <h2>站长入口</h2>
             </div>
-            <h2>${escapeHTML(video.title)}</h2>
-            <p>${escapeHTML(video.description)}</p>
+            <span class="section-count">/admin</span>
+          </div>
+          <p class="workbench-helper">站长后台入口保留为 /admin。线上要做到只有管理员账号能进入，需要用 Supabase 权限或服务端校验承接。</p>
+          <div class="sync-actions">
+            <a class="workbench-button" href="/admin">进入后台</a>
           </div>
         </article>
-      `).join("")}
+      </div>
+      ${renderUserSitesManager()}
     </section>
   `;
 }
@@ -1458,7 +1450,6 @@ function renderWorkbenchSection() {
         <span class="section-count">${pendingCount}</span>
       </div>
       ${renderWorkbench()}
-      ${renderUserSitesManager()}
     </section>
   `;
 }
@@ -2507,8 +2498,8 @@ function getHost(url) {
 }
 
 function buildSummary() {
-  if (state.section === "promo") {
-    return "宣传片：集中观看少昊导航的产品宣传视频。";
+  if (state.section === "user") {
+    return state.sync.signedIn ? "账号中心：管理云端同步和你的自定义站点。" : "登录：注册或登录账号后同步收藏、待办和自定义站点。";
   }
 
   if (state.section === "blog-list") {
@@ -2565,7 +2556,7 @@ function isSectionActive(value) {
 }
 
 function getSectionId(value) {
-  if (value === "blog-list" || value === "promo") {
+  if (value === "blog-list" || value === "user") {
     return value;
   }
 
@@ -3381,8 +3372,8 @@ function syncRoute(mode = "replace") {
 }
 
 function buildRoutePath() {
-  if (state.section === "promo") {
-    return buildQueryRoute("promo");
+  if (state.section === "user") {
+    return buildQueryRoute("user");
   }
 
   if (state.section === "blog-detail") {
@@ -3418,8 +3409,8 @@ function buildQueryRoute(type, { postId = "", blogSearch = "", blogTag = "", pag
     params.set("section", "blog");
   }
 
-  if (type === "promo") {
-    params.set("section", "promo");
+  if (type === "user") {
+    params.set("section", "user");
   }
 
   if (blogSearch) {
@@ -3472,8 +3463,8 @@ function getSectionHref(section) {
     return getBlogListHref();
   }
 
-  if (section === "promo") {
-    return getPromoHref();
+  if (section === "user") {
+    return getUserHref();
   }
 
   return getHomeHref();
@@ -3491,8 +3482,8 @@ function getBlogListHref() {
   });
 }
 
-function getPromoHref() {
-  return buildQueryRoute("promo");
+function getUserHref() {
+  return buildQueryRoute("user");
 }
 
 function getPostHref(postId) {
@@ -3506,10 +3497,21 @@ function parseLocationRoute(url) {
   const page = url.searchParams.get("page") || "";
   const section = url.searchParams.get("section") || "";
   const hasBlogQuery = blogSearch || blogTag || page;
+  const normalizedPath = url.pathname.replace(/\/+$/, "") || "/";
 
-  if (section === "promo") {
+  if (normalizedPath === "/user" || normalizedPath === "/promo") {
     return {
-      type: "promo",
+      type: "user",
+      postId: "",
+      blogSearch,
+      blogTag,
+      page,
+    };
+  }
+
+  if (section === "user" || section === "promo") {
+    return {
+      type: "user",
       postId: "",
       blogSearch,
       blogTag,
@@ -3566,9 +3568,9 @@ function parseHashRoute(hash) {
     };
   }
 
-  if (normalizedPath === "/promo") {
+  if (normalizedPath === "/user" || normalizedPath === "/promo") {
     return {
-      type: "promo",
+      type: "user",
       postId: "",
       blogSearch: params.get("blogSearch") || "",
       blogTag: params.get("blogTag") || "",
@@ -3623,6 +3625,10 @@ function buildPageTitle() {
     return `博客 | ${siteMeta.name}`;
   }
 
+  if (state.section === "user") {
+    return `登录 | ${siteMeta.name}`;
+  }
+
   if (state.query || state.category !== "all" || state.tag !== "all" || state.view !== "all") {
     return `导航筛选 | ${siteMeta.name}`;
   }
@@ -3642,6 +3648,10 @@ function buildPageDescription() {
       return `博客当前命中 ${filteredPosts.length} 篇文章。`;
     }
     return `当前共有 ${posts.length} 篇文章。`;
+  }
+
+  if (state.section === "user") {
+    return "注册或登录账号，管理云端同步和个人自定义站点。";
   }
 
   return siteMeta.description;

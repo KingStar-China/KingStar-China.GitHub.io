@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>站长后台 | 少昊导航</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #eef2f4;
+        --panel: rgba(255, 255, 255, 0.86);
+        --text: #152531;
+        --muted: #61717c;
+        --heading: #0c1b24;
+        --brand: #0f766e;
+        --border: rgba(17, 37, 51, 0.1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: Inter, "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+      }
+
+      main {
+        width: min(720px, 100%);
+        padding: 28px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: 0 24px 70px rgba(15, 35, 45, 0.12);
+      }
+
+      p {
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      code {
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: rgba(15, 118, 110, 0.1);
+        color: var(--heading);
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 22px;
+      }
+
+      a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        color: var(--heading);
+        text-decoration: none;
+      }
+
+      .primary {
+        background: var(--brand);
+        color: white;
+      }
+
+      .secondary {
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.54);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p>ADMIN</p>
+      <h1>站长后台</h1>
+      <p>线上地址 <code>/admin</code> 已保留。当前项目的内容管理器只支持在站长本机运行，不能直接暴露到公网。</p>
+      <p>在项目目录执行 <code>npm run admin:open</code> 后，会打开本地后台 <code>http://127.0.0.1:3214</code>；只有能访问这台机器和项目文件的人才能编辑。</p>
+      <div class="actions">
+        <a class="primary" href="/">返回首页</a>
+        <a class="secondary" href="/?section=user">登录页面</a>
+      </div>
+    </main>
+  </body>
+</html>

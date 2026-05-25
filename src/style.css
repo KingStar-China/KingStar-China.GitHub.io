@@ -3002,6 +3002,21 @@ a {
   font-size: 0.92rem;
 }
 
+.user-portal {
+  display: grid;
+  gap: 18px;
+}
+
+.user-portal__head {
+  align-items: center;
+}
+
+.user-portal__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
 .user-sites-manager {
   display: grid;
   gap: 14px;
@@ -3149,6 +3164,10 @@ a {
 }
 
 @media (max-width: 1100px) {
+  .user-portal__grid {
+    grid-template-columns: 1fr;
+  }
+
   .workbench {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -3161,6 +3180,10 @@ a {
 @media (max-width: 640px) {
   .workbench {
     grid-template-columns: 1fr;
+  }
+
+  .user-portal__head {
+    align-items: flex-start;
   }
 
   .workbench-card--note {
