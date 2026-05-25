@@ -134,19 +134,32 @@ test("站点结果被浏览器拦截时不会误更新状态", () => {
 
 test("运行博客结果会打开文章并关闭面板", () => {
   const tracker = createResultSpies();
+  const originalWindow = globalThis.window;
+  globalThis.window = {
+    location: {
+      href: "https://example.test/",
+      assign: (url) => {
+        tracker.locationAssignCalls.push(url);
+      },
+    },
+  };
 
-  runCommandResult(
-    { kind: "post", id: "post-1" },
-    createPaletteDeps({
-      state: tracker.state,
-      posts: [createPost({ id: "post-1", title: "测试文章" })],
-      hooks: tracker,
-    }),
-  );
+  try {
+    runCommandResult(
+      { kind: "post", id: "post-1" },
+      createPaletteDeps({
+        state: tracker.state,
+        posts: [createPost({ id: "post-1", title: "测试文章" })],
+        hooks: tracker,
+      }),
+    );
+  } finally {
+    globalThis.window = originalWindow;
+  }
 
-  assert.deepEqual(tracker.openPostCalls, ["post-1"]);
+  assert.deepEqual(tracker.locationAssignCalls, ["https://example.test/?post=post-1"]);
   assert.equal(tracker.closeCalls, 1);
-  assert.equal(tracker.renderCalls, 1);
+  assert.equal(tracker.renderCalls, 0);
 });
 
 test("运行动作结果会切换导航视图并关闭面板", () => {
@@ -192,6 +205,7 @@ function createPaletteDeps({ state = {}, sites = [], posts = [], hooks = {} } = 
     render: hooks.render || (() => {}),
     openPost: hooks.openPost || (() => {}),
     resetNavFilters: hooks.resetNavFilters || (() => {}),
+    getPostHref: hooks.getPostHref || ((id) => `?post=${id}`),
   };
 }
 
@@ -208,6 +222,7 @@ function createResultSpies() {
     openCalls: [],
     trackRecentCalls: [],
     openPostCalls: [],
+    locationAssignCalls: [],
     closeCalls: 0,
     renderCalls: 0,
     resetNavFiltersCalls: 0,

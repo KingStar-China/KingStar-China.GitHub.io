@@ -1,7 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { sites } from "../src/data/sites.js";
-import { posts } from "../src/data/posts.js";
 import { getPostSearchScore, getSiteSearchScore, matchesPostQuery, matchesSiteQuery, normalizeQuery } from "../src/lib/search.js";
 
 const google = sites.find((site) => site.id === "google");
@@ -9,8 +8,17 @@ const x = sites.find((site) => site.id === "x");
 const gpt = sites.find((site) => site.name === "GPT");
 const cloudflare = sites.find((site) => site.name === "Cloudflare");
 const zhihu = sites.find((site) => site.id === "zhihu");
-const domainPost = posts.find((post) => post.id === "github-pages-and-custom-domain");
-const readingPost = posts.find((post) => post.id === "designing-for-reading");
+const domainPost = createPost({
+  title: "GitHub Pages 自定义域名",
+  summary: "用 Cloudflare 配置域名解析",
+  tags: ["Cloudflare"],
+  content: "部署静态站点并绑定自定义域名。",
+});
+const readingPost = createPost({
+  title: "设计阅读体验",
+  summary: "正文排版和节奏",
+  content: "阅读体验需要稳定的字号、行高和留白。",
+});
 
 test("normalizeQuery 会去空格并转小写", () => {
   assert.equal(normalizeQuery("  GPT  "), "gpt");
@@ -51,6 +59,17 @@ test("博客搜索支持去分隔符后的标题匹配", () => {
 });
 
 test("博客搜索标题精确命中分数高于同文的标签命中", () => {
-  assert.ok(domainPost);
   assert.ok(getPostSearchScore(domainPost, domainPost.title) > getPostSearchScore(domainPost, "Cloudflare"));
 });
+
+function createPost(overrides = {}) {
+  return {
+    id: "post",
+    title: "文章",
+    summary: "摘要",
+    tags: [],
+    publishedAt: "2026-04-17",
+    content: "正文",
+    ...overrides,
+  };
+}

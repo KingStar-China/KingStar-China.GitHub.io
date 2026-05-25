@@ -47,6 +47,8 @@ const STORAGE_KEYS = {
   recent: "nav-tool.recent",
   workbenchNote: "nav-tool.workbench.note",
   workbenchTodos: "nav-tool.workbench.todos",
+  personalUpdatedAt: "nav-tool.personal.updatedAt",
+  syncSession: "nav-tool.sync.session",
   searchEngine: "nav-tool.search.engine",
 };
 
@@ -64,10 +66,12 @@ const searchEngines = rawSearchEngines
 
 const defaultSearchEngine = searchEngines[0]?.id || "baidu";
 const DEFAULT_THEME_PRESET = "aurora";
+const SUPABASE_CONFIG = getSupabaseConfig();
 
 const POSTS_PER_PAGE = 5;
 const COMMAND_RESULT_LIMIT = 8;
 const RECENT_HISTORY_LIMIT = 20;
+const REMOTE_SAVE_DEBOUNCE_MS = 800;
 
 /** @type {SiteItem[]} */
 const sites = rawSites.map((site) => ({
@@ -114,6 +118,21 @@ const state = {
   workbenchNote: loadStoredText(STORAGE_KEYS.workbenchNote),
   workbenchTodos: loadTodoList(STORAGE_KEYS.workbenchTodos),
   workbenchTodoDraft: "",
+  sync: {
+    enabled: SUPABASE_CONFIG.enabled,
+    signedIn: false,
+    busy: false,
+    email: "",
+    password: "",
+    userEmail: "",
+    userId: "",
+    accessToken: "",
+    refreshToken: "",
+    saveTimer: 0,
+    message: SUPABASE_CONFIG.enabled
+      ? "登录后会同步收藏、最近访问、便签和待办。"
+      : "当前为本地模式。配置 Supabase 后可开启跨设备同步。",
+  },
   now: Date.now(),
   engineQuery: "",
   searchEngine: loadStoredText(STORAGE_KEYS.searchEngine) || defaultSearchEngine,
@@ -134,6 +153,7 @@ const root = document.querySelector("#app");
 const refs = {};
 let commandFocusRetryId = 0;
 
+window.handleIconError = handleIconError;
 init();
 
 function init() {
@@ -164,6 +184,7 @@ function init() {
   syncTheme(state.theme);
   startWorkbenchClock();
   render();
+  restoreSyncSession();
 }
 function createShell() {
   return `
@@ -225,12 +246,22 @@ function handleInput(event) {
 
   if (event.target.matches('[data-role="workbench-note"]')) {
     state.workbenchNote = event.target.value;
-    localStorage.setItem(STORAGE_KEYS.workbenchNote, state.workbenchNote);
+    saveWorkbenchNote();
     return;
   }
 
   if (event.target.matches('[data-role="workbench-todo-input"]')) {
     state.workbenchTodoDraft = event.target.value;
+    return;
+  }
+
+  if (event.target.matches('[data-role="sync-email"]')) {
+    state.sync.email = event.target.value;
+    return;
+  }
+
+  if (event.target.matches('[data-role="sync-password"]')) {
+    state.sync.password = event.target.value;
     return;
   }
 
@@ -432,6 +463,26 @@ function handleClick(event) {
       return;
     }
 
+    if (action === "sync-sign-in") {
+      signInSyncAccount();
+      return;
+    }
+
+    if (action === "sync-sign-up") {
+      signUpSyncAccount();
+      return;
+    }
+
+    if (action === "sync-now") {
+      syncPersonalDataNow();
+      return;
+    }
+
+    if (action === "sync-sign-out") {
+      signOutSyncAccount();
+      return;
+    }
+
     if (action === "toggle-favorite" && siteId) {
       toggleFavorite(siteId);
       render();
@@ -503,6 +554,12 @@ function handleKeydown(event) {
       render();
       focusWorkbenchTodoInput();
     }
+    return;
+  }
+
+  if (event.target.matches('[data-role="sync-password"]') && event.key === "Enter") {
+    event.preventDefault();
+    signInSyncAccount();
     return;
   }
 
@@ -586,6 +643,7 @@ function render() {
   if (refs.workbenchTodoInput) {
     refs.workbenchTodoInput.value = state.workbenchTodoDraft;
   }
+  refs.syncStatus = refs.content.querySelector('[data-role="sync-status"]');
 
   syncActiveHeading();
   syncActiveTocLink();
@@ -616,6 +674,11 @@ function renderCommandPaletteState({ maintainFocus = false } = {}) {
   }
 
   focusCommandInput();
+}
+
+function syncCommandScrollLock() {
+  document.documentElement.classList.toggle("is-command-open", state.commandOpen);
+  document.body.classList.toggle("is-command-open", state.commandOpen);
 }
 
 function syncCommandPaletteResults({ maintainFocus = false } = {}) {
@@ -1263,7 +1326,89 @@ function renderWorkbench() {
           <span class="workbench-helper">只保存在当前浏览器，不会写入项目文件。</span>
         </div>
       </article>
+
+      ${renderSyncCard()}
     </section>
+  `;
+}
+
+function renderSyncCard() {
+  const disabled = state.sync.busy ? "disabled" : "";
+
+  if (!state.sync.enabled) {
+    return `
+      <article class="panel workbench-card workbench-card--sync">
+        <div class="workbench-card__head">
+          <div>
+            <p class="section-head__eyebrow">SYNC</p>
+            <h2>云端同步</h2>
+          </div>
+          <span class="section-count">本地</span>
+        </div>
+        <p class="workbench-helper" data-role="sync-status">${escapeHTML(state.sync.message)}</p>
+      </article>
+    `;
+  }
+
+  if (state.sync.signedIn) {
+    return `
+      <article class="panel workbench-card workbench-card--sync">
+        <div class="workbench-card__head">
+          <div>
+            <p class="section-head__eyebrow">SYNC</p>
+            <h2>云端同步</h2>
+          </div>
+          <span class="section-count">已登录</span>
+        </div>
+        <div class="sync-account">
+          <span>${escapeHTML(state.sync.userEmail || state.sync.email || "Supabase 用户")}</span>
+          <span class="state-pill">收藏 ${state.favorites.size}</span>
+          <span class="state-pill">待办 ${state.workbenchTodos.length}</span>
+        </div>
+        <div class="sync-actions">
+          <button type="button" class="workbench-button" data-action="sync-now" ${disabled}>立即同步</button>
+          <button type="button" class="inline-reset" data-action="sync-sign-out" ${disabled}>退出</button>
+        </div>
+        <p class="workbench-helper" data-role="sync-status">${escapeHTML(state.sync.message)}</p>
+      </article>
+    `;
+  }
+
+  return `
+    <article class="panel workbench-card workbench-card--sync">
+      <div class="workbench-card__head">
+        <div>
+          <p class="section-head__eyebrow">SYNC</p>
+          <h2>云端同步</h2>
+        </div>
+        <span class="section-count">Supabase</span>
+      </div>
+      <div class="sync-form">
+        <input
+          type="email"
+          data-role="sync-email"
+          class="workbench-input"
+          placeholder="邮箱"
+          autocomplete="email"
+          value="${escapeHTML(state.sync.email)}"
+          ${disabled}
+        >
+        <input
+          type="password"
+          data-role="sync-password"
+          class="workbench-input"
+          placeholder="密码"
+          autocomplete="current-password"
+          value="${escapeHTML(state.sync.password)}"
+          ${disabled}
+        >
+      </div>
+      <div class="sync-actions">
+        <button type="button" class="workbench-button" data-action="sync-sign-in" ${disabled}>登录</button>
+        <button type="button" class="inline-reset" data-action="sync-sign-up" ${disabled}>注册</button>
+      </div>
+      <p class="workbench-helper" data-role="sync-status">${escapeHTML(state.sync.message)}</p>
+    </article>
   `;
 }
 function renderWorkbenchSection() {
@@ -2359,7 +2504,7 @@ function toggleFavorite(siteId) {
     state.favorites.add(siteId);
   }
 
-  localStorage.setItem(STORAGE_KEYS.favorites, JSON.stringify([...state.favorites]));
+  saveFavorites();
 }
 
 function trackRecent(siteId) {
@@ -2368,7 +2513,7 @@ function trackRecent(siteId) {
   }
 
   state.recent = [siteId, ...state.recent.filter((id) => id !== siteId)].slice(0, RECENT_HISTORY_LIMIT);
-  localStorage.setItem(STORAGE_KEYS.recent, JSON.stringify(state.recent));
+  saveRecent();
 }
 
 function getSearchEngineId(value) {
@@ -2466,8 +2611,392 @@ function clearCompletedWorkbenchTodos() {
   saveWorkbenchTodos();
 }
 
+function saveFavorites() {
+  localStorage.setItem(STORAGE_KEYS.favorites, JSON.stringify([...state.favorites]));
+  markPersonalDataChanged();
+}
+
+function saveRecent() {
+  localStorage.setItem(STORAGE_KEYS.recent, JSON.stringify(state.recent));
+  markPersonalDataChanged();
+}
+
+function saveWorkbenchNote() {
+  localStorage.setItem(STORAGE_KEYS.workbenchNote, state.workbenchNote);
+  markPersonalDataChanged();
+}
+
 function saveWorkbenchTodos() {
   localStorage.setItem(STORAGE_KEYS.workbenchTodos, JSON.stringify(state.workbenchTodos));
+  markPersonalDataChanged();
+}
+
+function markPersonalDataChanged() {
+  localStorage.setItem(STORAGE_KEYS.personalUpdatedAt, new Date().toISOString());
+  queueRemotePersonalSave();
+}
+
+function queueRemotePersonalSave() {
+  if (!state.sync.enabled || !state.sync.signedIn) {
+    return;
+  }
+
+  window.clearTimeout(state.sync.saveTimer);
+  state.sync.saveTimer = window.setTimeout(() => {
+    saveRemotePersonalData().catch((error) => {
+      setSyncMessage(`同步失败：${getErrorMessage(error)}`);
+    });
+  }, REMOTE_SAVE_DEBOUNCE_MS);
+}
+
+async function syncPersonalDataNow() {
+  if (!state.sync.enabled || !state.sync.signedIn || state.sync.busy) {
+    return;
+  }
+
+  window.clearTimeout(state.sync.saveTimer);
+  setSyncBusy(true, "正在同步...");
+
+  try {
+    await saveRemotePersonalData();
+    setSyncMessage("已同步到 Supabase。");
+  } catch (error) {
+    setSyncMessage(`同步失败：${getErrorMessage(error)}`);
+  } finally {
+    setSyncBusy(false);
+  }
+}
+
+async function signInSyncAccount() {
+  await submitSyncAuth("sign-in");
+}
+
+async function signUpSyncAccount() {
+  await submitSyncAuth("sign-up");
+}
+
+async function submitSyncAuth(mode) {
+  if (!state.sync.enabled || state.sync.busy) {
+    return;
+  }
+
+  const email = state.sync.email.trim();
+  const password = state.sync.password;
+
+  if (!email || !password) {
+    setSyncMessage("请输入邮箱和密码。");
+    return;
+  }
+
+  setSyncBusy(true, mode === "sign-up" ? "正在注册..." : "正在登录...");
+
+  try {
+    const session = mode === "sign-up"
+      ? await requestSupabaseAuth("/auth/v1/signup", { email, password })
+      : await requestSupabaseAuth("/auth/v1/token?grant_type=password", { email, password });
+
+    if (!getAuthAccessToken(session)) {
+      setSyncMessage(mode === "sign-up"
+        ? "注册已提交。如果 Supabase 开启了邮箱确认，请先到邮箱完成确认。"
+        : "登录没有返回有效会话，请检查账号是否已完成邮箱确认。");
+      return;
+    }
+
+    applySyncSession(session);
+    persistSyncSession();
+    state.sync.password = "";
+    await mergeRemotePersonalData();
+    setSyncMessage("已登录并同步。");
+  } catch (error) {
+    setSyncMessage(`${mode === "sign-up" ? "注册" : "登录"}失败：${getErrorMessage(error)}`);
+  } finally {
+    setSyncBusy(false, "", { rerender: true });
+  }
+}
+
+function signOutSyncAccount() {
+  window.clearTimeout(state.sync.saveTimer);
+  localStorage.removeItem(STORAGE_KEYS.syncSession);
+  state.sync.signedIn = false;
+  state.sync.userEmail = "";
+  state.sync.userId = "";
+  state.sync.accessToken = "";
+  state.sync.refreshToken = "";
+  state.sync.password = "";
+  state.sync.message = "已退出云端同步，本机数据仍保留。";
+  render();
+}
+
+async function restoreSyncSession() {
+  if (!state.sync.enabled) {
+    return;
+  }
+
+  const session = loadSyncSession();
+  if (!session?.accessToken || !session?.refreshToken || !session?.userId) {
+    return;
+  }
+
+  state.sync.signedIn = true;
+  state.sync.userEmail = session.userEmail || session.email || "";
+  state.sync.email = state.sync.userEmail;
+  state.sync.userId = session.userId;
+  state.sync.accessToken = session.accessToken;
+  state.sync.refreshToken = session.refreshToken;
+  setSyncMessage("正在恢复同步会话...");
+  render();
+
+  try {
+    await refreshSyncSession();
+    await mergeRemotePersonalData();
+    setSyncMessage("已恢复云端同步。");
+  } catch (error) {
+    signOutSyncAccount();
+    setSyncMessage(`同步登录已过期，请重新登录：${getErrorMessage(error)}`);
+  }
+}
+
+function loadSyncSession() {
+  try {
+    const value = JSON.parse(localStorage.getItem(STORAGE_KEYS.syncSession) || "null");
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+function applySyncSession(session) {
+  const activeSession = session.session || session;
+  const user = activeSession.user || session.user || {};
+  state.sync.signedIn = true;
+  state.sync.userEmail = String(user.email || state.sync.email || "");
+  state.sync.userId = String(user.id || state.sync.userId || "");
+  state.sync.accessToken = String(activeSession.access_token || "");
+  state.sync.refreshToken = String(activeSession.refresh_token || state.sync.refreshToken || "");
+}
+
+function getAuthAccessToken(session) {
+  return session?.session?.access_token || session?.access_token || "";
+}
+
+function persistSyncSession() {
+  localStorage.setItem(STORAGE_KEYS.syncSession, JSON.stringify({
+    userEmail: state.sync.userEmail,
+    userId: state.sync.userId,
+    accessToken: state.sync.accessToken,
+    refreshToken: state.sync.refreshToken,
+  }));
+}
+
+async function refreshSyncSession() {
+  const session = await requestSupabaseAuth("/auth/v1/token?grant_type=refresh_token", {
+    refresh_token: state.sync.refreshToken,
+  });
+  applySyncSession(session);
+  persistSyncSession();
+}
+
+async function mergeRemotePersonalData() {
+  const remote = await loadRemotePersonalData();
+  const localSnapshot = getPersonalDataSnapshot();
+
+  if (!remote) {
+    await saveRemotePersonalData();
+    return;
+  }
+
+  const merged = mergePersonalData(localSnapshot, remote.payload || {});
+  applyPersonalDataSnapshot(merged);
+  await saveRemotePersonalData();
+  render();
+}
+
+async function loadRemotePersonalData() {
+  const rows = await requestSupabaseRest(
+    `/rest/v1/nav_user_state?user_id=eq.${encodeURIComponent(state.sync.userId)}&select=payload,updated_at`,
+  );
+  return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+}
+
+async function saveRemotePersonalData() {
+  if (!state.sync.accessToken || !state.sync.userId) {
+    return;
+  }
+
+  await requestSupabaseRest("/rest/v1/nav_user_state?on_conflict=user_id", {
+    method: "POST",
+    headers: {
+      Prefer: "resolution=merge-duplicates",
+    },
+    body: JSON.stringify({
+      user_id: state.sync.userId,
+      payload: getPersonalDataSnapshot(),
+      updated_at: new Date().toISOString(),
+    }),
+  });
+}
+
+function getPersonalDataSnapshot() {
+  return {
+    favorites: [...state.favorites].filter((id) => siteIds.has(id)),
+    recent: state.recent.filter((id) => siteIds.has(id)).slice(0, RECENT_HISTORY_LIMIT),
+    workbenchNote: state.workbenchNote,
+    workbenchTodos: normalizeTodoItems(state.workbenchTodos),
+  };
+}
+
+function mergePersonalData(localSnapshot, remotePayload) {
+  const remote = normalizePersonalData(remotePayload);
+  const local = normalizePersonalData(localSnapshot);
+
+  return {
+    favorites: [...new Set([...local.favorites, ...remote.favorites])],
+    recent: mergeRecentIds(local.recent, remote.recent),
+    workbenchNote: local.workbenchNote || remote.workbenchNote,
+    workbenchTodos: mergeTodoItems(local.workbenchTodos, remote.workbenchTodos),
+  };
+}
+
+function applyPersonalDataSnapshot(snapshot) {
+  const data = normalizePersonalData(snapshot);
+  state.favorites = new Set(data.favorites);
+  state.recent = data.recent;
+  state.workbenchNote = data.workbenchNote;
+  state.workbenchTodos = data.workbenchTodos;
+
+  localStorage.setItem(STORAGE_KEYS.favorites, JSON.stringify(data.favorites));
+  localStorage.setItem(STORAGE_KEYS.recent, JSON.stringify(data.recent));
+  localStorage.setItem(STORAGE_KEYS.workbenchNote, data.workbenchNote);
+  localStorage.setItem(STORAGE_KEYS.workbenchTodos, JSON.stringify(data.workbenchTodos));
+  localStorage.setItem(STORAGE_KEYS.personalUpdatedAt, new Date().toISOString());
+}
+
+function normalizePersonalData(value) {
+  const payload = value && typeof value === "object" ? value : {};
+
+  return {
+    favorites: normalizeIdArray(payload.favorites),
+    recent: normalizeIdArray(payload.recent).slice(0, RECENT_HISTORY_LIMIT),
+    workbenchNote: String(payload.workbenchNote || ""),
+    workbenchTodos: normalizeTodoItems(payload.workbenchTodos),
+  };
+}
+
+function normalizeIdArray(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return [...new Set(value.map((id) => String(id)).filter((id) => siteIds.has(id)))];
+}
+
+function normalizeTodoItems(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => ({
+      id: String(item.id || `todo-${Date.now()}`),
+      text: String(item.text || "").trim(),
+      done: Boolean(item.done),
+    }))
+    .filter((item) => item.text)
+    .slice(0, 12);
+}
+
+function mergeRecentIds(localIds, remoteIds) {
+  return [...new Set([...localIds, ...remoteIds])]
+    .filter((id) => siteIds.has(id))
+    .slice(0, RECENT_HISTORY_LIMIT);
+}
+
+function mergeTodoItems(localItems, remoteItems) {
+  const items = new Map();
+
+  for (const item of remoteItems) {
+    items.set(item.id, item);
+  }
+
+  for (const item of localItems) {
+    items.set(item.id, item);
+  }
+
+  return [...items.values()].slice(0, 12);
+}
+
+async function requestSupabaseAuth(path, body) {
+  return requestSupabase(path, {
+    method: "POST",
+    auth: false,
+    body: JSON.stringify(body),
+  });
+}
+
+async function requestSupabaseRest(path, options = {}) {
+  return requestSupabase(path, options);
+}
+
+async function requestSupabase(path, options = {}) {
+  const headers = {
+    apikey: SUPABASE_CONFIG.anonKey,
+    "Content-Type": "application/json",
+    ...(options.headers || {}),
+  };
+
+  if (options.auth !== false && state.sync.accessToken) {
+    headers.Authorization = `Bearer ${state.sync.accessToken}`;
+  } else {
+    headers.Authorization = `Bearer ${SUPABASE_CONFIG.anonKey}`;
+  }
+
+  const response = await fetch(`${SUPABASE_CONFIG.url}${path}`, {
+    method: options.method || "GET",
+    headers,
+    body: options.body,
+  });
+
+  const text = await response.text();
+  const payload = text ? JSON.parse(text) : null;
+
+  if (!response.ok) {
+    throw new Error(payload?.msg || payload?.message || response.statusText);
+  }
+
+  return payload;
+}
+
+function setSyncBusy(busy, message = "", options = {}) {
+  state.sync.busy = busy;
+  if (message) {
+    state.sync.message = message;
+  }
+
+  if (options.rerender === false) {
+    syncStatusText();
+    return;
+  }
+
+  render();
+}
+
+function setSyncMessage(message) {
+  state.sync.message = message;
+  syncStatusText();
+}
+
+function syncStatusText() {
+  if (refs.syncStatus) {
+    refs.syncStatus.textContent = state.sync.message;
+  }
+}
+
+function getErrorMessage(error) {
+  return error instanceof Error && error.message ? error.message : "未知错误";
 }
 
 function focusWorkbenchTodoInput() {
@@ -2930,6 +3459,19 @@ function setAlternateFeed() {
 
   element.setAttribute("href", new URL(siteMeta.rssPath, `${getCanonicalBaseUrl()}/`).href);
 }
+
+function getSupabaseConfig() {
+  const env = import.meta.env || {};
+  const url = String(env.VITE_SUPABASE_URL || "").replace(/\/+$/, "");
+  const anonKey = String(env.VITE_SUPABASE_ANON_KEY || "");
+
+  return {
+    enabled: Boolean(url && anonKey),
+    url,
+    anonKey,
+  };
+}
+
 function loadStoredText(key) {
   return String(localStorage.getItem(key) || "");
 }
@@ -3066,8 +3608,6 @@ function handleIconError(image) {
   }
   image.hidden = true;
 }
-
-window.handleIconError = handleIconError;
 
 function getSiteFaviconUrl(url) {
   try {

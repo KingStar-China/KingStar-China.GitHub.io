@@ -2942,6 +2942,10 @@ a {
   align-content: start;
 }
 
+.workbench-card--sync {
+  grid-column: 1 / -1;
+}
+
 .workbench-card__head {
   display: flex;
   align-items: start;
@@ -2977,6 +2981,25 @@ a {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
+}
+
+.sync-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.sync-actions,
+.sync-account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sync-account {
+  color: var(--muted);
+  font-size: 0.92rem;
 }
 
 .workbench-input,
@@ -3108,11 +3131,16 @@ a {
     grid-column: auto;
   }
 
+  .workbench-card--sync {
+    grid-column: auto;
+  }
+
   .workbench-card {
     padding: 18px;
   }
 
-  .workbench-todo-form {
+  .workbench-todo-form,
+  .sync-form {
     grid-template-columns: 1fr;
   }
 }
@@ -5628,5 +5656,4 @@ body.is-command-open {
     border-radius: 16px;
   }
 }
-
 

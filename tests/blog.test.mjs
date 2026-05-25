@@ -8,25 +8,24 @@ import {
   getRelatedPosts,
 } from "../src/lib/blog.js";
 
-const customDomainPost = posts.find((post) => post.id === "github-pages-and-custom-domain");
-const aiToolsPost = posts.find((post) => post.id === "organizing-ai-tools");
-const favoritesPost = posts.find((post) => post.id === "favorites-and-recent-visits");
-
 test("阅读时长至少为 1 分钟并返回可展示文案", () => {
-  assert.ok(customDomainPost);
-  assert.equal(getPostReadingMinutes(customDomainPost), 2);
-  assert.equal(formatPostReadingTime(customDomainPost), "2 分钟阅读");
+  const shortPost = createPost({ content: "短正文" });
+
+  assert.equal(getPostReadingMinutes(shortPost), 1);
+  assert.equal(formatPostReadingTime(shortPost), "1 分钟阅读");
 });
 
 test("上一篇和下一篇按当前列表顺序返回", () => {
-  assert.ok(aiToolsPost);
-  const aiToolsIndex = posts.findIndex((post) => post.id === aiToolsPost.id);
-  const sourcePosts = posts.slice(Math.max(0, aiToolsIndex - 1), aiToolsIndex + 2);
+  const sourcePosts = [
+    createPost({ id: "previous" }),
+    createPost({ id: "current" }),
+    createPost({ id: "next" }),
+  ];
 
-  const adjacentPosts = getAdjacentPosts(aiToolsPost.id, sourcePosts);
+  const adjacentPosts = getAdjacentPosts("current", sourcePosts);
 
-  assert.equal(adjacentPosts.previousPost?.id, "github-pages-and-custom-domain");
-  assert.equal(adjacentPosts.nextPost?.id, "favorites-and-recent-visits");
+  assert.equal(adjacentPosts.previousPost?.id, "previous");
+  assert.equal(adjacentPosts.nextPost?.id, "next");
 });
 
 test("首篇和末篇文章会正确缺省相邻项", () => {
@@ -65,15 +64,18 @@ test("没有共同标签时不返回相关文章", () => {
 });
 
 test("相关文章数量遵守限制", () => {
-  assert.ok(favoritesPost);
-  const limitedPosts = getRelatedPosts(favoritesPost.id, posts, 1);
+  const relatedPosts = [
+    createPost({ id: "current", tags: ["AI"] }),
+    createPost({ id: "one", tags: ["AI"], publishedAt: "2026-04-18" }),
+    createPost({ id: "two", tags: ["AI"], publishedAt: "2026-04-19" }),
+  ];
+  const limitedPosts = getRelatedPosts("current", relatedPosts, 1);
 
   assert.equal(limitedPosts.length, 1);
 });
 
-test("当前博客数据没有共同标签时不返回相关文章", () => {
-  assert.ok(aiToolsPost);
-  assert.deepEqual(getRelatedPosts(aiToolsPost.id, posts), []);
+test("没有当前文章时不返回相关文章", () => {
+  assert.deepEqual(getRelatedPosts("missing", posts), []);
 });
 
 function createPost(overrides = {}) {
