@@ -17,6 +17,7 @@ export function persistSyncSession(storage, key, syncState) {
     userId: syncState.userId,
     accessToken: syncState.accessToken,
     refreshToken: syncState.refreshToken,
+    expiresAt: syncState.expiresAt || 0,
   }));
 }
 
@@ -38,5 +39,18 @@ export function normalizeSyncSession(session, fallback = {}) {
     userId: String(user.id || fallback.userId || ""),
     accessToken: String(activeSession.access_token || ""),
     refreshToken: String(activeSession.refresh_token || fallback.refreshToken || ""),
+    expiresAt: normalizeExpiresAt(activeSession, fallback.expiresAt),
   };
+}
+
+function normalizeExpiresAt(session, fallbackExpiresAt = 0) {
+  if (Number.isFinite(session.expires_at)) {
+    return session.expires_at * 1000;
+  }
+
+  if (Number.isFinite(session.expires_in)) {
+    return Date.now() + session.expires_in * 1000;
+  }
+
+  return Number(fallbackExpiresAt) || 0;
 }
