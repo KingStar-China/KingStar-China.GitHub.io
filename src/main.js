@@ -289,6 +289,12 @@ function handleInput(event) {
     return;
   }
 
+  if (event.target.matches("[data-user-site-tag-select]")) {
+    appendUserSiteDraftTag(event.target.value);
+    render();
+    return;
+  }
+
   const userSiteField = event.target.closest("[data-user-site-field]");
   if (userSiteField) {
     const field = userSiteField.dataset.userSiteField;
@@ -2978,6 +2984,20 @@ function cancelEditingUserSite() {
   resetUserSiteDraft();
   setSyncMessage("已取消编辑。");
   render();
+}
+
+function appendUserSiteDraftTag(tag) {
+  const normalizedTag = String(tag || "").trim();
+  if (!normalizedTag) {
+    return;
+  }
+
+  const tags = state.userSiteDraft.tags
+    .split(/[,，、\s]+/g)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const hasTag = tags.some((item) => item.toLocaleLowerCase() === normalizedTag.toLocaleLowerCase());
+  state.userSiteDraft.tags = (hasTag ? tags : [...tags, normalizedTag]).join("，");
 }
 
 function resetUserSiteDraft() {

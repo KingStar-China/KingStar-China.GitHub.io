@@ -110,6 +110,7 @@ function renderAccountSyncPanel({ state, escapeHTML }) {
 function renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrder }) {
   const disabled = state.sync.busy ? "disabled" : "";
   const categoryOptions = getUserSiteCategories(categoryOrder, state.userSites);
+  const tagOptions = getUserSiteTags(state.userSites);
   const isEditing = Boolean(state.userSiteEditingId);
 
   return `
@@ -126,18 +127,18 @@ function renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrd
         <input class="workbench-input" data-user-site-field="url" value="${escapeHTML(state.userSiteDraft.url)}" placeholder="https://example.com" ${disabled}>
         <input class="workbench-input user-site-form__icon" data-user-site-field="icon" value="${escapeHTML(state.userSiteDraft.icon)}" placeholder="图标地址（可选）" ${disabled}>
         ${renderCategoryControl({ value: state.userSiteDraft.category, categoryOptions, escapeHTML, disabled })}
-        <input class="workbench-input" data-user-site-field="tags" value="${escapeHTML(state.userSiteDraft.tags)}" placeholder="标签，用逗号分隔" ${disabled}>
-        <input class="workbench-input user-site-form__description" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="一句话说明" ${disabled}>
+        ${renderTagControl({ value: state.userSiteDraft.tags, tagOptions, escapeHTML, disabled })}
+        <input class="workbench-input user-site-form__description" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="说明（可选）" ${disabled}>
         <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>添加站点</button>
       </div>
       <p class="workbench-helper">自定义站点只保存到你的账号，不会写入全站公共导航。</p>
       ${state.userSites.length > 0 ? renderUserSitesList({ state, escapeHTML, renderSiteCard }) : '<div class="workbench-empty">还没有自定义站点。</div>'}
-      ${isEditing ? renderUserSiteEditModal({ state, escapeHTML, categoryOptions, disabled }) : ""}
+      ${isEditing ? renderUserSiteEditModal({ state, escapeHTML, categoryOptions, tagOptions, disabled }) : ""}
     </section>
   `;
 }
 
-function renderUserSiteEditModal({ state, escapeHTML, categoryOptions, disabled }) {
+function renderUserSiteEditModal({ state, escapeHTML, categoryOptions, tagOptions, disabled }) {
   return `
     <div class="user-site-modal" role="dialog" aria-modal="true" aria-labelledby="user-site-edit-title">
       <button type="button" class="user-site-modal__backdrop" data-action="cancel-edit-user-site" aria-label="关闭编辑"></button>
@@ -154,14 +155,26 @@ function renderUserSiteEditModal({ state, escapeHTML, categoryOptions, disabled 
           <input class="workbench-input" data-user-site-field="url" value="${escapeHTML(state.userSiteDraft.url)}" placeholder="https://example.com" ${disabled}>
           <input class="workbench-input" data-user-site-field="icon" value="${escapeHTML(state.userSiteDraft.icon)}" placeholder="图标地址（可选）" ${disabled}>
           ${renderCategoryControl({ value: state.userSiteDraft.category, categoryOptions, escapeHTML, disabled })}
-          <input class="workbench-input" data-user-site-field="tags" value="${escapeHTML(state.userSiteDraft.tags)}" placeholder="标签，用逗号分隔" ${disabled}>
-          <input class="workbench-input user-site-edit-form__wide" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="一句话说明" ${disabled}>
+          ${renderTagControl({ value: state.userSiteDraft.tags, tagOptions, escapeHTML, disabled })}
+          <input class="workbench-input user-site-edit-form__wide" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="说明（可选）" ${disabled}>
         </div>
         <div class="user-site-modal__actions">
           <button type="button" class="inline-reset" data-action="cancel-edit-user-site" ${disabled}>取消</button>
           <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>保存修改</button>
         </div>
       </article>
+    </div>
+  `;
+}
+
+function renderTagControl({ value, tagOptions, escapeHTML, disabled }) {
+  return `
+    <div class="user-site-tag-control">
+      <input class="workbench-input" data-user-site-field="tags" value="${escapeHTML(value)}" placeholder="标签（可选，用逗号分隔）" ${disabled}>
+      <select class="workbench-input user-site-tag-select" data-user-site-tag-select ${disabled}>
+        <option value="">选择标签</option>
+        ${tagOptions.map((tag) => `<option value="${escapeHTML(tag)}">${escapeHTML(tag)}</option>`).join("")}
+      </select>
     </div>
   `;
 }
@@ -190,6 +203,22 @@ function getUserSiteCategories(categoryOrder, sites) {
     .filter((category) => {
       const key = category.toLocaleLowerCase();
       if (!category || seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    });
+}
+
+function getUserSiteTags(sites) {
+  const seen = new Set();
+  return sites
+    .flatMap((site) => Array.isArray(site.tags) ? site.tags : [])
+    .map((tag) => String(tag || "").trim())
+    .filter((tag) => {
+      const key = tag.toLocaleLowerCase();
+      if (!tag || seen.has(key)) {
         return false;
       }
 
