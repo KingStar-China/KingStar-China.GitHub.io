@@ -11,7 +11,7 @@ export function normalizeUserSiteDraft(draft) {
     url,
     category: String(draft.category || "个人").trim() || "个人",
     tags: parseTags(draft.tags),
-    icon: "",
+    icon: normalizeOptionalHttpUrl(draft.icon),
     description: String(draft.description || "").trim(),
   };
 }
@@ -53,6 +53,11 @@ function normalizeHttpUrl(value) {
   } catch {
     return "";
   }
+}
+
+function normalizeOptionalHttpUrl(value) {
+  const rawValue = String(value || "").trim();
+  return rawValue ? normalizeHttpUrl(rawValue) : "";
 }
 
 function parseTags(value) {
