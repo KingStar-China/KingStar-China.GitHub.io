@@ -1,15 +1,16 @@
 export function normalizeUserSiteDraft(draft) {
   const name = String(draft.name || "").trim();
   const url = normalizeHttpUrl(draft.url);
+  const category = String(draft.category || "").trim();
 
-  if (!name || !url) {
+  if (!name || !url || !category) {
     return null;
   }
 
   return {
     name,
     url,
-    category: String(draft.category || "个人").trim() || "个人",
+    category,
     tags: parseTags(draft.tags),
     icon: normalizeOptionalHttpUrl(draft.icon),
     description: String(draft.description || "").trim(),
