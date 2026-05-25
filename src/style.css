@@ -3197,19 +3197,7 @@ a {
 }
 
 .user-site-list {
-  display: grid;
-  gap: 10px;
-}
-
-.user-site-item {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.user-site-item .todo-copy span {
-  display: block;
-  margin-top: 2px;
-  color: var(--muted);
-  font-size: 0.85rem;
+  margin-top: 18px;
 }
 
 .workbench-input,
