@@ -74,7 +74,7 @@ const RECENT_HISTORY_LIMIT = 20;
 const REMOTE_SAVE_DEBOUNCE_MS = 800;
 
 /** @type {SiteItem[]} */
-const sites = rawSites.map((site) => ({
+const defaultSites = rawSites.map((site) => ({
   ...site,
   tags: Array.isArray(site.tags) ? site.tags : [],
   aliases: Array.isArray(site.aliases) ? site.aliases : [],
@@ -92,9 +92,10 @@ const posts = rawPosts
   }))
   .sort((left, right) => new Date(right.publishedAt).getTime() - new Date(left.publishedAt).getTime());
 
-const categoryOrder = [...new Set(sites.map((site) => site.category))];
-const siteIds = new Set(sites.map((site) => site.id));
-const siteMap = new Map(sites.map((site) => [site.id, site]));
+let sites = [...defaultSites];
+let categoryOrder = [...new Set(sites.map((site) => site.category))];
+let siteIds = new Set(sites.map((site) => site.id));
+let siteMap = new Map(sites.map((site) => [site.id, site]));
 const postMap = new Map(posts.map((post) => [post.id, post]));
 const themeMap = new Map(themes.map((theme) => [theme.id, theme]));
 const categoryDescriptions = {
@@ -118,6 +119,14 @@ const state = {
   workbenchNote: loadStoredText(STORAGE_KEYS.workbenchNote),
   workbenchTodos: loadTodoList(STORAGE_KEYS.workbenchTodos),
   workbenchTodoDraft: "",
+  userSites: [],
+  userSiteDraft: {
+    name: "",
+    url: "",
+    category: "个人",
+    tags: "",
+    description: "",
+  },
   sync: {
     enabled: SUPABASE_CONFIG.enabled,
     signedIn: false,
@@ -262,6 +271,15 @@ function handleInput(event) {
 
   if (event.target.matches('[data-role="sync-password"]')) {
     state.sync.password = event.target.value;
+    return;
+  }
+
+  const userSiteField = event.target.closest("[data-user-site-field]");
+  if (userSiteField) {
+    const field = userSiteField.dataset.userSiteField;
+    if (field && Object.prototype.hasOwnProperty.call(state.userSiteDraft, field)) {
+      state.userSiteDraft[field] = userSiteField.value;
+    }
     return;
   }
 
@@ -483,6 +501,16 @@ function handleClick(event) {
       return;
     }
 
+    if (action === "add-user-site") {
+      addUserSite();
+      return;
+    }
+
+    if (action === "remove-user-site" && siteId) {
+      removeUserSite(siteId);
+      return;
+    }
+
     if (action === "toggle-favorite" && siteId) {
       toggleFavorite(siteId);
       render();
@@ -560,6 +588,12 @@ function handleKeydown(event) {
   if (event.target.matches('[data-role="sync-password"]') && event.key === "Enter") {
     event.preventDefault();
     signInSyncAccount();
+    return;
+  }
+
+  if (event.target.matches('[data-user-site-field]') && event.key === "Enter") {
+    event.preventDefault();
+    addUserSite();
     return;
   }
 
@@ -1424,7 +1458,53 @@ function renderWorkbenchSection() {
         <span class="section-count">${pendingCount}</span>
       </div>
       ${renderWorkbench()}
+      ${renderUserSitesManager()}
     </section>
+  `;
+}
+
+function renderUserSitesManager() {
+  const disabled = !state.sync.signedIn || state.sync.busy ? "disabled" : "";
+  const helper = state.sync.signedIn
+    ? "自定义站点只保存到你的 Supabase 账号，不会写入全局站点文件。"
+    : "登录云端同步后，可以添加只属于你的站点。";
+
+  return `
+    <section class="user-sites-manager">
+      <div class="section-head user-sites-manager__head">
+        <div>
+          <p class="section-head__eyebrow">CUSTOM SITES</p>
+          <h2>我的站点</h2>
+        </div>
+        <span class="section-count">${state.userSites.length}</span>
+      </div>
+      <div class="user-site-form">
+        <input class="workbench-input" data-user-site-field="name" value="${escapeHTML(state.userSiteDraft.name)}" placeholder="站点名称" ${disabled}>
+        <input class="workbench-input" data-user-site-field="url" value="${escapeHTML(state.userSiteDraft.url)}" placeholder="https://example.com" ${disabled}>
+        <input class="workbench-input" data-user-site-field="category" value="${escapeHTML(state.userSiteDraft.category)}" placeholder="分类" ${disabled}>
+        <input class="workbench-input" data-user-site-field="tags" value="${escapeHTML(state.userSiteDraft.tags)}" placeholder="标签，用逗号分隔" ${disabled}>
+        <input class="workbench-input user-site-form__description" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="一句话说明" ${disabled}>
+        <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>添加站点</button>
+      </div>
+      <p class="workbench-helper">${escapeHTML(helper)}</p>
+      ${state.userSites.length > 0 ? renderUserSitesList() : '<div class="workbench-empty">还没有自定义站点。</div>'}
+    </section>
+  `;
+}
+
+function renderUserSitesList() {
+  return `
+    <div class="user-site-list">
+      ${state.userSites.map((site) => `
+        <div class="todo-item user-site-item">
+          <div class="todo-copy">
+            <strong>${escapeHTML(site.name)}</strong>
+            <span>${escapeHTML(getHost(site.url))}</span>
+          </div>
+          <button type="button" class="todo-remove" data-action="remove-user-site" data-site-id="${escapeHTML(site.id)}">删除</button>
+        </div>
+      `).join("")}
+    </div>
   `;
 }
 
@@ -1697,6 +1777,7 @@ function renderSiteCard(site) {
   const iconMarkup = renderIcon(site);
   const host = getHost(site.url);
   const description = escapeHTML(site.description);
+  const isUserSite = site.source === "user";
 
   return `
     <article class="panel site-card">
@@ -1711,6 +1792,17 @@ function renderSiteCard(site) {
         >
           ${isFavorite ? "已收藏" : "收藏"}
         </button>
+        ${isUserSite ? `
+          <button
+            type="button"
+            class="favorite-button"
+            data-action="remove-user-site"
+            data-site-id="${escapeHTML(site.id)}"
+            aria-label="删除自定义站点"
+          >
+            删除
+          </button>
+        ` : ""}
       </div>
       <div class="site-card__body">
         <div class="site-card__meta">
@@ -2717,6 +2809,8 @@ async function submitSyncAuth(mode) {
 function signOutSyncAccount() {
   window.clearTimeout(state.sync.saveTimer);
   localStorage.removeItem(STORAGE_KEYS.syncSession);
+  state.userSites = [];
+  rebuildSiteIndexes();
   state.sync.signedIn = false;
   state.sync.userEmail = "";
   state.sync.userId = "";
@@ -2802,6 +2896,7 @@ async function refreshSyncSession() {
 
 async function mergeRemotePersonalData() {
   const remote = await loadRemotePersonalData();
+  await loadRemoteUserSites();
   const localSnapshot = getPersonalDataSnapshot();
 
   if (!remote) {
@@ -2813,6 +2908,14 @@ async function mergeRemotePersonalData() {
   applyPersonalDataSnapshot(merged);
   await saveRemotePersonalData();
   render();
+}
+
+async function loadRemoteUserSites() {
+  const rows = await requestSupabaseRest(
+    `/rest/v1/user_sites?user_id=eq.${encodeURIComponent(state.sync.userId)}&select=id,name,url,category,tags,icon,description,created_at&order=created_at.desc`,
+  );
+  state.userSites = Array.isArray(rows) ? rows.map(normalizeRemoteUserSite).filter(Boolean) : [];
+  rebuildSiteIndexes();
 }
 
 async function loadRemotePersonalData() {
@@ -2847,6 +2950,139 @@ function getPersonalDataSnapshot() {
     workbenchNote: state.workbenchNote,
     workbenchTodos: normalizeTodoItems(state.workbenchTodos),
   };
+}
+
+async function addUserSite() {
+  if (!state.sync.signedIn || state.sync.busy) {
+    setSyncMessage("请先登录云端同步。");
+    return;
+  }
+
+  const site = normalizeUserSiteDraft(state.userSiteDraft);
+  if (!site) {
+    setSyncMessage("请填写有效的站点名称和 http(s) 链接。");
+    return;
+  }
+
+  setSyncBusy(true, "正在添加自定义站点...");
+
+  try {
+    const savedSite = {
+      ...site,
+      id: `user-site-${Date.now()}`,
+      user_id: state.sync.userId,
+    };
+    await requestSupabaseRest("/rest/v1/user_sites", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify(savedSite),
+    });
+    state.userSiteDraft = { name: "", url: "", category: "个人", tags: "", description: "" };
+    await loadRemoteUserSites();
+    setSyncMessage("自定义站点已添加。");
+  } catch (error) {
+    setSyncMessage(`添加失败：${getErrorMessage(error)}`);
+  } finally {
+    setSyncBusy(false);
+  }
+}
+
+async function removeUserSite(siteId) {
+  if (!state.sync.signedIn || state.sync.busy || !state.userSites.some((site) => site.id === siteId)) {
+    return;
+  }
+
+  setSyncBusy(true, "正在删除自定义站点...");
+
+  try {
+    await requestSupabaseRest(`/rest/v1/user_sites?id=eq.${encodeURIComponent(siteId)}`, {
+      method: "DELETE",
+      headers: { Prefer: "return=minimal" },
+    });
+    state.userSites = state.userSites.filter((site) => site.id !== siteId);
+    state.favorites.delete(siteId);
+    state.recent = state.recent.filter((id) => id !== siteId);
+    rebuildSiteIndexes();
+    saveFavorites();
+    saveRecent();
+    setSyncMessage("自定义站点已删除。");
+  } catch (error) {
+    setSyncMessage(`删除失败：${getErrorMessage(error)}`);
+  } finally {
+    setSyncBusy(false);
+  }
+}
+
+function normalizeUserSiteDraft(draft) {
+  const name = String(draft.name || "").trim();
+  const url = normalizeHttpUrl(draft.url);
+
+  if (!name || !url) {
+    return null;
+  }
+
+  return {
+    name,
+    url,
+    category: String(draft.category || "个人").trim() || "个人",
+    tags: parseTags(draft.tags),
+    icon: "",
+    description: String(draft.description || "").trim(),
+  };
+}
+
+function normalizeRemoteUserSite(site) {
+  if (!site || typeof site !== "object") {
+    return null;
+  }
+
+  const name = String(site.name || "").trim();
+  const url = normalizeHttpUrl(site.url);
+  const id = String(site.id || "").trim();
+
+  if (!id || !name || !url) {
+    return null;
+  }
+
+  return {
+    id,
+    name,
+    url,
+    category: String(site.category || "个人").trim() || "个人",
+    tags: Array.isArray(site.tags) ? site.tags.map((tag) => String(tag).trim()).filter(Boolean) : [],
+    icon: String(site.icon || ""),
+    description: String(site.description || "").trim() || "我的自定义站点",
+    aliases: [],
+    source: "user",
+  };
+}
+
+function normalizeHttpUrl(value) {
+  try {
+    const url = new URL(String(value || "").trim());
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return "";
+    }
+
+    return url.href;
+  } catch {
+    return "";
+  }
+}
+
+function parseTags(value) {
+  return [...new Set(String(value || "")
+    .split(/[,，、\s]+/g)
+    .map((tag) => tag.trim())
+    .filter(Boolean))]
+    .slice(0, 8);
+}
+
+function rebuildSiteIndexes() {
+  sites = [...defaultSites, ...state.userSites];
+  categoryOrder = [...new Set(sites.map((site) => site.category))];
+  siteIds = new Set(sites.map((site) => site.id));
+  siteMap = new Map(sites.map((site) => [site.id, site]));
 }
 
 function mergePersonalData(localSnapshot, remotePayload) {
