@@ -110,6 +110,7 @@ function renderAccountSyncPanel({ state, escapeHTML }) {
 function renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrder }) {
   const disabled = state.sync.busy ? "disabled" : "";
   const categoryOptions = getUserSiteCategories(categoryOrder, state.userSites);
+  const isEditing = Boolean(state.userSiteEditingId);
 
   return `
     <section class="user-sites-manager">
@@ -130,7 +131,8 @@ function renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrd
         </datalist>
         <input class="workbench-input" data-user-site-field="tags" value="${escapeHTML(state.userSiteDraft.tags)}" placeholder="标签，用逗号分隔" ${disabled}>
         <input class="workbench-input user-site-form__description" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="一句话说明" ${disabled}>
-        <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>添加站点</button>
+        <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>${isEditing ? "保存修改" : "添加站点"}</button>
+        ${isEditing ? `<button type="button" class="inline-reset user-site-form__cancel" data-action="cancel-edit-user-site" ${disabled}>取消编辑</button>` : ""}
       </div>
       <p class="workbench-helper">自定义站点只保存到你的账号，不会写入全站公共导航。</p>
       ${state.userSites.length > 0 ? renderUserSitesList({ state, escapeHTML, renderSiteCard }) : '<div class="workbench-empty">还没有自定义站点。</div>'}
