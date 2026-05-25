@@ -6,6 +6,7 @@ import { themes } from "./data/themes.js";
 import { getPostSearchScore, getSiteSearchScore, matchesPostQuery, matchesSiteQuery } from "./lib/search.js";
 import { formatPostReadingTime, getAdjacentPosts, getRelatedPosts } from "./lib/blog.js";
 import { getCommandSections as getCommandSectionsState, getFlatCommandResults as getFlatCommandResultsState, runCommandResult as executeCommandResult, openCommandPalette as openCommandPaletteState, closeCommandPalette as closeCommandPaletteState } from "./lib/command-palette.js";
+import { getSupabaseConfig, requestSupabaseAuth as requestSupabaseAuthApi, requestSupabaseRest as requestSupabaseRestApi } from "./features/supabase.js";
 import { renderUserPage as renderUserPageView, renderUserStats as renderUserStatsView } from "./pages/user.js";
 
 /**
@@ -3081,44 +3082,11 @@ function mergeTodoItems(localItems, remoteItems) {
 }
 
 async function requestSupabaseAuth(path, body) {
-  return requestSupabase(path, {
-    method: "POST",
-    auth: false,
-    body: JSON.stringify(body),
-  });
+  return requestSupabaseAuthApi(SUPABASE_CONFIG, path, body);
 }
 
 async function requestSupabaseRest(path, options = {}) {
-  return requestSupabase(path, options);
-}
-
-async function requestSupabase(path, options = {}) {
-  const headers = {
-    apikey: SUPABASE_CONFIG.anonKey,
-    "Content-Type": "application/json",
-    ...(options.headers || {}),
-  };
-
-  if (options.auth !== false && state.sync.accessToken) {
-    headers.Authorization = `Bearer ${state.sync.accessToken}`;
-  } else {
-    headers.Authorization = `Bearer ${SUPABASE_CONFIG.anonKey}`;
-  }
-
-  const response = await fetch(`${SUPABASE_CONFIG.url}${path}`, {
-    method: options.method || "GET",
-    headers,
-    body: options.body,
-  });
-
-  const text = await response.text();
-  const payload = text ? JSON.parse(text) : null;
-
-  if (!response.ok) {
-    throw new Error(payload?.msg || payload?.message || response.statusText);
-  }
-
-  return payload;
+  return requestSupabaseRestApi(SUPABASE_CONFIG, path, options, state.sync.accessToken);
 }
 
 function setSyncBusy(busy, message = "", options = {}) {
@@ -3628,18 +3596,6 @@ function setAlternateFeed() {
   }
 
   element.setAttribute("href", new URL(siteMeta.rssPath, `${getCanonicalBaseUrl()}/`).href);
-}
-
-function getSupabaseConfig() {
-  const env = import.meta.env || {};
-  const url = String(env.VITE_SUPABASE_URL || "").replace(/\/+$/, "");
-  const anonKey = String(env.VITE_SUPABASE_ANON_KEY || "");
-
-  return {
-    enabled: Boolean(url && anonKey),
-    url,
-    anonKey,
-  };
 }
 
 function loadStoredText(key) {
