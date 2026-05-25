@@ -3195,8 +3195,7 @@ a {
   gap: 10px;
 }
 
-.user-site-form__row--details,
-.user-site-form__row--meta {
+.user-site-form__row--details {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 

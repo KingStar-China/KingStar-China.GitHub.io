@@ -130,8 +130,10 @@ function renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrd
           <input class="workbench-input" data-user-site-field="name" value="${escapeHTML(state.userSiteDraft.name)}" placeholder="站点名称" ${disabled}>
           <input class="workbench-input" data-user-site-field="icon" value="${escapeHTML(state.userSiteDraft.icon)}" placeholder="图标地址（可选）" ${disabled}>
         </div>
-        <div class="user-site-form__row user-site-form__row--meta">
+        <div class="user-site-form__row">
           ${renderCategoryControl({ value: state.userSiteDraft.category, categoryOptions, escapeHTML, disabled })}
+        </div>
+        <div class="user-site-form__row">
           ${renderTagControl({ value: state.userSiteDraft.tags, tagOptions, escapeHTML, disabled })}
         </div>
         <div class="user-site-form__row user-site-form__row--submit">
@@ -166,8 +168,10 @@ function renderUserSiteEditModal({ state, escapeHTML, categoryOptions, tagOption
             <input class="workbench-input" data-user-site-field="name" value="${escapeHTML(state.userSiteDraft.name)}" placeholder="站点名称" ${disabled}>
             <input class="workbench-input" data-user-site-field="icon" value="${escapeHTML(state.userSiteDraft.icon)}" placeholder="图标地址（可选）" ${disabled}>
           </div>
-          <div class="user-site-form__row user-site-form__row--meta">
+          <div class="user-site-form__row">
             ${renderCategoryControl({ value: state.userSiteDraft.category, categoryOptions, escapeHTML, disabled })}
+          </div>
+          <div class="user-site-form__row">
             ${renderTagControl({ value: state.userSiteDraft.tags, tagOptions, escapeHTML, disabled })}
           </div>
           <div class="user-site-form__row">
