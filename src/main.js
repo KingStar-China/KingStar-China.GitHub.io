@@ -820,7 +820,7 @@ function renderUserStats() {
     createStatCard("账号状态", state.sync.signedIn ? "已登录" : "未登录"),
     createStatCard("我的站点", String(state.userSites.length)),
     createStatCard("云端同步", state.sync.enabled ? "可用" : "本地"),
-    createStatCard("站长后台", "/admin"),
+    createStatCard("站长后台", "本机"),
   ].join("");
 }
 
@@ -1040,8 +1040,8 @@ function renderToolbar() {
       <div class="toolbar-shell toolbar-shell--user">
         <div class="toolbar__heading toolbar__heading--compact">
           <span class="field-label">ACCOUNT</span>
-          <h2>注册登录</h2>
-          <p>登录后管理你的自定义站点和云端同步；站长后台固定在 /admin。</p>
+          <h2>用户中心</h2>
+          <p>普通用户登录后只管理自己的站点、收藏、待办和云端同步；站长后台是本机内容管理器。</p>
         </div>
       </div>
     `;
@@ -1263,9 +1263,9 @@ function renderUserPage() {
       <div class="section-head user-portal__head">
         <div>
           <p class="section-head__eyebrow">USER CENTER</p>
-          <h2>${state.sync.signedIn ? "我的账号" : "注册登录"}</h2>
+          <h2>我的账号</h2>
         </div>
-        <a class="inline-reset" href="/admin">站长后台 /admin</a>
+        <a class="inline-reset" href="/admin/">站长后台说明</a>
       </div>
       <div class="user-portal__grid">
         ${renderSyncCard()}
@@ -1273,13 +1273,13 @@ function renderUserPage() {
           <div class="workbench-card__head">
             <div>
               <p class="section-head__eyebrow">ADMIN</p>
-              <h2>站长入口</h2>
+              <h2>站长后台说明</h2>
             </div>
             <span class="section-count">/admin</span>
           </div>
-          <p class="workbench-helper">站长后台入口保留为 /admin。线上要做到只有管理员账号能进入，需要用 Supabase 权限或服务端校验承接。</p>
+          <p class="workbench-helper">全站内容管理只在站长本机运行。请在项目目录执行 npm run admin:open，打开 http://127.0.0.1:3214/ 后编辑站点和博客。</p>
           <div class="sync-actions">
-            <a class="workbench-button" href="/admin">进入后台</a>
+            <a class="workbench-button" href="/admin/">查看站长后台说明</a>
           </div>
         </article>
       </div>
