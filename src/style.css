@@ -3196,6 +3196,11 @@ a {
   grid-column: span 2;
 }
 
+.user-site-form__cancel {
+  align-self: center;
+  justify-self: start;
+}
+
 .user-site-list {
   display: grid;
   gap: 18px;

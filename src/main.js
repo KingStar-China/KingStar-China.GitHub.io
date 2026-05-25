@@ -126,6 +126,7 @@ const state = {
   workbenchTodos: loadTodoList(STORAGE_KEYS.workbenchTodos),
   workbenchTodoDraft: "",
   userSites: [],
+  userSiteEditingId: "",
   userSiteDraft: {
     name: "",
     url: "",
@@ -511,6 +512,16 @@ function handleClick(event) {
 
     if (action === "add-user-site") {
       addUserSite();
+      return;
+    }
+
+    if (action === "edit-user-site" && siteId) {
+      startEditingUserSite(siteId);
+      return;
+    }
+
+    if (action === "cancel-edit-user-site") {
+      cancelEditingUserSite();
       return;
     }
 
@@ -1710,6 +1721,15 @@ function renderSiteCard(site) {
           <button
             type="button"
             class="favorite-button"
+            data-action="edit-user-site"
+            data-site-id="${escapeHTML(site.id)}"
+            aria-label="编辑自定义站点"
+          >
+            编辑
+          </button>
+          <button
+            type="button"
+            class="favorite-button"
             data-action="remove-user-site"
             data-site-id="${escapeHTML(site.id)}"
             aria-label="删除自定义站点"
@@ -2878,6 +2898,11 @@ async function addUserSite() {
     return;
   }
 
+  if (state.userSiteEditingId) {
+    await updateUserSite(state.userSiteEditingId, site);
+    return;
+  }
+
   setSyncBusy(true, "正在添加自定义站点...");
 
   try {
@@ -2891,7 +2916,7 @@ async function addUserSite() {
       headers: { Prefer: "return=minimal" },
       body: JSON.stringify(savedSite),
     });
-    state.userSiteDraft = { name: "", url: "", icon: "", category: "", tags: "", description: "" };
+    resetUserSiteDraft();
     await loadRemoteUserSites();
     setSyncMessage("自定义站点已添加。");
   } catch (error) {
@@ -2899,6 +2924,59 @@ async function addUserSite() {
   } finally {
     setSyncBusy(false);
   }
+}
+
+async function updateUserSite(siteId, site) {
+  if (!state.sync.signedIn || state.sync.busy || !state.userSites.some((item) => item.id === siteId)) {
+    return;
+  }
+
+  setSyncBusy(true, "正在保存自定义站点...");
+
+  try {
+    await requestSupabaseRest(`/rest/v1/user_sites?id=eq.${encodeURIComponent(siteId)}`, {
+      method: "PATCH",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify(site),
+    });
+    resetUserSiteDraft();
+    await loadRemoteUserSites();
+    setSyncMessage("自定义站点已更新。");
+  } catch (error) {
+    setSyncMessage(`保存失败：${getErrorMessage(error)}`);
+  } finally {
+    setSyncBusy(false);
+  }
+}
+
+function startEditingUserSite(siteId) {
+  const site = state.userSites.find((item) => item.id === siteId);
+  if (!site || state.sync.busy) {
+    return;
+  }
+
+  state.userSiteEditingId = site.id;
+  state.userSiteDraft = {
+    name: site.name,
+    url: site.url,
+    icon: site.icon || "",
+    category: site.category,
+    tags: Array.isArray(site.tags) ? site.tags.join("，") : "",
+    description: site.description || "",
+  };
+  setSyncMessage("正在编辑自定义站点，保存后会更新原记录。");
+  render();
+}
+
+function cancelEditingUserSite() {
+  resetUserSiteDraft();
+  setSyncMessage("已取消编辑。");
+  render();
+}
+
+function resetUserSiteDraft() {
+  state.userSiteEditingId = "";
+  state.userSiteDraft = { name: "", url: "", icon: "", category: "", tags: "", description: "" };
 }
 
 async function removeUserSite(siteId) {
@@ -2914,6 +2992,9 @@ async function removeUserSite(siteId) {
       headers: { Prefer: "return=minimal" },
     });
     state.userSites = state.userSites.filter((site) => site.id !== siteId);
+    if (state.userSiteEditingId === siteId) {
+      resetUserSiteDraft();
+    }
     state.favorites.delete(siteId);
     state.recent = state.recent.filter((id) => id !== siteId);
     persistCachedUserSites();
