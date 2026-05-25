@@ -3022,10 +3022,10 @@ a {
 
 .user-login-card {
   position: relative;
-  width: min(430px, 100%);
+  width: min(390px, 100%);
   display: grid;
-  gap: 16px;
-  padding: 28px 32px 26px;
+  gap: 14px;
+  padding: 25px 29px 23px;
   border-radius: 16px;
   border-color: rgba(143, 231, 223, 0.14);
   background:
@@ -3040,8 +3040,8 @@ a {
   position: absolute;
   top: 16px;
   right: 16px;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.1);
@@ -3052,7 +3052,7 @@ a {
 }
 
 .user-login-card__head {
-  padding: 0 34px 0;
+  padding: 0 30px 0;
   text-align: center;
 }
 
@@ -3062,43 +3062,43 @@ a {
 }
 
 .user-login-card__head h2 {
-  font-size: 1.82rem;
+  font-size: 1.64rem;
   line-height: 1.12;
 }
 
 .user-login-card__head p {
   color: var(--muted);
   line-height: 1.5;
-  font-size: 0.92rem;
+  font-size: 0.86rem;
   text-align: center;
 }
 
 .user-login-card__form {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 13px;
+  gap: 12px;
 }
 
 .user-login-field {
   display: grid;
-  gap: 7px;
+  gap: 6px;
 }
 
 .user-login-field span {
   color: var(--heading);
-  font-size: 0.92rem;
+  font-size: 0.86rem;
   font-weight: 700;
 }
 
 .user-login-card .workbench-input {
-  min-height: 48px;
+  min-height: 43px;
   border-radius: 12px;
   background: rgba(5, 17, 24, 0.92);
-  font-size: 0.95rem;
+  font-size: 0.88rem;
 }
 
 .user-login-card .workbench-button {
-  min-height: 50px;
+  min-height: 45px;
   border-radius: 12px;
   background: linear-gradient(135deg, rgba(15, 118, 110, 0.98), rgba(32, 150, 139, 0.82));
   color: #f8fffe;
@@ -3119,7 +3119,7 @@ a {
   min-height: 1.4em;
   color: var(--muted);
   line-height: 1.5;
-  font-size: 0.9rem;
+  font-size: 0.84rem;
   text-align: center;
   transition: color 0.18s ease;
 }
