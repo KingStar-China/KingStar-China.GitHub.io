@@ -40,34 +40,38 @@ function renderSignedOutUserPage({ state, escapeHTML }) {
       <article class="panel user-login-card">
         <button type="button" class="user-login-card__close" data-action="set-section" data-value="nav" aria-label="关闭登录">×</button>
         <div class="user-login-card__head">
-          <p class="section-head__eyebrow">USER CENTER</p>
-          <h2>登录少昊导航</h2>
+          <h2>登录到少昊导航</h2>
         </div>
         <div class="sync-form user-login-card__form">
-          <input
-            type="email"
-            data-role="sync-email"
-            class="workbench-input"
-            placeholder="邮箱"
-            autocomplete="email"
-            value="${escapeHTML(state.sync.email)}"
-            ${disabled}
-          >
-          <input
-            type="password"
-            data-role="sync-password"
-            class="workbench-input"
-            placeholder="密码"
-            autocomplete="current-password"
-            value="${escapeHTML(state.sync.password)}"
-            ${disabled}
-          >
-        </div>
-        <div class="sync-actions user-login-card__actions">
-          <button type="button" class="workbench-button" data-action="sync-sign-in" ${disabled}>登录</button>
-          <button type="button" class="inline-reset" data-action="sync-sign-up" ${disabled}>注册账号</button>
+          <label class="user-login-field">
+            <span>邮箱</span>
+            <input
+              type="email"
+              data-role="sync-email"
+              class="workbench-input"
+              placeholder="you@example.com"
+              autocomplete="email"
+              value="${escapeHTML(state.sync.email)}"
+              ${disabled}
+            >
+          </label>
+          <label class="user-login-field">
+            <span>密码</span>
+            <input
+              type="password"
+              data-role="sync-password"
+              class="workbench-input"
+              placeholder="输入密码"
+              autocomplete="current-password"
+              value="${escapeHTML(state.sync.password)}"
+              ${disabled}
+            >
+          </label>
+          <button type="button" class="workbench-button user-login-card__primary" data-action="sync-sign-in" ${disabled}>登录</button>
         </div>
         <p class="user-login-card__status" data-role="sync-status">${escapeHTML(state.sync.message)}</p>
+        <div class="user-login-card__divider"><span>或</span></div>
+        <p class="user-login-card__register">还没有账号？ <button type="button" class="inline-reset" data-action="sync-sign-up" ${disabled}>立即注册</button></p>
       </article>
     </section>
   `;
