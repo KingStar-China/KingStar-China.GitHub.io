@@ -3066,6 +3066,12 @@ a {
   line-height: 1.12;
 }
 
+.user-login-card__head p {
+  color: var(--muted);
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
 .user-login-card__form {
   display: grid;
   grid-template-columns: 1fr;

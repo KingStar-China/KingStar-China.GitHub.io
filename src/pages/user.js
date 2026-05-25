@@ -41,6 +41,7 @@ function renderSignedOutUserPage({ state, escapeHTML }) {
         <button type="button" class="user-login-card__close" data-action="set-section" data-value="nav" aria-label="关闭登录">×</button>
         <div class="user-login-card__head">
           <h2>登录到少昊导航</h2>
+          <p>同步收藏、最近访问、待办和你的自定义网站。</p>
         </div>
         <div class="sync-form user-login-card__form">
           <label class="user-login-field">
