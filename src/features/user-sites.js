@@ -37,10 +37,15 @@ export function normalizeRemoteUserSite(site) {
     category: String(site.category || "个人").trim() || "个人",
     tags: Array.isArray(site.tags) ? site.tags.map((tag) => String(tag).trim()).filter(Boolean) : [],
     icon: String(site.icon || ""),
-    description: String(site.description || "").trim(),
+    description: normalizeRemoteDescription(site.description),
     aliases: [],
     source: "user",
   };
+}
+
+function normalizeRemoteDescription(value) {
+  const description = String(value || "").trim();
+  return description === "我的自定义站点" ? "" : description;
 }
 
 function normalizeHttpUrl(value) {
