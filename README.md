@@ -71,6 +71,17 @@ npm run dev
 
 打开首页底部“个人工作台”的“云端同步”卡片，先注册或登录。Supabase 如果开启邮箱确认，需要先完成邮件确认后再登录。
 
+### 4. GitHub Pages 线上配置
+
+如果要让线上站点也开启同步，在 GitHub 仓库的 `Settings -> Secrets and variables -> Actions -> Variables` 添加：
+
+```bash
+VITE_SUPABASE_URL=https://zfvwrnuenurxauvvfsuw.supabase.co
+VITE_SUPABASE_ANON_KEY=你的 anon public key
+```
+
+添加后重新运行 GitHub Pages 部署 workflow。
+
 ## 构建发布
 
 ```bash
