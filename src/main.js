@@ -7,6 +7,7 @@ import { getPostSearchScore, getSiteSearchScore, matchesPostQuery, matchesSiteQu
 import { formatPostReadingTime, getAdjacentPosts, getRelatedPosts } from "./lib/blog.js";
 import { getCommandSections as getCommandSectionsState, getFlatCommandResults as getFlatCommandResultsState, runCommandResult as executeCommandResult, openCommandPalette as openCommandPaletteState, closeCommandPalette as closeCommandPaletteState } from "./lib/command-palette.js";
 import { createPersonalDataSnapshot, mergePersonalData as mergePersonalDataState, normalizePersonalData } from "./features/personal-data.js";
+import { getAuthAccessToken, loadSyncSession as loadStoredSyncSession, normalizeSyncSession, persistSyncSession as persistStoredSyncSession, removeSyncSession } from "./features/sync-session.js";
 import { getSupabaseConfig, requestSupabaseAuth as requestSupabaseAuthApi, requestSupabaseRest as requestSupabaseRestApi } from "./features/supabase.js";
 import { normalizeRemoteUserSite, normalizeUserSiteDraft } from "./features/user-sites.js";
 import { renderUserPage as renderUserPageView, renderUserStats as renderUserStatsView } from "./pages/user.js";
@@ -2726,7 +2727,7 @@ async function submitSyncAuth(mode) {
 
 function signOutSyncAccount() {
   window.clearTimeout(state.sync.saveTimer);
-  localStorage.removeItem(STORAGE_KEYS.syncSession);
+  removeSyncSession(localStorage, STORAGE_KEYS.syncSession);
   state.userSites = [];
   rebuildSiteIndexes();
   state.sync.signedIn = false;
@@ -2769,39 +2770,19 @@ async function restoreSyncSession() {
 }
 
 function loadSyncSession() {
-  try {
-    const value = JSON.parse(localStorage.getItem(STORAGE_KEYS.syncSession) || "null");
-    if (!value || typeof value !== "object") {
-      return null;
-    }
-
-    return value;
-  } catch {
-    return null;
-  }
+  return loadStoredSyncSession(localStorage, STORAGE_KEYS.syncSession);
 }
 
 function applySyncSession(session) {
-  const activeSession = session.session || session;
-  const user = activeSession.user || session.user || {};
-  state.sync.signedIn = true;
-  state.sync.userEmail = String(user.email || state.sync.email || "");
-  state.sync.userId = String(user.id || state.sync.userId || "");
-  state.sync.accessToken = String(activeSession.access_token || "");
-  state.sync.refreshToken = String(activeSession.refresh_token || state.sync.refreshToken || "");
-}
-
-function getAuthAccessToken(session) {
-  return session?.session?.access_token || session?.access_token || "";
+  Object.assign(state.sync, normalizeSyncSession(session, {
+    email: state.sync.email,
+    userId: state.sync.userId,
+    refreshToken: state.sync.refreshToken,
+  }));
 }
 
 function persistSyncSession() {
-  localStorage.setItem(STORAGE_KEYS.syncSession, JSON.stringify({
-    userEmail: state.sync.userEmail,
-    userId: state.sync.userId,
-    accessToken: state.sync.accessToken,
-    refreshToken: state.sync.refreshToken,
-  }));
+  persistStoredSyncSession(localStorage, STORAGE_KEYS.syncSession, state.sync);
 }
 
 async function refreshSyncSession() {
