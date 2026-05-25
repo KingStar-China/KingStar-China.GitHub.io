@@ -159,12 +159,20 @@ function renderUserSiteEditModal({ state, escapeHTML, categoryOptions, tagOption
           <button type="button" class="user-site-modal__close" data-action="cancel-edit-user-site" aria-label="关闭编辑">×</button>
         </div>
         <div class="user-site-edit-form">
-          ${renderUrlControl({ value: state.userSiteDraft.url, escapeHTML, disabled })}
-          <input class="workbench-input" data-user-site-field="name" value="${escapeHTML(state.userSiteDraft.name)}" placeholder="站点名称" ${disabled}>
-          <input class="workbench-input" data-user-site-field="icon" value="${escapeHTML(state.userSiteDraft.icon)}" placeholder="图标地址（可选）" ${disabled}>
-          ${renderCategoryControl({ value: state.userSiteDraft.category, categoryOptions, escapeHTML, disabled })}
-          ${renderTagControl({ value: state.userSiteDraft.tags, tagOptions, escapeHTML, disabled })}
-          <input class="workbench-input user-site-edit-form__wide" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="说明（可选）" ${disabled}>
+          <div class="user-site-form__row user-site-form__row--url">
+            ${renderUrlControl({ value: state.userSiteDraft.url, escapeHTML, disabled })}
+          </div>
+          <div class="user-site-form__row user-site-form__row--details">
+            <input class="workbench-input" data-user-site-field="name" value="${escapeHTML(state.userSiteDraft.name)}" placeholder="站点名称" ${disabled}>
+            <input class="workbench-input" data-user-site-field="icon" value="${escapeHTML(state.userSiteDraft.icon)}" placeholder="图标地址（可选）" ${disabled}>
+          </div>
+          <div class="user-site-form__row user-site-form__row--meta">
+            ${renderCategoryControl({ value: state.userSiteDraft.category, categoryOptions, escapeHTML, disabled })}
+            ${renderTagControl({ value: state.userSiteDraft.tags, tagOptions, escapeHTML, disabled })}
+          </div>
+          <div class="user-site-form__row">
+            <input class="workbench-input" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="说明（可选）" ${disabled}>
+          </div>
         </div>
         <div class="user-site-modal__actions">
           <button type="button" class="inline-reset" data-action="cancel-edit-user-site" ${disabled}>取消</button>
