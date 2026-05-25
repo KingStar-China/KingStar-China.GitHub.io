@@ -3196,6 +3196,16 @@ a {
   grid-column: span 2;
 }
 
+.user-site-category-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(130px, 0.58fr);
+  gap: 10px;
+}
+
+.user-site-category-select {
+  cursor: pointer;
+}
+
 .user-site-list {
   display: grid;
   gap: 18px;
