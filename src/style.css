@@ -3070,6 +3070,7 @@ a {
   color: var(--muted);
   line-height: 1.6;
   font-size: 1rem;
+  text-align: center;
 }
 
 .user-login-card__form {
