@@ -7,7 +7,7 @@ export function renderUserStats({ state, createStatCard }) {
   ].join("");
 }
 
-export function renderUserPage({ state, escapeHTML, getHost }) {
+export function renderUserPage({ state, escapeHTML, getHost, renderSiteCard }) {
   if (!state.sync.signedIn) {
     return renderSignedOutUserPage({ state, escapeHTML });
   }
@@ -27,7 +27,7 @@ export function renderUserPage({ state, escapeHTML, getHost }) {
       </div>
       ${renderUserOverview({ state })}
       ${renderAccountSyncPanel({ state, escapeHTML })}
-      ${renderUserSitesManager({ state, escapeHTML, getHost })}
+      ${renderUserSitesManager({ state, escapeHTML, renderSiteCard })}
     </section>
   `;
 }
@@ -107,7 +107,7 @@ function renderAccountSyncPanel({ state, escapeHTML }) {
   `;
 }
 
-function renderUserSitesManager({ state, escapeHTML, getHost }) {
+function renderUserSitesManager({ state, escapeHTML, renderSiteCard }) {
   const disabled = state.sync.busy ? "disabled" : "";
 
   return `
@@ -129,7 +129,7 @@ function renderUserSitesManager({ state, escapeHTML, getHost }) {
         <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>添加站点</button>
       </div>
       <p class="workbench-helper">自定义站点只保存到你的账号，不会写入全站公共导航。</p>
-      ${state.userSites.length > 0 ? renderUserSitesList({ state, escapeHTML, getHost }) : '<div class="workbench-empty">还没有自定义站点。</div>'}
+      ${state.userSites.length > 0 ? renderUserSitesList({ state, renderSiteCard }) : '<div class="workbench-empty">还没有自定义站点。</div>'}
     </section>
   `;
 }
@@ -138,18 +138,10 @@ function getUserDisplayName(state) {
   return state.sync.userEmail || state.sync.email || "我的账号";
 }
 
-function renderUserSitesList({ state, escapeHTML, getHost }) {
+function renderUserSitesList({ state, renderSiteCard }) {
   return `
-    <div class="user-site-list">
-      ${state.userSites.map((site) => `
-        <div class="todo-item user-site-item">
-          <div class="todo-copy">
-            <strong>${escapeHTML(site.name)}</strong>
-            <span>${escapeHTML(getHost(site.url))}</span>
-          </div>
-          <button type="button" class="todo-remove" data-action="remove-user-site" data-site-id="${escapeHTML(site.id)}">删除</button>
-        </div>
-      `).join("")}
+    <div class="site-grid user-site-list">
+      ${state.userSites.map((site) => renderSiteCard(site)).join("")}
     </div>
   `;
 }

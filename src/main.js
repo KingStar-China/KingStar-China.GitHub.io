@@ -1253,7 +1253,7 @@ function renderContent() {
 }
 
 function renderUserPage() {
-  return renderUserPageView({ state, escapeHTML, getHost });
+  return renderUserPageView({ state, escapeHTML, getHost, renderSiteCard });
 }
 
 function renderWorkbench() {
