@@ -3002,6 +3002,42 @@ a {
   font-size: 0.92rem;
 }
 
+.user-sites-manager {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.user-sites-manager__head {
+  align-items: center;
+}
+
+.user-site-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  gap: 10px;
+}
+
+.user-site-form__description {
+  grid-column: span 2;
+}
+
+.user-site-list {
+  display: grid;
+  gap: 10px;
+}
+
+.user-site-item {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.user-site-item .todo-copy span {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 .workbench-input,
 .workbench-note {
   width: 100%;
@@ -3140,8 +3176,13 @@ a {
   }
 
   .workbench-todo-form,
+  .user-site-form,
   .sync-form {
     grid-template-columns: 1fr;
+  }
+
+  .user-site-form__description {
+    grid-column: auto;
   }
 }
 
@@ -5656,4 +5697,3 @@ body.is-command-open {
     border-radius: 16px;
   }
 }
-
