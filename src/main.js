@@ -6,6 +6,7 @@ import { themes } from "./data/themes.js";
 import { getPostSearchScore, getSiteSearchScore, matchesPostQuery, matchesSiteQuery } from "./lib/search.js";
 import { formatPostReadingTime, getAdjacentPosts, getRelatedPosts } from "./lib/blog.js";
 import { getCommandSections as getCommandSectionsState, getFlatCommandResults as getFlatCommandResultsState, runCommandResult as executeCommandResult, openCommandPalette as openCommandPaletteState, closeCommandPalette as closeCommandPaletteState } from "./lib/command-palette.js";
+import { createPersonalDataSnapshot, mergePersonalData as mergePersonalDataState, normalizePersonalData } from "./features/personal-data.js";
 import { getSupabaseConfig, requestSupabaseAuth as requestSupabaseAuthApi, requestSupabaseRest as requestSupabaseRestApi } from "./features/supabase.js";
 import { normalizeRemoteUserSite, normalizeUserSiteDraft } from "./features/user-sites.js";
 import { renderUserPage as renderUserPageView, renderUserStats as renderUserStatsView } from "./pages/user.js";
@@ -2861,12 +2862,7 @@ async function saveRemotePersonalData() {
 }
 
 function getPersonalDataSnapshot() {
-  return {
-    favorites: [...state.favorites].filter((id) => siteIds.has(id)),
-    recent: state.recent.filter((id) => siteIds.has(id)).slice(0, RECENT_HISTORY_LIMIT),
-    workbenchNote: state.workbenchNote,
-    workbenchTodos: normalizeTodoItems(state.workbenchTodos),
-  };
+  return createPersonalDataSnapshot(state, siteIds, RECENT_HISTORY_LIMIT);
 }
 
 async function addUserSite() {
@@ -2938,19 +2934,11 @@ function rebuildSiteIndexes() {
 }
 
 function mergePersonalData(localSnapshot, remotePayload) {
-  const remote = normalizePersonalData(remotePayload);
-  const local = normalizePersonalData(localSnapshot);
-
-  return {
-    favorites: [...new Set([...local.favorites, ...remote.favorites])],
-    recent: mergeRecentIds(local.recent, remote.recent),
-    workbenchNote: local.workbenchNote || remote.workbenchNote,
-    workbenchTodos: mergeTodoItems(local.workbenchTodos, remote.workbenchTodos),
-  };
+  return mergePersonalDataState(localSnapshot, remotePayload, siteIds, RECENT_HISTORY_LIMIT);
 }
 
 function applyPersonalDataSnapshot(snapshot) {
-  const data = normalizePersonalData(snapshot);
+  const data = normalizePersonalData(snapshot, siteIds, RECENT_HISTORY_LIMIT);
   state.favorites = new Set(data.favorites);
   state.recent = data.recent;
   state.workbenchNote = data.workbenchNote;
@@ -2961,60 +2949,6 @@ function applyPersonalDataSnapshot(snapshot) {
   localStorage.setItem(STORAGE_KEYS.workbenchNote, data.workbenchNote);
   localStorage.setItem(STORAGE_KEYS.workbenchTodos, JSON.stringify(data.workbenchTodos));
   localStorage.setItem(STORAGE_KEYS.personalUpdatedAt, new Date().toISOString());
-}
-
-function normalizePersonalData(value) {
-  const payload = value && typeof value === "object" ? value : {};
-
-  return {
-    favorites: normalizeIdArray(payload.favorites),
-    recent: normalizeIdArray(payload.recent).slice(0, RECENT_HISTORY_LIMIT),
-    workbenchNote: String(payload.workbenchNote || ""),
-    workbenchTodos: normalizeTodoItems(payload.workbenchTodos),
-  };
-}
-
-function normalizeIdArray(value) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return [...new Set(value.map((id) => String(id)).filter((id) => siteIds.has(id)))];
-}
-
-function normalizeTodoItems(value) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((item) => ({
-      id: String(item.id || `todo-${Date.now()}`),
-      text: String(item.text || "").trim(),
-      done: Boolean(item.done),
-    }))
-    .filter((item) => item.text)
-    .slice(0, 12);
-}
-
-function mergeRecentIds(localIds, remoteIds) {
-  return [...new Set([...localIds, ...remoteIds])]
-    .filter((id) => siteIds.has(id))
-    .slice(0, RECENT_HISTORY_LIMIT);
-}
-
-function mergeTodoItems(localItems, remoteItems) {
-  const items = new Map();
-
-  for (const item of remoteItems) {
-    items.set(item.id, item);
-  }
-
-  for (const item of localItems) {
-    items.set(item.id, item);
-  }
-
-  return [...items.values()].slice(0, 12);
 }
 
 async function requestSupabaseAuth(path, body) {
