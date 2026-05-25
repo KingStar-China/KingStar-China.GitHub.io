@@ -1253,7 +1253,7 @@ function renderContent() {
 }
 
 function renderUserPage() {
-  return renderUserPageView({ state, escapeHTML, getHost, renderSiteCard });
+  return renderUserPageView({ state, escapeHTML, getHost, renderSiteCard, categoryOrder });
 }
 
 function renderWorkbench() {

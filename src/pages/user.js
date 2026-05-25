@@ -7,7 +7,7 @@ export function renderUserStats({ state, createStatCard }) {
   ].join("");
 }
 
-export function renderUserPage({ state, escapeHTML, getHost, renderSiteCard }) {
+export function renderUserPage({ state, escapeHTML, getHost, renderSiteCard, categoryOrder }) {
   if (!state.sync.signedIn) {
     return renderSignedOutUserPage({ state, escapeHTML });
   }
@@ -27,7 +27,7 @@ export function renderUserPage({ state, escapeHTML, getHost, renderSiteCard }) {
       </div>
       ${renderUserOverview({ state })}
       ${renderAccountSyncPanel({ state, escapeHTML })}
-      ${renderUserSitesManager({ state, escapeHTML, renderSiteCard })}
+      ${renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrder })}
     </section>
   `;
 }
@@ -107,9 +107,9 @@ function renderAccountSyncPanel({ state, escapeHTML }) {
   `;
 }
 
-function renderUserSitesManager({ state, escapeHTML, renderSiteCard }) {
+function renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrder }) {
   const disabled = state.sync.busy ? "disabled" : "";
-  const categoryOptions = getUserSiteCategories(state.userSites);
+  const categoryOptions = getUserSiteCategories(categoryOrder, state.userSites);
 
   return `
     <section class="user-sites-manager">
@@ -138,8 +138,24 @@ function renderUserSitesManager({ state, escapeHTML, renderSiteCard }) {
   `;
 }
 
-function getUserSiteCategories(sites) {
-  return [...new Set(sites.map((site) => String(site.category || "").trim()).filter(Boolean))];
+function getUserSiteCategories(categoryOrder, sites) {
+  const categories = [
+    ...(Array.isArray(categoryOrder) ? categoryOrder : []),
+    ...sites.map((site) => site.category),
+  ];
+  const seen = new Set();
+
+  return categories
+    .map((category) => String(category || "").trim())
+    .filter((category) => {
+      const key = category.toLocaleLowerCase();
+      if (!category || seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    });
 }
 
 function getUserDisplayName(state) {
