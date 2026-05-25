@@ -130,7 +130,7 @@ const state = {
     name: "",
     url: "",
     icon: "",
-    category: "个人",
+    category: "",
     tags: "",
     description: "",
   },
@@ -2874,7 +2874,7 @@ async function addUserSite() {
 
   const site = normalizeUserSiteDraft(state.userSiteDraft);
   if (!site) {
-    setSyncMessage("请填写有效的站点名称和 http(s) 链接。");
+    setSyncMessage("请填写站点名称、有效链接和分类。");
     return;
   }
 
@@ -2891,7 +2891,7 @@ async function addUserSite() {
       headers: { Prefer: "return=minimal" },
       body: JSON.stringify(savedSite),
     });
-    state.userSiteDraft = { name: "", url: "", icon: "", category: "个人", tags: "", description: "" };
+    state.userSiteDraft = { name: "", url: "", icon: "", category: "", tags: "", description: "" };
     await loadRemoteUserSites();
     setSyncMessage("自定义站点已添加。");
   } catch (error) {
