@@ -3197,7 +3197,13 @@ a {
 }
 
 .user-site-list {
+  display: grid;
+  gap: 18px;
   margin-top: 18px;
+}
+
+.user-site-category {
+  padding: 18px;
 }
 
 .workbench-input,
