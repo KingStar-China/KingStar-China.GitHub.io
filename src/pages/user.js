@@ -75,7 +75,10 @@ function renderSignedOutUserPage({ state, escapeHTML }) {
         </div>
         <p class="user-login-card__status${state.sync.busy ? " is-busy" : ""}" data-role="sync-status">${escapeHTML(state.sync.message)}</p>
         <div class="user-login-card__divider"><span>或</span></div>
-        <p class="user-login-card__register">还没有账号？ <button type="button" class="inline-reset" data-action="sync-sign-up" ${disabled}>${signUpLabel}</button></p>
+        <div class="user-login-card__links">
+          <button type="button" class="inline-reset" data-action="sync-reset-password" ${disabled}>忘记密码</button>
+          <span>还没有账号？ <button type="button" class="inline-reset" data-action="sync-sign-up" ${disabled}>${signUpLabel}</button></span>
+        </div>
       </article>
     </section>
   `;
@@ -102,6 +105,9 @@ function renderUserOverview({ state }) {
 }
 
 function renderAccountSyncPanel({ state, escapeHTML }) {
+  const disabled = state.sync.busy ? "disabled" : "";
+  const isRecovery = state.sync.authMode === "recovery";
+
   return `
     <article class="panel user-account-panel">
       <div>
@@ -109,7 +115,23 @@ function renderAccountSyncPanel({ state, escapeHTML }) {
         <h2>云端同步</h2>
         <p class="workbench-helper" data-role="sync-status">${escapeHTML(state.sync.message)}</p>
       </div>
-      <button type="button" class="workbench-button" data-action="sync-now" ${state.sync.busy ? "disabled" : ""}>立即同步</button>
+      <div class="user-account-panel__actions">
+        <button type="button" class="workbench-button" data-action="sync-now" ${disabled}>立即同步</button>
+      </div>
+    </article>
+    <article class="panel user-password-panel">
+      <div>
+        <p class="section-head__eyebrow">PASSWORD</p>
+        <h2>${isRecovery ? "设置新密码" : "修改密码"}</h2>
+      </div>
+      <div class="user-password-form">
+        ${isRecovery ? "" : `
+          <input class="workbench-input" type="password" data-role="sync-current-password" value="${escapeHTML(state.sync.currentPassword)}" placeholder="当前密码" autocomplete="current-password" ${disabled}>
+        `}
+        <input class="workbench-input" type="password" data-role="sync-new-password" value="${escapeHTML(state.sync.newPassword)}" placeholder="新密码" autocomplete="new-password" ${disabled}>
+        <input class="workbench-input" type="password" data-role="sync-confirm-password" value="${escapeHTML(state.sync.confirmPassword)}" placeholder="确认新密码" autocomplete="new-password" ${disabled}>
+        <button type="button" class="workbench-button" data-action="sync-update-password" ${disabled}>保存密码</button>
+      </div>
     </article>
   `;
 }

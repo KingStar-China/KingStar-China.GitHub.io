@@ -3228,13 +3228,15 @@ a {
   background: var(--border);
 }
 
-.user-login-card__register {
-  margin: 0;
-  text-align: center;
+.user-login-card__links {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
   color: var(--muted);
 }
 
-.user-login-card__register .inline-reset {
+.user-login-card__links .inline-reset {
   color: var(--brand-strong);
   font-weight: 700;
 }
@@ -3322,6 +3324,18 @@ a {
 .user-account-panel h2,
 .user-account-panel p {
   margin: 0;
+}
+
+.user-password-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.user-password-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 12px;
+  align-items: center;
 }
 
 .user-sites-manager {
@@ -3591,6 +3605,10 @@ a {
   .user-account-panel {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .user-password-form {
+    grid-template-columns: 1fr;
   }
 
   .user-profile__actions {

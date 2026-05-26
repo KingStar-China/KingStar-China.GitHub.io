@@ -152,6 +152,9 @@ const state = {
     authMode: "",
     email: "",
     password: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
     userEmail: "",
     userId: "",
     accessToken: "",
@@ -214,7 +217,11 @@ function init() {
   startWorkbenchClock();
   render();
   loadRemotePublicSites();
-  restoreSyncSession();
+  handlePasswordRecoveryRedirect().then((handled) => {
+    if (!handled) {
+      restoreSyncSession();
+    }
+  });
 }
 function createShell() {
   return `
@@ -292,6 +299,21 @@ function handleInput(event) {
 
   if (event.target.matches('[data-role="sync-password"]')) {
     state.sync.password = event.target.value;
+    return;
+  }
+
+  if (event.target.matches('[data-role="sync-current-password"]')) {
+    state.sync.currentPassword = event.target.value;
+    return;
+  }
+
+  if (event.target.matches('[data-role="sync-new-password"]')) {
+    state.sync.newPassword = event.target.value;
+    return;
+  }
+
+  if (event.target.matches('[data-role="sync-confirm-password"]')) {
+    state.sync.confirmPassword = event.target.value;
     return;
   }
 
@@ -547,6 +569,16 @@ function handleClick(event) {
 
     if (action === "sync-sign-up") {
       signUpSyncAccount();
+      return;
+    }
+
+    if (action === "sync-reset-password") {
+      sendPasswordResetEmail();
+      return;
+    }
+
+    if (action === "sync-update-password") {
+      updateSyncPassword();
       return;
     }
 
@@ -2922,6 +2954,90 @@ async function trySignInExistingAccount(email, password) {
   }
 }
 
+async function sendPasswordResetEmail() {
+  if (!state.sync.enabled || state.sync.busy) {
+    return;
+  }
+
+  const email = state.sync.email.trim();
+  if (!email) {
+    setSyncMessage("请先填写要找回密码的邮箱。");
+    return;
+  }
+
+  const redirectTo = `${window.location.origin}${window.location.pathname}?section=user`;
+  setSyncBusy(true, "正在发送重置密码邮件...");
+
+  try {
+    await requestSupabaseAuth(`/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`, { email });
+    setSyncMessage("密码重置邮件已发送。请到邮箱点击链接，然后回到这里设置新密码。");
+  } catch (error) {
+    setSyncMessage(`发送失败：${getErrorMessage(error)}`);
+  } finally {
+    setSyncBusy(false, "", { rerender: true });
+  }
+}
+
+async function updateSyncPassword() {
+  if (!state.sync.enabled || state.sync.busy) {
+    return;
+  }
+
+  const newPassword = state.sync.newPassword;
+  const confirmPassword = state.sync.confirmPassword;
+  const isRecovery = state.sync.authMode === "recovery";
+
+  if (!state.sync.signedIn || !state.sync.accessToken) {
+    setSyncMessage("请先登录，或通过密码重置邮件进入后再设置新密码。");
+    return;
+  }
+
+  if (!isRecovery && !state.sync.currentPassword) {
+    setSyncMessage("请输入当前密码。");
+    return;
+  }
+
+  if (!newPassword || newPassword.length < 6) {
+    setSyncMessage("新密码至少需要 6 位。");
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    setSyncMessage("两次输入的新密码不一致。");
+    return;
+  }
+
+  setSyncBusy(true, "正在更新密码...");
+
+  try {
+    if (!isRecovery) {
+      const session = await requestSupabaseAuth("/auth/v1/token?grant_type=password", {
+        email: state.sync.userEmail,
+        password: state.sync.currentPassword,
+      });
+      applySyncSession(session);
+      persistSyncSession();
+    } else {
+      await ensureActiveSyncSession();
+    }
+
+    await requestSupabaseRest("/auth/v1/user", {
+      method: "PUT",
+      body: JSON.stringify({ password: newPassword }),
+    });
+
+    state.sync.currentPassword = "";
+    state.sync.newPassword = "";
+    state.sync.confirmPassword = "";
+    state.sync.authMode = "";
+    setSyncMessage("密码已更新。下次登录请使用新密码。");
+  } catch (error) {
+    setSyncMessage(`密码更新失败：${getErrorMessage(error)}`);
+  } finally {
+    setSyncBusy(false, "", { rerender: true });
+  }
+}
+
 function signOutSyncAccount() {
   window.clearTimeout(state.sync.saveTimer);
   removeSyncSession(localStorage, STORAGE_KEYS.syncSession);
@@ -2934,8 +3050,53 @@ function signOutSyncAccount() {
   state.sync.refreshToken = "";
   state.sync.expiresAt = 0;
   state.sync.password = "";
+  state.sync.currentPassword = "";
+  state.sync.newPassword = "";
+  state.sync.confirmPassword = "";
   state.sync.message = "已退出云端同步，本机数据仍保留。";
   render();
+}
+
+async function handlePasswordRecoveryRedirect() {
+  if (!state.sync.enabled) {
+    return false;
+  }
+
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  if (hash.get("type") !== "recovery" || !hash.get("access_token")) {
+    return false;
+  }
+
+  const accessToken = hash.get("access_token") || "";
+  const refreshToken = hash.get("refresh_token") || "";
+  const expiresIn = Number(hash.get("expires_in")) || 3600;
+
+  try {
+    state.sync.accessToken = accessToken;
+    const user = await requestSupabaseRestApi(SUPABASE_CONFIG, "/auth/v1/user", {
+      method: "GET",
+    }, accessToken);
+
+    applySyncSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      expires_in: expiresIn,
+      user,
+    });
+    state.sync.email = state.sync.userEmail;
+    state.sync.authMode = "recovery";
+    persistSyncSession();
+    window.history.replaceState(null, "", `${window.location.pathname}?section=user`);
+    state.section = "user";
+    setSyncMessage("已通过重置链接验证，请设置新密码。");
+    render();
+    return true;
+  } catch (error) {
+    setSyncMessage(`重置链接验证失败：${getErrorMessage(error)}`);
+    window.history.replaceState(null, "", `${window.location.pathname}?section=user`);
+    render();
+    return true;
+  }
 }
 
 async function restoreSyncSession() {
