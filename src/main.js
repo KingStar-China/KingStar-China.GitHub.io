@@ -2741,21 +2741,50 @@ async function submitSyncAuth(mode) {
       ? await requestSupabaseAuth("/auth/v1/signup", { email, password })
       : await requestSupabaseAuth("/auth/v1/token?grant_type=password", { email, password });
 
+    if (!getAuthAccessToken(session) && mode === "sign-up") {
+      const existingSession = await trySignInExistingAccount(email, password);
+      if (existingSession?.handled) {
+        return;
+      }
+
+      if (getAuthAccessToken(existingSession)) {
+        await completeSyncSignIn(existingSession, "这个邮箱已经注册过，已为你直接登录并同步。");
+        return;
+      }
+    }
+
     if (!getAuthAccessToken(session)) {
       setSyncMessage(getAuthPendingMessage(mode, session));
       return;
     }
 
-    applySyncSession(session);
-    persistSyncSession();
-    state.sync.password = "";
-    await mergeRemotePersonalData();
-    setSyncMessage("已登录并同步。");
+    await completeSyncSignIn(session, "已登录并同步。");
   } catch (error) {
     setSyncMessage(`${mode === "sign-up" ? "注册" : "登录"}失败：${getAuthErrorMessage(mode, error)}`);
   } finally {
     state.sync.authMode = "";
     setSyncBusy(false, "", { rerender: true });
+  }
+}
+
+async function completeSyncSignIn(session, message) {
+  applySyncSession(session);
+  persistSyncSession();
+  state.sync.password = "";
+  await mergeRemotePersonalData();
+  setSyncMessage(message);
+}
+
+async function trySignInExistingAccount(email, password) {
+  try {
+    return await requestSupabaseAuth("/auth/v1/token?grant_type=password", { email, password });
+  } catch (error) {
+    if (isEmailNotConfirmedError(error)) {
+      setSyncMessage("这个邮箱已经注册过，但还没有完成邮箱确认。请先去邮箱确认，再回来登录。");
+      return { handled: true };
+    }
+
+    return null;
   }
 }
 
@@ -3230,6 +3259,10 @@ function isExistingSignupResponse(session) {
   }
 
   return user.identities.length === 0;
+}
+
+function isEmailNotConfirmedError(error) {
+  return /confirm|confirmed|confirmation|邮箱确认|邮件确认|未确认/i.test(getErrorMessage(error));
 }
 
 function focusWorkbenchTodoInput() {
