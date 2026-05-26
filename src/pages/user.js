@@ -146,8 +146,11 @@ function renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrd
           ${renderTagControl({ value: state.userSiteDraft.tags, tagOptions, escapeHTML, disabled })}
         </div>
         <div class="user-site-form__row user-site-form__row--submit">
-          <input class="workbench-input" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="说明（可选）" ${disabled}>
+          <input class="workbench-input" data-user-site-field="aliases" value="${escapeHTML(state.userSiteDraft.aliases)}" placeholder="别名（可选，用逗号分隔）" ${disabled}>
           <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>添加站点</button>
+        </div>
+        <div class="user-site-form__row">
+          <input class="workbench-input" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="说明（可选）" ${disabled}>
         </div>
       </div>
       <p class="workbench-helper">自定义站点只保存到你的账号，不会写入全站公共导航。</p>
@@ -192,6 +195,9 @@ function renderUserSiteEditModal({ state, escapeHTML, categoryOptions, tagOption
           </div>
           <div class="user-site-form__row">
             ${renderTagControl({ value: state.userSiteDraft.tags, tagOptions, escapeHTML, disabled })}
+          </div>
+          <div class="user-site-form__row">
+            <input class="workbench-input" data-user-site-field="aliases" value="${escapeHTML(state.userSiteDraft.aliases)}" placeholder="别名（可选，用逗号分隔）" ${disabled}>
           </div>
           <div class="user-site-form__row">
             <input class="workbench-input" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="说明（可选）" ${disabled}>

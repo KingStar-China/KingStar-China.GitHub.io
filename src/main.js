@@ -142,6 +142,7 @@ const state = {
     icon: "",
     category: "",
     tags: "",
+    aliases: "",
     description: "",
   },
   sync: {
@@ -3054,7 +3055,7 @@ async function loadRemotePublicSites() {
 
 async function loadRemoteUserSites() {
   const rows = await requestSupabaseRest(
-    `/rest/v1/user_sites?user_id=eq.${encodeURIComponent(state.sync.userId)}&select=id,name,url,category,tags,icon,description,created_at&order=created_at.desc`,
+    `/rest/v1/user_sites?user_id=eq.${encodeURIComponent(state.sync.userId)}&select=id,name,url,category,tags,aliases,icon,description,created_at&order=created_at.desc`,
   );
   state.userSites = Array.isArray(rows) ? rows.map(normalizeRemoteUserSite).filter(Boolean) : [];
   persistCachedUserSites();
@@ -3166,6 +3167,7 @@ function startEditingUserSite(siteId) {
     icon: site.icon || "",
     category: site.category,
     tags: Array.isArray(site.tags) ? site.tags.join("，") : "",
+    aliases: Array.isArray(site.aliases) ? site.aliases.join("，") : "",
     description: getEditableUserSiteDescription(site.description),
   };
   setSyncMessage("正在编辑自定义站点，保存后会更新原记录。");
@@ -3268,7 +3270,7 @@ function getEditableUserSiteDescription(description) {
 
 function resetUserSiteDraft() {
   state.userSiteEditingId = "";
-  state.userSiteDraft = { name: "", url: "", icon: "", category: "", tags: "", description: "" };
+  state.userSiteDraft = { name: "", url: "", icon: "", category: "", tags: "", aliases: "", description: "" };
 }
 
 async function removeUserSite(siteId) {

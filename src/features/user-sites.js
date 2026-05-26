@@ -12,6 +12,7 @@ export function normalizeUserSiteDraft(draft) {
     url,
     category,
     tags: parseTags(draft.tags),
+    aliases: parseTags(draft.aliases),
     icon: normalizeOptionalHttpUrl(draft.icon),
     description: String(draft.description || "").trim(),
   };
@@ -36,9 +37,9 @@ export function normalizeRemoteUserSite(site) {
     url,
     category: String(site.category || "个人").trim() || "个人",
     tags: Array.isArray(site.tags) ? site.tags.map((tag) => String(tag).trim()).filter(Boolean) : [],
+    aliases: Array.isArray(site.aliases) ? site.aliases.map((alias) => String(alias).trim()).filter(Boolean) : [],
     icon: String(site.icon || ""),
     description: normalizeRemoteDescription(site.description),
-    aliases: [],
     source: "user",
   };
 }

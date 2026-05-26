@@ -5,6 +5,7 @@ create table if not exists public.user_sites (
   url text not null,
   category text not null default '个人',
   tags text[] not null default '{}'::text[],
+  aliases text[] not null default '{}'::text[],
   icon text not null default '',
   description text not null default '',
   created_at timestamptz not null default now(),
