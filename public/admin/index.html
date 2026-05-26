@@ -303,6 +303,15 @@
             </div>
             <button class="button" type="button" data-action="reload-sites">刷新</button>
           </div>
+          <div class="grid-2">
+            <label>搜索
+              <input data-role="site-search" placeholder="搜名称、网址、分类、标签">
+            </label>
+            <label>分类
+              <select class="button" data-role="site-category"></select>
+            </label>
+          </div>
+          <p class="status" data-role="site-count"></p>
           <div class="site-list" data-role="site-list"></div>
         </article>
       </section>
@@ -319,6 +328,8 @@
         userEmail: "",
         editingId: "",
         sites: [],
+        siteQuery: "",
+        siteCategory: "all",
       };
 
       const fields = {};
@@ -333,7 +344,20 @@
       const loginStatus = document.querySelector('[data-role="login-status"]');
       const adminStatus = document.querySelector('[data-role="admin-status"]');
       const siteList = document.querySelector('[data-role="site-list"]');
+      const siteSearch = document.querySelector('[data-role="site-search"]');
+      const siteCategory = document.querySelector('[data-role="site-category"]');
+      const siteCount = document.querySelector('[data-role="site-count"]');
       const signOutButton = document.querySelector('[data-action="sign-out"]');
+
+      siteSearch.addEventListener("input", () => {
+        state.siteQuery = siteSearch.value.trim().toLocaleLowerCase();
+        renderSites();
+      });
+
+      siteCategory.addEventListener("change", () => {
+        state.siteCategory = siteCategory.value;
+        renderSites();
+      });
 
       document.addEventListener("click", (event) => {
         const action = event.target.closest("[data-action]")?.dataset.action;
@@ -427,6 +451,7 @@
           auth: false,
         });
         state.sites = Array.isArray(rows) ? rows : [];
+        renderCategoryFilter();
         renderSites();
         setAdminStatus(`已加载 ${state.sites.length} 个网站。`);
       }
@@ -513,7 +538,9 @@
       }
 
       function renderSites() {
-        siteList.innerHTML = state.sites.map((site) => `
+        const sites = getFilteredSites();
+        siteCount.textContent = `显示 ${sites.length} / ${state.sites.length} 个网站`;
+        siteList.innerHTML = sites.map((site) => `
           <div class="site-item" data-id="${escapeHTML(site.id)}">
             <div>
               <strong>${escapeHTML(site.name)}</strong>
@@ -525,6 +552,42 @@
             </div>
           </div>
         `).join("");
+      }
+
+      function renderCategoryFilter() {
+        const categories = ["all", ...new Set(state.sites.map((site) => site.category).filter(Boolean))];
+        if (!categories.includes(state.siteCategory)) {
+          state.siteCategory = "all";
+        }
+
+        siteCategory.innerHTML = categories.map((category) => `
+          <option value="${escapeHTML(category)}"${category === state.siteCategory ? " selected" : ""}>
+            ${category === "all" ? "全部分类" : escapeHTML(category)}
+          </option>
+        `).join("");
+      }
+
+      function getFilteredSites() {
+        return state.sites.filter((site) => {
+          if (state.siteCategory !== "all" && site.category !== state.siteCategory) {
+            return false;
+          }
+
+          if (!state.siteQuery) {
+            return true;
+          }
+
+          const haystack = [
+            site.name,
+            site.url,
+            site.category,
+            site.description,
+            ...(Array.isArray(site.tags) ? site.tags : []),
+            ...(Array.isArray(site.aliases) ? site.aliases : []),
+          ].join(" ").toLocaleLowerCase();
+
+          return haystack.includes(state.siteQuery);
+        });
       }
 
       function showAdmin() {
