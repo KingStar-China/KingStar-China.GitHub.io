@@ -109,11 +109,17 @@ const categoryDescriptions = {
   学习: "课程、资料、文档和知识型工具的集中区，适合连续阅读。",
   翻墙: "网络、线路和连接工具入口，优先保证进入主工作流的速度。",
 };
+const CATEGORY_PREVIEW_LIMIT = 4;
+const CATEGORY_MODAL_BATCH_SIZE = 20;
 
 const state = {
   section: "nav",
   query: "",
   category: "all",
+  categoryModal: {
+    title: "",
+    visibleCount: CATEGORY_MODAL_BATCH_SIZE,
+  },
   tag: "all",
   view: "all",
   favorites: loadIdSet(STORAGE_KEYS.favorites),
@@ -436,6 +442,7 @@ function handleClick(event) {
 
     if (action === "set-category") {
       state.category = value;
+      state.categoryModal.title = "";
       if (value !== "all" && state.tag !== "all") {
         const allowedTags = new Set(getTagCounts().map((entry) => entry.tag));
         if (!allowedTags.has(state.tag)) {
@@ -499,6 +506,19 @@ function handleClick(event) {
 
     if (action === "clear-workbench-done") {
       clearCompletedWorkbenchTodos();
+      render();
+      return;
+    }
+
+    if (action === "open-category-modal") {
+      state.categoryModal.title = value;
+      state.categoryModal.visibleCount = CATEGORY_MODAL_BATCH_SIZE;
+      render();
+      return;
+    }
+
+    if (action === "close-category-modal") {
+      state.categoryModal.title = "";
       render();
       return;
     }
@@ -715,6 +735,10 @@ function render() {
     refs.workbenchTodoInput.value = state.workbenchTodoDraft;
   }
   refs.syncStatus = refs.content.querySelector('[data-role="sync-status"]');
+  refs.categoryModalScroller = refs.content.querySelector('[data-role="category-modal-scroller"]');
+  if (refs.categoryModalScroller) {
+    refs.categoryModalScroller.addEventListener("scroll", handleCategoryModalScroll);
+  }
 
   syncActiveHeading();
   syncActiveTocLink();
@@ -1469,24 +1493,90 @@ function renderNavContent() {
 
   const groupsMarkup = groups
     .map(
-      (group) => `
+      (group) => {
+        const previewSites = group.sites.slice(0, CATEGORY_PREVIEW_LIMIT);
+        const hasMore = group.sites.length > CATEGORY_PREVIEW_LIMIT;
+        return `
         <section class="panel category-block" data-category-anchor="${escapeHTML(group.title)}">
           <div class="section-head">
             <div>
               <p class="section-head__eyebrow">${escapeHTML(group.label)}</p>
               <h2>${escapeHTML(group.title)}</h2>
             </div>
-            <span class="section-count">${group.sites.length}</span>
+            <div class="section-head__actions">
+              <span class="section-count">${group.sites.length}</span>
+              ${hasMore ? `<button type="button" class="section-more" data-action="open-category-modal" data-value="${escapeHTML(group.title)}">查看更多</button>` : ""}
+            </div>
           </div>
           <div class="site-grid">
-            ${group.sites.map((site) => renderSiteCard(site)).join("")}
+            ${previewSites.map((site) => renderSiteCard(site)).join("")}
           </div>
         </section>
-      `,
+      `;
+      },
     )
     .join("");
 
-  return `${groupsMarkup}${workbench}`;
+  return `${groupsMarkup}${renderCategoryModal(groups)}${workbench}`;
+}
+
+function renderCategoryModal(groups) {
+  if (!state.categoryModal.title) {
+    return "";
+  }
+
+  const group = groups.find((item) => item.title === state.categoryModal.title);
+  if (!group) {
+    return "";
+  }
+
+  const visibleCount = Math.min(state.categoryModal.visibleCount, group.sites.length);
+  const visibleSites = group.sites.slice(0, visibleCount);
+  const remaining = group.sites.length - visibleCount;
+
+  return `
+    <div class="category-modal" role="dialog" aria-modal="true" aria-labelledby="category-modal-title">
+      <button type="button" class="category-modal__backdrop" data-action="close-category-modal" aria-label="关闭分类列表"></button>
+      <article class="panel category-modal__card">
+        <div class="category-modal__head">
+          <div>
+            <p class="section-head__eyebrow">CATEGORY</p>
+            <h2 id="category-modal-title">${escapeHTML(group.title)}</h2>
+          </div>
+          <div class="section-head__actions">
+            <span class="section-count">${group.sites.length}</span>
+            <button type="button" class="category-modal__close" data-action="close-category-modal" aria-label="关闭分类列表">×</button>
+          </div>
+        </div>
+        <div class="category-modal__body" data-role="category-modal-scroller">
+          <div class="site-grid category-modal__grid">
+            ${visibleSites.map((site) => renderSiteCard(site)).join("")}
+          </div>
+          ${remaining > 0 ? `<p class="category-modal__hint">继续向下滚动，加载剩余 ${remaining} 个网站</p>` : ""}
+        </div>
+      </article>
+    </div>
+  `;
+}
+
+function handleCategoryModalScroll(event) {
+  const scroller = event.currentTarget;
+  if (!state.categoryModal.title || state.categoryModal.visibleCount >= getCategoryModalTotal()) {
+    return;
+  }
+
+  const distanceToBottom = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
+  if (distanceToBottom > 180) {
+    return;
+  }
+
+  state.categoryModal.visibleCount += CATEGORY_MODAL_BATCH_SIZE;
+  render();
+}
+
+function getCategoryModalTotal() {
+  return getGroupedSites(getFilteredSites())
+    .find((group) => group.title === state.categoryModal.title)?.sites.length || 0;
 }
 function renderBlogList() {
   if (posts.length === 0) {
