@@ -224,6 +224,13 @@
         gap: 12px;
       }
 
+      .url-control {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: end;
+      }
+
       label {
         display: grid;
         gap: 7px;
@@ -379,20 +386,23 @@
             <h2 data-role="form-title">添加主页网站</h2>
           </div>
           <div class="form">
+            <div class="url-control">
+              <label>网址
+                <input data-field="url" placeholder="https://example.com">
+              </label>
+              <button class="button" type="button" data-action="identify-site">一键识别</button>
+            </div>
             <div class="grid-2">
               <label>名称
                 <input data-field="name">
               </label>
-              <label>网址
-                <input data-field="url" placeholder="https://example.com">
+              <label>图标
+                <input data-field="icon">
               </label>
             </div>
             <div class="grid-2">
               <label>分类
                 <input data-field="category">
-              </label>
-              <label>图标
-                <input data-field="icon">
               </label>
             </div>
             <label>标签
@@ -486,6 +496,7 @@
         if (action === "sign-up") signUp();
         if (action === "sign-out") signOut();
         if (action === "save-site") saveSite();
+        if (action === "identify-site") identifySite();
         if (action === "reset-form") resetForm();
         if (action === "reload-sites") loadSites();
         if (action === "edit-site") editSite(event.target.closest("[data-id]")?.dataset.id);
@@ -618,6 +629,36 @@
         setAdminStatus("已保存。");
       }
 
+      function identifySite() {
+        const url = normalizeUrl(fields.url.value);
+        if (!url) {
+          setAdminStatus("请先填写有效网址。");
+          return;
+        }
+
+        const parsedUrl = new URL(url);
+        const matchedSite = findSiteByUrl(url);
+        fields.url.value = url;
+
+        if (matchedSite) {
+          fields.name.value = matchedSite.name || fields.name.value;
+          fields.category.value = matchedSite.category || fields.category.value;
+          fields.icon.value = matchedSite.icon || fields.icon.value;
+          fields.tags.value = Array.isArray(matchedSite.tags) ? matchedSite.tags.join(", ") : fields.tags.value;
+          fields.aliases.value = Array.isArray(matchedSite.aliases) ? matchedSite.aliases.join(", ") : fields.aliases.value;
+          fields.description.value = matchedSite.description || fields.description.value;
+          setAdminStatus("已从现有主页网站识别并填充信息。");
+          return;
+        }
+
+        fields.name.value = inferNameFromHost(parsedUrl.hostname);
+        fields.icon.value = `${parsedUrl.origin}/favicon.ico`;
+        if (!fields.aliases.value.trim()) {
+          fields.aliases.value = parsedUrl.hostname.replace(/^www\./i, "");
+        }
+        setAdminStatus("已根据网址填充站点名、图标和别名建议。");
+      }
+
       async function deleteSite(id) {
         if (!id || !confirm("确定删除这个主页网站？")) return;
         setAdminStatus("正在删除...");
@@ -664,6 +705,29 @@
           aliases: splitList(fields.aliases.value),
           description: fields.description.value.trim(),
         };
+      }
+
+      function findSiteByUrl(url) {
+        const normalizedUrl = normalizeUrl(url);
+        const host = getComparableHost(normalizedUrl);
+        return state.sites.find((site) => {
+          if (site.id === state.editingId) return false;
+          const siteUrl = normalizeUrl(site.url || "");
+          return siteUrl === normalizedUrl || getComparableHost(siteUrl) === host;
+        });
+      }
+
+      function getComparableHost(value) {
+        try {
+          return new URL(value).hostname.replace(/^www\./i, "").toLocaleLowerCase();
+        } catch {
+          return "";
+        }
+      }
+
+      function inferNameFromHost(hostname) {
+        const hostParts = String(hostname || "").replace(/^www\./i, "").split(".");
+        return hostParts[0] || hostname;
       }
 
       function renderSites() {
@@ -778,8 +842,15 @@
       }
 
       function normalizeUrl(value) {
-        const raw = value.trim();
-        return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+        try {
+          const raw = String(value || "").trim();
+          if (!raw) return "";
+
+          const url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+          return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+        } catch {
+          return "";
+        }
       }
 
       function splitList(value) {
