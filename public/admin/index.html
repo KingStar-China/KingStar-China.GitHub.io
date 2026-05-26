@@ -54,7 +54,7 @@
       }
 
       .shell--login {
-        width: min(480px, calc(100vw - 32px));
+        width: min(432px, calc(100vw - 32px));
       }
 
       .panel {
@@ -154,7 +154,7 @@
       .login-card {
         position: relative;
         gap: 18px;
-        padding: 30px 28px 28px;
+        padding: 27px 25px 25px;
         background:
           radial-gradient(circle at 55% 0%, rgba(15, 118, 110, 0.18), transparent 40%),
           rgba(5, 16, 24, 0.94);
@@ -162,10 +162,10 @@
 
       .login-card__home {
         position: absolute;
-        top: 16px;
-        right: 16px;
-        width: 42px;
-        height: 42px;
+        top: 14px;
+        right: 14px;
+        width: 38px;
+        height: 38px;
         display: grid;
         place-items: center;
         border-radius: 50%;
@@ -182,7 +182,7 @@
       }
 
       .login-card__head h1 {
-        font-size: clamp(2rem, 7vw, 3rem);
+        font-size: clamp(1.8rem, 6.3vw, 2.7rem);
         line-height: 1.05;
       }
 
@@ -244,9 +244,9 @@
       }
 
       .login-card input {
-        min-height: 58px;
+        min-height: 52px;
         border-radius: 14px;
-        padding: 12px 16px;
+        padding: 11px 14px;
         background: rgba(34, 52, 75, 0.78);
         border-color: rgba(154, 184, 219, 0.34);
         font-size: 1rem;
@@ -301,6 +301,14 @@
         line-height: 1.6;
       }
 
+      .login-card .button {
+        min-height: 40px;
+      }
+
+      .login-card .button.full {
+        min-height: 52px;
+      }
+
       .hidden {
         display: none !important;
       }
@@ -322,7 +330,7 @@
         }
 
         .login-card {
-          padding: 26px 18px 22px;
+          padding: 23px 16px 20px;
         }
       }
     </style>
