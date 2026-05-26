@@ -321,6 +321,7 @@
       const SUPABASE_URL = "https://zfvwrnuenurxauvvfsuw.supabase.co";
       const SUPABASE_KEY = "sb_publishable_TQuGLzZKqPmkr3_d_LCyAw_aA9RAsOy";
       const SESSION_KEY = "nav-admin.session";
+      const ADMIN_EMAIL = "mr.king.office@foxmail.com";
 
       const state = {
         accessToken: "",
@@ -395,13 +396,13 @@
         setLoginStatus("正在登录...");
         try {
           const session = await requestAuth("/auth/v1/token?grant_type=password", {
-            email: fields.email.value.trim(),
+            email: normalizeEmail(fields.email.value),
             password: fields.password.value,
           });
           const activeSession = session.session || session;
           state.accessToken = activeSession.access_token || "";
           state.refreshToken = activeSession.refresh_token || "";
-          state.userEmail = activeSession.user?.email || session.user?.email || fields.email.value.trim();
+          state.userEmail = normalizeEmail(activeSession.user?.email || session.user?.email || fields.email.value);
           if (!state.accessToken) throw new Error("没有获得有效会话。");
 
           await ensureAdmin();
@@ -419,10 +420,15 @@
       }
 
       async function signUp() {
-        const email = fields.email.value.trim();
+        const email = normalizeEmail(fields.email.value);
         const password = fields.password.value;
         if (!email || !password) {
           setLoginStatus("请输入邮箱和你要设置的密码。");
+          return;
+        }
+
+        if (email !== ADMIN_EMAIL) {
+          setLoginStatus("这个邮箱不在管理员白名单，不能从后台创建账号。");
           return;
         }
 
@@ -434,6 +440,10 @@
         } catch (error) {
           setLoginStatus(`创建失败：${getErrorMessage(error)}`);
         }
+      }
+
+      function normalizeEmail(value) {
+        return String(value || "").trim().toLocaleLowerCase();
       }
 
       async function ensureAdmin() {
