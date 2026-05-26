@@ -35,6 +35,11 @@
         font-family: Inter, "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
       }
 
+      body.is-login {
+        display: grid;
+        place-items: center;
+      }
+
       button,
       input,
       textarea {
@@ -46,6 +51,10 @@
         margin: 0 auto;
         display: grid;
         gap: 18px;
+      }
+
+      .shell--login {
+        width: min(480px, calc(100vw - 32px));
       }
 
       .panel {
@@ -61,6 +70,10 @@
         justify-content: space-between;
         gap: 18px;
         padding: 20px 22px;
+      }
+
+      body.is-login .topbar {
+        display: none;
       }
 
       .eyebrow {
@@ -101,16 +114,25 @@
       .button {
         min-height: 44px;
         padding: 0 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         border: 1px solid var(--border);
         border-radius: 10px;
         background: var(--panel-soft);
         color: var(--heading);
         cursor: pointer;
+        text-decoration: none;
       }
 
       .button.primary {
         border-color: rgba(159, 247, 237, 0.28);
         background: linear-gradient(135deg, rgba(15, 118, 110, 0.98), rgba(34, 160, 148, 0.78));
+      }
+
+      .button.full {
+        width: 100%;
+        justify-content: center;
       }
 
       .button.danger {
@@ -127,6 +149,68 @@
         padding: 20px;
         display: grid;
         gap: 14px;
+      }
+
+      .login-card {
+        position: relative;
+        gap: 18px;
+        padding: 30px 28px 28px;
+        background:
+          radial-gradient(circle at 55% 0%, rgba(15, 118, 110, 0.18), transparent 40%),
+          rgba(5, 16, 24, 0.94);
+      }
+
+      .login-card__home {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        text-decoration: none;
+        font-size: 1.35rem;
+        line-height: 1;
+      }
+
+      .login-card__head {
+        display: grid;
+        gap: 8px;
+        text-align: center;
+        padding: 8px 32px 0;
+      }
+
+      .login-card__head h1 {
+        font-size: clamp(2rem, 7vw, 3rem);
+        line-height: 1.05;
+      }
+
+      .login-card__head .muted {
+        font-size: 0.95rem;
+      }
+
+      .login-card__divider {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 12px;
+        color: var(--muted);
+      }
+
+      .login-card__divider::before,
+      .login-card__divider::after {
+        content: "";
+        height: 1px;
+        background: var(--border);
+      }
+
+      .login-card__register {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        color: var(--muted);
       }
 
       .form {
@@ -157,6 +241,15 @@
         background: rgba(2, 10, 16, 0.78);
         color: var(--text);
         outline: none;
+      }
+
+      .login-card input {
+        min-height: 58px;
+        border-radius: 14px;
+        padding: 12px 16px;
+        background: rgba(34, 52, 75, 0.78);
+        border-color: rgba(154, 184, 219, 0.34);
+        font-size: 1rem;
       }
 
       textarea {
@@ -203,6 +296,11 @@
         color: var(--muted);
       }
 
+      .login-card .status {
+        text-align: center;
+        line-height: 1.6;
+      }
+
       .hidden {
         display: none !important;
       }
@@ -222,11 +320,15 @@
           align-items: flex-start;
           flex-direction: column;
         }
+
+        .login-card {
+          padding: 26px 18px 22px;
+        }
       }
     </style>
   </head>
-  <body>
-    <main class="shell">
+  <body class="is-login">
+    <main class="shell shell--login">
       <header class="panel topbar">
         <div>
           <p class="eyebrow">ADMIN</p>
@@ -238,21 +340,28 @@
         </div>
       </header>
 
-      <section class="panel card" data-view="login">
-        <h2>登录</h2>
+      <section class="panel card login-card" data-view="login">
+        <a class="button login-card__home" href="/" aria-label="返回首页">×</a>
+        <div class="login-card__head">
+          <p class="eyebrow">ADMIN</p>
+          <h1>登录到后台</h1>
+          <p class="muted">管理主页公共网站数据</p>
+        </div>
         <div class="form">
           <label>邮箱
-            <input type="email" data-field="email" autocomplete="email">
+            <input type="email" data-field="email" autocomplete="email" placeholder="admin@example.com">
           </label>
           <label>密码
-            <input type="password" data-field="password" autocomplete="current-password">
+            <input type="password" data-field="password" autocomplete="current-password" placeholder="输入密码">
           </label>
-          <div class="actions">
-            <button class="button primary" type="button" data-action="sign-in">登录后台</button>
-            <button class="button" type="button" data-action="sign-up">创建管理员账号</button>
-          </div>
+          <button class="button primary full" type="button" data-action="sign-in">登录后台</button>
           <p class="status" data-role="login-status"></p>
         </div>
+        <div class="login-card__divider"><span>或</span></div>
+        <p class="login-card__register">
+          <span>首次使用？</span>
+          <button class="button" type="button" data-action="sign-up">创建管理员账号</button>
+        </p>
       </section>
 
       <section class="layout hidden" data-view="admin">
@@ -342,6 +451,7 @@
         login: document.querySelector('[data-view="login"]'),
         admin: document.querySelector('[data-view="admin"]'),
       };
+      const shell = document.querySelector(".shell");
       const loginStatus = document.querySelector('[data-role="login-status"]');
       const adminStatus = document.querySelector('[data-role="admin-status"]');
       const siteList = document.querySelector('[data-role="site-list"]');
@@ -375,6 +485,7 @@
       });
 
       restoreSession();
+      showLogin();
 
       async function restoreSession() {
         try {
@@ -604,6 +715,8 @@
         views.login.classList.add("hidden");
         views.admin.classList.remove("hidden");
         signOutButton.classList.remove("hidden");
+        document.body.classList.remove("is-login");
+        shell.classList.remove("shell--login");
       }
 
       function signOut() {
@@ -614,6 +727,15 @@
         views.login.classList.remove("hidden");
         views.admin.classList.add("hidden");
         signOutButton.classList.add("hidden");
+        showLogin();
+      }
+
+      function showLogin() {
+        views.login.classList.remove("hidden");
+        views.admin.classList.add("hidden");
+        signOutButton.classList.add("hidden");
+        document.body.classList.add("is-login");
+        shell.classList.add("shell--login");
       }
 
       async function requestAuth(path, body) {
