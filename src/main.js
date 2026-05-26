@@ -99,6 +99,7 @@ const posts = rawPosts
   .sort((left, right) => new Date(right.publishedAt).getTime() - new Date(left.publishedAt).getTime());
 
 let sites = [...defaultSites];
+let publicSites = [...defaultSites];
 let categoryOrder = [...new Set(sites.map((site) => site.category))];
 let siteIds = new Set(sites.map((site) => site.id));
 let siteMap = new Map(sites.map((site) => [site.id, site]));
@@ -209,6 +210,7 @@ function init() {
   syncTheme(state.theme);
   startWorkbenchClock();
   render();
+  loadRemotePublicSites();
   restoreSyncSession();
 }
 function createShell() {
@@ -2994,6 +2996,30 @@ async function mergeRemotePersonalData() {
   render();
 }
 
+async function loadRemotePublicSites() {
+  if (!state.sync.enabled) {
+    return;
+  }
+
+  try {
+    const rows = await requestSupabaseRest(
+      "/rest/v1/public_sites?select=id,name,url,category,tags,icon,description,aliases,sort_order&order=sort_order.asc,created_at.asc",
+      { auth: false },
+    );
+    const remoteSites = Array.isArray(rows) ? rows.map(normalizeRemotePublicSite).filter(Boolean) : [];
+    if (remoteSites.length === 0) {
+      return;
+    }
+
+    publicSites = remoteSites;
+    rebuildSiteIndexes();
+    render();
+  } catch {
+    publicSites = [...defaultSites];
+    rebuildSiteIndexes();
+  }
+}
+
 async function loadRemoteUserSites() {
   const rows = await requestSupabaseRest(
     `/rest/v1/user_sites?user_id=eq.${encodeURIComponent(state.sync.userId)}&select=id,name,url,category,tags,icon,description,created_at&order=created_at.desc`,
@@ -3244,10 +3270,22 @@ async function removeUserSite(siteId) {
 }
 
 function rebuildSiteIndexes() {
-  sites = [...state.userSites, ...defaultSites];
+  sites = [...state.userSites, ...publicSites];
   categoryOrder = [...new Set(sites.map((site) => site.category))];
   siteIds = new Set(sites.map((site) => site.id));
   siteMap = new Map(sites.map((site) => [site.id, site]));
+}
+
+function normalizeRemotePublicSite(site) {
+  const normalized = normalizeRemoteUserSite(site);
+  if (!normalized) {
+    return null;
+  }
+
+  return {
+    ...normalized,
+    source: "public",
+  };
 }
 
 function mergePersonalData(localSnapshot, remotePayload) {

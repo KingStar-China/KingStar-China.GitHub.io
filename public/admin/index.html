@@ -4,17 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex,nofollow">
-    <title>站长本机后台 | 少昊导航</title>
+    <title>超级用户后台 | 少昊导航</title>
     <style>
       :root {
-        color-scheme: light;
-        --bg: #eef2f4;
-        --panel: rgba(255, 255, 255, 0.86);
-        --text: #152531;
-        --muted: #61717c;
-        --heading: #0c1b24;
+        color-scheme: dark;
+        --bg: #050d14;
+        --panel: rgba(8, 20, 29, 0.92);
+        --panel-soft: rgba(14, 35, 48, 0.78);
+        --border: rgba(151, 226, 219, 0.18);
+        --text: #e8f3f5;
+        --muted: #95aab4;
+        --heading: #f5fbfc;
         --brand: #0f766e;
-        --border: rgba(17, 37, 51, 0.1);
+        --brand-strong: #9ff7ed;
+        --danger: #ff8b8b;
       }
 
       * {
@@ -24,75 +27,561 @@
       body {
         min-height: 100vh;
         margin: 0;
-        display: grid;
-        place-items: center;
-        padding: 24px;
-        background: var(--bg);
+        padding: 28px;
+        background:
+          radial-gradient(circle at 80% 10%, rgba(15, 118, 110, 0.2), transparent 30%),
+          linear-gradient(135deg, #07121b, #02070d 58%, #081a27);
         color: var(--text);
         font-family: Inter, "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
       }
 
-      main {
-        width: min(720px, 100%);
-        padding: 28px;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        background: var(--panel);
-        box-shadow: 0 24px 70px rgba(15, 35, 45, 0.12);
+      button,
+      input,
+      textarea {
+        font: inherit;
       }
 
+      .shell {
+        width: min(1180px, 100%);
+        margin: 0 auto;
+        display: grid;
+        gap: 18px;
+      }
+
+      .panel {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--panel);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 20px 22px;
+      }
+
+      .eyebrow {
+        margin: 0 0 8px;
+        color: var(--brand-strong);
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+      }
+
+      h1,
+      h2,
       p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 4vw, 3.4rem);
+        color: var(--heading);
+      }
+
+      h2 {
+        color: var(--heading);
+      }
+
+      .muted {
         color: var(--muted);
         line-height: 1.7;
       }
 
-      code {
-        padding: 2px 6px;
-        border-radius: 6px;
-        background: rgba(15, 118, 110, 0.1);
-        color: var(--heading);
-      }
-
       .actions {
         display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-top: 22px;
-      }
-
-      a {
-        display: inline-flex;
         align-items: center;
-        justify-content: center;
-        min-height: 42px;
-        padding: 10px 14px;
-        border-radius: 8px;
-        color: var(--heading);
-        text-decoration: none;
+        gap: 10px;
+        flex-wrap: wrap;
       }
 
-      .primary {
-        background: var(--brand);
-        color: white;
-      }
-
-      .secondary {
+      .button {
+        min-height: 44px;
+        padding: 0 16px;
         border: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.54);
+        border-radius: 10px;
+        background: var(--panel-soft);
+        color: var(--heading);
+        cursor: pointer;
+      }
+
+      .button.primary {
+        border-color: rgba(159, 247, 237, 0.28);
+        background: linear-gradient(135deg, rgba(15, 118, 110, 0.98), rgba(34, 160, 148, 0.78));
+      }
+
+      .button.danger {
+        color: var(--danger);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(320px, 0.8fr) minmax(0, 1.2fr);
+        gap: 18px;
+      }
+
+      .card {
+        padding: 20px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .form {
+        display: grid;
+        gap: 12px;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      label {
+        display: grid;
+        gap: 7px;
+        color: var(--heading);
+        font-weight: 700;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        min-height: 46px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 12px;
+        background: rgba(2, 10, 16, 0.78);
+        color: var(--text);
+        outline: none;
+      }
+
+      textarea {
+        min-height: 96px;
+        resize: vertical;
+      }
+
+      .site-list {
+        display: grid;
+        gap: 10px;
+        max-height: 650px;
+        overflow: auto;
+        padding-right: 4px;
+      }
+
+      .site-item {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 14px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.035);
+      }
+
+      .site-item strong {
+        display: block;
+        color: var(--heading);
+        font-size: 1.05rem;
+      }
+
+      .site-item span {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .status {
+        min-height: 1.5em;
+        color: var(--muted);
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      @media (max-width: 840px) {
+        body {
+          padding: 16px;
+        }
+
+        .topbar,
+        .layout,
+        .grid-2 {
+          grid-template-columns: 1fr;
+        }
+
+        .topbar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
       }
     </style>
   </head>
   <body>
-    <main>
-      <p>ADMIN</p>
-      <h1>站长本机后台</h1>
-      <p>线上地址 <code>/admin/</code> 只是说明页，不提供全站编辑接口。公共站点内容仍由站长在本机管理，避免把编辑能力暴露到公网。</p>
-      <p>在项目目录执行 <code>npm run admin:open</code> 后，会打开本地后台 <code>http://127.0.0.1:3214/</code>；这个后台只面向站长本机使用。</p>
-      <div class="actions">
-        <a class="primary" href="/">返回首页</a>
-        <a class="secondary" href="http://127.0.0.1:3214/">打开本机后台</a>
-        <a class="secondary" href="/?section=user">用户中心</a>
-      </div>
+    <main class="shell">
+      <header class="panel topbar">
+        <div>
+          <p class="eyebrow">ADMIN</p>
+          <h1>超级用户后台</h1>
+        </div>
+        <div class="actions">
+          <a class="button" href="/">返回首页</a>
+          <button class="button hidden" type="button" data-action="sign-out">退出</button>
+        </div>
+      </header>
+
+      <section class="panel card" data-view="login">
+        <h2>登录</h2>
+        <div class="form">
+          <label>邮箱
+            <input type="email" data-field="email" autocomplete="email">
+          </label>
+          <label>密码
+            <input type="password" data-field="password" autocomplete="current-password">
+          </label>
+          <button class="button primary" type="button" data-action="sign-in">登录后台</button>
+          <p class="status" data-role="login-status"></p>
+        </div>
+      </section>
+
+      <section class="layout hidden" data-view="admin">
+        <article class="panel card">
+          <div>
+            <p class="eyebrow">EDIT SITE</p>
+            <h2 data-role="form-title">添加主页网站</h2>
+          </div>
+          <div class="form">
+            <div class="grid-2">
+              <label>名称
+                <input data-field="name">
+              </label>
+              <label>网址
+                <input data-field="url" placeholder="https://example.com">
+              </label>
+            </div>
+            <div class="grid-2">
+              <label>分类
+                <input data-field="category">
+              </label>
+              <label>图标
+                <input data-field="icon">
+              </label>
+            </div>
+            <label>标签
+              <input data-field="tags" placeholder="用逗号分隔">
+            </label>
+            <label>别名
+              <input data-field="aliases" placeholder="用逗号分隔">
+            </label>
+            <label>说明
+              <textarea data-field="description"></textarea>
+            </label>
+            <div class="actions">
+              <button class="button primary" type="button" data-action="save-site">保存网站</button>
+              <button class="button" type="button" data-action="reset-form">清空</button>
+            </div>
+            <p class="status" data-role="admin-status"></p>
+          </div>
+        </article>
+
+        <article class="panel card">
+          <div class="actions">
+            <div>
+              <p class="eyebrow">PUBLIC SITES</p>
+              <h2>主页网站</h2>
+            </div>
+            <button class="button" type="button" data-action="reload-sites">刷新</button>
+          </div>
+          <div class="site-list" data-role="site-list"></div>
+        </article>
+      </section>
     </main>
+
+    <script>
+      const SUPABASE_URL = "https://zfvwrnuenurxauvvfsuw.supabase.co";
+      const SUPABASE_KEY = "sb_publishable_TQuGLzZKqPmkr3_d_LCyAw_aA9RAsOy";
+      const SESSION_KEY = "nav-admin.session";
+
+      const state = {
+        accessToken: "",
+        refreshToken: "",
+        userEmail: "",
+        editingId: "",
+        sites: [],
+      };
+
+      const fields = {};
+      for (const node of document.querySelectorAll("[data-field]")) {
+        fields[node.dataset.field] = node;
+      }
+
+      const views = {
+        login: document.querySelector('[data-view="login"]'),
+        admin: document.querySelector('[data-view="admin"]'),
+      };
+      const loginStatus = document.querySelector('[data-role="login-status"]');
+      const adminStatus = document.querySelector('[data-role="admin-status"]');
+      const siteList = document.querySelector('[data-role="site-list"]');
+      const signOutButton = document.querySelector('[data-action="sign-out"]');
+
+      document.addEventListener("click", (event) => {
+        const action = event.target.closest("[data-action]")?.dataset.action;
+        if (!action) return;
+
+        if (action === "sign-in") signIn();
+        if (action === "sign-out") signOut();
+        if (action === "save-site") saveSite();
+        if (action === "reset-form") resetForm();
+        if (action === "reload-sites") loadSites();
+        if (action === "edit-site") editSite(event.target.closest("[data-id]")?.dataset.id);
+        if (action === "delete-site") deleteSite(event.target.closest("[data-id]")?.dataset.id);
+      });
+
+      restoreSession();
+
+      async function restoreSession() {
+        try {
+          const session = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+          if (!session?.accessToken) return;
+
+          state.accessToken = session.accessToken;
+          state.refreshToken = session.refreshToken || "";
+          state.userEmail = session.userEmail || "";
+          await ensureAdmin();
+          showAdmin();
+          await loadSites();
+        } catch {
+          signOut();
+        }
+      }
+
+      async function signIn() {
+        setLoginStatus("正在登录...");
+        try {
+          const session = await requestAuth("/auth/v1/token?grant_type=password", {
+            email: fields.email.value.trim(),
+            password: fields.password.value,
+          });
+          const activeSession = session.session || session;
+          state.accessToken = activeSession.access_token || "";
+          state.refreshToken = activeSession.refresh_token || "";
+          state.userEmail = activeSession.user?.email || session.user?.email || fields.email.value.trim();
+          if (!state.accessToken) throw new Error("没有获得有效会话。");
+
+          await ensureAdmin();
+          localStorage.setItem(SESSION_KEY, JSON.stringify({
+            accessToken: state.accessToken,
+            refreshToken: state.refreshToken,
+            userEmail: state.userEmail,
+          }));
+          fields.password.value = "";
+          showAdmin();
+          await loadSites();
+        } catch (error) {
+          setLoginStatus(`登录失败：${getErrorMessage(error)}`);
+        }
+      }
+
+      async function ensureAdmin() {
+        const rows = await requestRest(`/rest/v1/admin_users?email=eq.${encodeURIComponent(state.userEmail)}&select=email`, {
+          auth: true,
+        });
+        if (!Array.isArray(rows) || rows.length === 0) {
+          throw new Error("当前账号不是管理员。");
+        }
+      }
+
+      async function loadSites() {
+        setAdminStatus("正在加载...");
+        const rows = await requestRest("/rest/v1/public_sites?select=id,name,url,category,tags,icon,description,aliases,sort_order&order=sort_order.asc,created_at.asc", {
+          auth: false,
+        });
+        state.sites = Array.isArray(rows) ? rows : [];
+        renderSites();
+        setAdminStatus(`已加载 ${state.sites.length} 个网站。`);
+      }
+
+      async function saveSite() {
+        const payload = getSitePayload();
+        if (!payload.name || !payload.url || !payload.category) {
+          setAdminStatus("请填写名称、网址和分类。");
+          return;
+        }
+
+        setAdminStatus("正在保存...");
+        if (state.editingId) {
+          await requestRest(`/rest/v1/public_sites?id=eq.${encodeURIComponent(state.editingId)}`, {
+            method: "PATCH",
+            auth: true,
+            headers: { Prefer: "return=minimal" },
+            body: JSON.stringify({ ...payload, updated_at: new Date().toISOString() }),
+          });
+        } else {
+          await requestRest("/rest/v1/public_sites", {
+            method: "POST",
+            auth: true,
+            headers: { Prefer: "return=minimal" },
+            body: JSON.stringify({
+              ...payload,
+              id: `site-${Date.now()}`,
+              sort_order: state.sites.length,
+            }),
+          });
+        }
+
+        resetForm();
+        await loadSites();
+        setAdminStatus("已保存。");
+      }
+
+      async function deleteSite(id) {
+        if (!id || !confirm("确定删除这个主页网站？")) return;
+        setAdminStatus("正在删除...");
+        await requestRest(`/rest/v1/public_sites?id=eq.${encodeURIComponent(id)}`, {
+          method: "DELETE",
+          auth: true,
+          headers: { Prefer: "return=minimal" },
+        });
+        if (state.editingId === id) resetForm();
+        await loadSites();
+        setAdminStatus("已删除。");
+      }
+
+      function editSite(id) {
+        const site = state.sites.find((item) => item.id === id);
+        if (!site) return;
+
+        state.editingId = site.id;
+        fields.name.value = site.name || "";
+        fields.url.value = site.url || "";
+        fields.category.value = site.category || "";
+        fields.icon.value = site.icon || "";
+        fields.tags.value = Array.isArray(site.tags) ? site.tags.join(", ") : "";
+        fields.aliases.value = Array.isArray(site.aliases) ? site.aliases.join(", ") : "";
+        fields.description.value = site.description || "";
+        document.querySelector('[data-role="form-title"]').textContent = "编辑主页网站";
+      }
+
+      function resetForm() {
+        state.editingId = "";
+        for (const key of ["name", "url", "category", "icon", "tags", "aliases", "description"]) {
+          fields[key].value = "";
+        }
+        document.querySelector('[data-role="form-title"]').textContent = "添加主页网站";
+      }
+
+      function getSitePayload() {
+        return {
+          name: fields.name.value.trim(),
+          url: normalizeUrl(fields.url.value),
+          category: fields.category.value.trim(),
+          icon: fields.icon.value.trim(),
+          tags: splitList(fields.tags.value),
+          aliases: splitList(fields.aliases.value),
+          description: fields.description.value.trim(),
+        };
+      }
+
+      function renderSites() {
+        siteList.innerHTML = state.sites.map((site) => `
+          <div class="site-item" data-id="${escapeHTML(site.id)}">
+            <div>
+              <strong>${escapeHTML(site.name)}</strong>
+              <span>${escapeHTML(site.category)} · ${escapeHTML(site.url)}</span>
+            </div>
+            <div class="actions">
+              <button class="button" type="button" data-action="edit-site">编辑</button>
+              <button class="button danger" type="button" data-action="delete-site">删除</button>
+            </div>
+          </div>
+        `).join("");
+      }
+
+      function showAdmin() {
+        views.login.classList.add("hidden");
+        views.admin.classList.remove("hidden");
+        signOutButton.classList.remove("hidden");
+      }
+
+      function signOut() {
+        state.accessToken = "";
+        state.refreshToken = "";
+        state.userEmail = "";
+        localStorage.removeItem(SESSION_KEY);
+        views.login.classList.remove("hidden");
+        views.admin.classList.add("hidden");
+        signOutButton.classList.add("hidden");
+      }
+
+      async function requestAuth(path, body) {
+        return requestSupabase(path, {
+          method: "POST",
+          body: JSON.stringify(body),
+        }, false);
+      }
+
+      async function requestRest(path, options = {}) {
+        return requestSupabase(path, options, Boolean(options.auth));
+      }
+
+      async function requestSupabase(path, options = {}, authed = false) {
+        const headers = {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${authed ? state.accessToken : SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+          ...(options.headers || {}),
+        };
+        const response = await fetch(`${SUPABASE_URL}${path}`, {
+          method: options.method || "GET",
+          headers,
+          body: options.body,
+        });
+        const text = await response.text();
+        const payload = text ? JSON.parse(text) : null;
+        if (!response.ok) {
+          throw new Error(payload?.msg || payload?.message || response.statusText);
+        }
+        return payload;
+      }
+
+      function normalizeUrl(value) {
+        const raw = value.trim();
+        return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+      }
+
+      function splitList(value) {
+        return [...new Set(value.split(/[,，、\s]+/g).map((item) => item.trim()).filter(Boolean))];
+      }
+
+      function setLoginStatus(message) {
+        loginStatus.textContent = message;
+      }
+
+      function setAdminStatus(message) {
+        adminStatus.textContent = message;
+      }
+
+      function getErrorMessage(error) {
+        return error instanceof Error && error.message ? error.message : "未知错误";
+      }
+
+      function escapeHTML(value) {
+        return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        }[char]));
+      }
+    </script>
   </body>
 </html>
