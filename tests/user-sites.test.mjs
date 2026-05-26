@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizeUserSiteDraft } from "../src/features/user-sites.js";
+import { normalizeRemoteUserSite, normalizeUserSiteDraft } from "../src/features/user-sites.js";
 
 test("自定义站点地址和图标地址缺少协议时默认补全 https", () => {
   const site = normalizeUserSiteDraft({
@@ -36,4 +36,26 @@ test("自定义站点分类为空时拒绝提交", () => {
   });
 
   assert.equal(site, null);
+});
+
+test("自定义站点会保存并读取别名", () => {
+  const draft = normalizeUserSiteDraft({
+    name: "百度",
+    url: "baidu.com",
+    category: "搜索",
+    tags: "",
+    aliases: "baidu，百度一下 baidu.com",
+  });
+
+  assert.deepEqual(draft.aliases, ["baidu", "百度一下", "baidu.com"]);
+
+  const remote = normalizeRemoteUserSite({
+    id: "user-site-1",
+    name: "百度",
+    url: "https://baidu.com",
+    category: "搜索",
+    aliases: [" baidu ", "", "百度一下"],
+  });
+
+  assert.deepEqual(remote.aliases, ["baidu", "百度一下"]);
 });
