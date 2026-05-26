@@ -651,6 +651,7 @@
             body: JSON.stringify({ ...payload, updated_at: new Date().toISOString() }),
           });
         } else {
+          await shiftExistingSitesDown();
           await requestRest("/rest/v1/public_sites", {
             method: "POST",
             auth: true,
@@ -658,7 +659,7 @@
             body: JSON.stringify({
               ...payload,
               id: `site-${Date.now()}`,
-              sort_order: state.sites.length,
+              sort_order: 0,
             }),
           });
         }
@@ -666,6 +667,19 @@
         resetForm();
         await loadSites();
         setAdminStatus("已保存。");
+      }
+
+      async function shiftExistingSitesDown() {
+        const updates = state.sites.map((site, index) => requestRest(`/rest/v1/public_sites?id=eq.${encodeURIComponent(site.id)}`, {
+          method: "PATCH",
+          auth: true,
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify({
+            sort_order: Number.isFinite(site.sort_order) ? site.sort_order + 1 : index + 1,
+            updated_at: new Date().toISOString(),
+          }),
+        }));
+        await Promise.all(updates);
       }
 
       function identifySite() {
