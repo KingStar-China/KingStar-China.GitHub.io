@@ -133,6 +133,8 @@ const state = {
   workbenchTodos: loadTodoList(STORAGE_KEYS.workbenchTodos),
   workbenchTodoDraft: "",
   userSites: [],
+  userSiteQuery: "",
+  userSiteCategory: "all",
   userSiteEditingId: "",
   userSiteDraft: {
     name: "",
@@ -289,6 +291,18 @@ function handleInput(event) {
 
   if (event.target.matches('[data-role="sync-password"]')) {
     state.sync.password = event.target.value;
+    return;
+  }
+
+  if (event.target.matches('[data-role="user-site-search"]')) {
+    state.userSiteQuery = event.target.value;
+    render();
+    return;
+  }
+
+  if (event.target.matches('[data-role="user-site-category-filter"]')) {
+    state.userSiteCategory = event.target.value;
+    render();
     return;
   }
 

@@ -119,6 +119,8 @@ function renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrd
   const categoryOptions = getUserSiteCategories(categoryOrder, state.userSites);
   const tagOptions = getUserSiteTags(allSites);
   const isEditing = Boolean(state.userSiteEditingId);
+  const filteredSites = getFilteredUserSites(state);
+  const filterCategories = getUserSiteCategories([], state.userSites);
 
   return `
     <section class="user-sites-manager">
@@ -149,7 +151,17 @@ function renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrd
         </div>
       </div>
       <p class="workbench-helper">自定义站点只保存到你的账号，不会写入全站公共导航。</p>
-      ${state.userSites.length > 0 ? renderUserSitesList({ state, escapeHTML, renderSiteCard }) : '<div class="workbench-empty">还没有自定义站点。</div>'}
+      ${state.userSites.length > 0 ? `
+        <div class="user-site-filter">
+          <input class="workbench-input" data-role="user-site-search" value="${escapeHTML(state.userSiteQuery)}" placeholder="搜索我的站点">
+          <select class="workbench-input" data-role="user-site-category-filter">
+            <option value="all">全部分类</option>
+            ${filterCategories.map((category) => `<option value="${escapeHTML(category)}"${state.userSiteCategory === category ? " selected" : ""}>${escapeHTML(category)}</option>`).join("")}
+          </select>
+          <span class="workbench-helper">显示 ${filteredSites.length} / ${state.userSites.length}</span>
+        </div>
+        ${filteredSites.length > 0 ? renderUserSitesList({ sites: filteredSites, escapeHTML, renderSiteCard }) : '<div class="workbench-empty">没有匹配的自定义站点。</div>'}
+      ` : '<div class="workbench-empty">还没有自定义站点。</div>'}
       ${isEditing ? renderUserSiteEditModal({ state, escapeHTML, categoryOptions, tagOptions, disabled }) : ""}
     </section>
   `;
@@ -267,8 +279,8 @@ function getUserDisplayName(state) {
   return state.sync.userEmail || state.sync.email || "我的账号";
 }
 
-function renderUserSitesList({ state, escapeHTML, renderSiteCard }) {
-  const groups = groupUserSitesByCategory(state.userSites);
+function renderUserSitesList({ sites, escapeHTML, renderSiteCard }) {
+  const groups = groupUserSitesByCategory(sites);
 
   return `
     <div class="user-site-list">
@@ -288,6 +300,31 @@ function renderUserSitesList({ state, escapeHTML, renderSiteCard }) {
       `).join("")}
     </div>
   `;
+}
+
+function getFilteredUserSites(state) {
+  const query = String(state.userSiteQuery || "").trim().toLocaleLowerCase();
+
+  return state.userSites.filter((site) => {
+    if (state.userSiteCategory !== "all" && site.category !== state.userSiteCategory) {
+      return false;
+    }
+
+    if (!query) {
+      return true;
+    }
+
+    const haystack = [
+      site.name,
+      site.url,
+      site.category,
+      site.description,
+      ...(Array.isArray(site.tags) ? site.tags : []),
+      ...(Array.isArray(site.aliases) ? site.aliases : []),
+    ].join(" ").toLocaleLowerCase();
+
+    return haystack.includes(query);
+  });
 }
 
 function groupUserSitesByCategory(sites) {
