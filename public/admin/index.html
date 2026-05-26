@@ -247,7 +247,10 @@
           <label>密码
             <input type="password" data-field="password" autocomplete="current-password">
           </label>
-          <button class="button primary" type="button" data-action="sign-in">登录后台</button>
+          <div class="actions">
+            <button class="button primary" type="button" data-action="sign-in">登录后台</button>
+            <button class="button" type="button" data-action="sign-up">创建管理员账号</button>
+          </div>
           <p class="status" data-role="login-status"></p>
         </div>
       </section>
@@ -337,6 +340,7 @@
         if (!action) return;
 
         if (action === "sign-in") signIn();
+        if (action === "sign-up") signUp();
         if (action === "sign-out") signOut();
         if (action === "save-site") saveSite();
         if (action === "reset-form") resetForm();
@@ -387,6 +391,24 @@
           await loadSites();
         } catch (error) {
           setLoginStatus(`登录失败：${getErrorMessage(error)}`);
+        }
+      }
+
+      async function signUp() {
+        const email = fields.email.value.trim();
+        const password = fields.password.value;
+        if (!email || !password) {
+          setLoginStatus("请输入邮箱和你要设置的密码。");
+          return;
+        }
+
+        setLoginStatus("正在创建账号...");
+        try {
+          await requestAuth("/auth/v1/signup", { email, password });
+          fields.password.value = "";
+          setLoginStatus("账号已提交创建。请先到邮箱完成确认，然后回到这里登录。");
+        } catch (error) {
+          setLoginStatus(`创建失败：${getErrorMessage(error)}`);
         }
       }
 
