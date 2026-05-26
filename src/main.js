@@ -2771,8 +2771,12 @@ async function completeSyncSignIn(session, message) {
   applySyncSession(session);
   persistSyncSession();
   state.sync.password = "";
-  await mergeRemotePersonalData();
-  setSyncMessage(message);
+  try {
+    await mergeRemotePersonalData();
+    setSyncMessage(message);
+  } catch (error) {
+    setSyncMessage(`已登录，但同步失败：${getErrorMessage(error)}`);
+  }
 }
 
 async function trySignInExistingAccount(email, password) {
@@ -2781,6 +2785,11 @@ async function trySignInExistingAccount(email, password) {
   } catch (error) {
     if (isEmailNotConfirmedError(error)) {
       setSyncMessage("这个邮箱已经注册过，但还没有完成邮箱确认。请先去邮箱确认，再回来登录。");
+      return { handled: true };
+    }
+
+    if (isInvalidLoginError(error)) {
+      setSyncMessage("这个邮箱可能已经注册过，但密码不正确。请改用登录，或换一个邮箱注册。");
       return { handled: true };
     }
 
@@ -3263,6 +3272,10 @@ function isExistingSignupResponse(session) {
 
 function isEmailNotConfirmedError(error) {
   return /confirm|confirmed|confirmation|邮箱确认|邮件确认|未确认/i.test(getErrorMessage(error));
+}
+
+function isInvalidLoginError(error) {
+  return /invalid|credentials|login|password|密码|凭据/i.test(getErrorMessage(error));
 }
 
 function focusWorkbenchTodoInput() {
