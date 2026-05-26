@@ -296,13 +296,13 @@ function handleInput(event) {
 
   if (event.target.matches('[data-role="user-site-search"]')) {
     state.userSiteQuery = event.target.value;
-    render();
+    render({ preserveScroll: true, focusSelector: '[data-role="user-site-search"]' });
     return;
   }
 
   if (event.target.matches('[data-role="user-site-category-filter"]')) {
     state.userSiteCategory = event.target.value;
-    render();
+    render({ preserveScroll: true, focusSelector: '[data-role="user-site-category-filter"]' });
     return;
   }
 
@@ -716,7 +716,8 @@ function handleKeydown(event) {
     runCommandResult(commandResults[state.commandIndex]);
   }
 }
-function render() {
+function render(options = {}) {
+  const scrollY = options.preserveScroll ? window.scrollY : null;
   state.blogPage = clampPage(state.blogPage);
   root.querySelector(".app-shell")?.classList.toggle("is-article-view", state.section === "blog-detail");
   refs.themeShelf.classList.toggle("is-expanded", state.themeShelfExpanded);
@@ -766,6 +767,23 @@ function render() {
   if (state.pendingScrollTop) {
     state.pendingScrollTop = false;
     scrollToCurrentSectionTop();
+  }
+
+  if (options.focusSelector) {
+    requestAnimationFrame(() => {
+      const node = root.querySelector(options.focusSelector);
+      node?.focus({ preventScroll: true });
+      if (typeof node?.selectionStart === "number") {
+        const position = node.value.length;
+        node.setSelectionRange(position, position);
+      }
+    });
+  }
+
+  if (scrollY !== null) {
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: scrollY, left: 0, behavior: "auto" });
+    });
   }
 }
 
