@@ -3381,6 +3381,13 @@ a {
   margin-top: 18px;
 }
 
+.user-site-filter {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(180px, 0.42fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
 .user-site-category {
   padding: 18px;
 }
@@ -3608,6 +3615,7 @@ a {
 
   .workbench-todo-form,
   .user-site-form,
+  .user-site-filter,
   .sync-form {
     grid-template-columns: 1fr;
   }
