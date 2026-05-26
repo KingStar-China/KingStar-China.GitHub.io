@@ -537,6 +537,7 @@
         if (action === "identify-site") identifySite();
         if (action === "reset-form") resetForm();
         if (action === "reload-sites") loadSites();
+        if (action === "pin-site") pinSite(event.target.closest("[data-id]")?.dataset.id);
         if (action === "edit-site") editSite(event.target.closest("[data-id]")?.dataset.id);
         if (action === "delete-site") deleteSite(event.target.closest("[data-id]")?.dataset.id);
       });
@@ -725,6 +726,25 @@
         setAdminStatus("已删除。");
       }
 
+      async function pinSite(id) {
+        const target = state.sites.find((site) => site.id === id);
+        if (!target) return;
+
+        setAdminStatus("正在置顶...");
+        const reorderedSites = getPinnedSiteOrder(target);
+        await Promise.all(reorderedSites.map((site, index) => requestRest(`/rest/v1/public_sites?id=eq.${encodeURIComponent(site.id)}`, {
+          method: "PATCH",
+          auth: true,
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify({
+            sort_order: index,
+            updated_at: new Date().toISOString(),
+          }),
+        })));
+        await loadSites();
+        setAdminStatus(`已置顶 ${target.name}，并将 ${target.category} 分类放到最前。`);
+      }
+
       function editSite(id) {
         const site = state.sites.find((item) => item.id === id);
         if (!site) return;
@@ -783,6 +803,33 @@
         return hostParts[0] || hostname;
       }
 
+      function getPinnedSiteOrder(target) {
+        const categoryOrder = getCategoryOrderWithPinned(target.category);
+        const order = [];
+
+        for (const category of categoryOrder) {
+          const categorySites = state.sites.filter((site) => site.category === category);
+          if (category === target.category) {
+            order.push(target, ...categorySites.filter((site) => site.id !== target.id));
+          } else {
+            order.push(...categorySites);
+          }
+        }
+
+        return order;
+      }
+
+      function getCategoryOrderWithPinned(category) {
+        const categories = [];
+        for (const site of state.sites) {
+          if (site.category && !categories.includes(site.category)) {
+            categories.push(site.category);
+          }
+        }
+
+        return [category, ...categories.filter((item) => item !== category)];
+      }
+
       function renderSites() {
         const sites = getFilteredSites();
         siteCount.textContent = `显示 ${sites.length} / ${state.sites.length} 个网站`;
@@ -793,6 +840,7 @@
               <span>${escapeHTML(site.category)} · ${escapeHTML(site.url)}</span>
             </div>
             <div class="actions">
+              <button class="button" type="button" data-action="pin-site">置顶</button>
               <button class="button" type="button" data-action="edit-site">编辑</button>
               <button class="button danger" type="button" data-action="delete-site">删除</button>
             </div>
