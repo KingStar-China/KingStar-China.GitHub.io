@@ -691,7 +691,7 @@ function render() {
   }
   refs.sectionTabs.innerHTML = renderSectionTabs();
   refs.summary.textContent = buildSummary();
-  refs.heroSearch.innerHTML = state.section === "nav" || state.section === "blog-list" ? renderHeroSearch() : "";
+  refs.heroSearch.innerHTML = state.section === "nav" || state.section === "blog-list" || state.section === "user" ? renderHeroSearch() : "";
   refs.stats.innerHTML = state.section === "user" ? "" : state.section === "blog-list" || state.section === "blog-detail" ? renderBlogStats() : renderNavStats();
   refs.toolbar.innerHTML = renderToolbar();
   refs.content.innerHTML = renderContent();
@@ -2460,7 +2460,7 @@ function getHost(url) {
 
 function buildSummary() {
   if (state.section === "user") {
-    return state.sync.signedIn ? "用户中心：管理云端同步和你的自定义站点。" : "用户中心：登录后同步收藏、待办和自定义站点。";
+    return "";
   }
 
   if (state.section === "blog-list") {
