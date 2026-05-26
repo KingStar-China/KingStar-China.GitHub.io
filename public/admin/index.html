@@ -231,6 +231,13 @@
         align-items: end;
       }
 
+      .select-control {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(130px, 0.45fr);
+        gap: 10px;
+        align-items: end;
+      }
+
       label {
         display: grid;
         gap: 7px;
@@ -336,6 +343,11 @@
           flex-direction: column;
         }
 
+        .url-control,
+        .select-control {
+          grid-template-columns: 1fr;
+        }
+
         .login-card {
           padding: 23px 16px 20px;
         }
@@ -400,14 +412,22 @@
                 <input data-field="icon">
               </label>
             </div>
-            <div class="grid-2">
+            <div class="select-control">
               <label>分类
                 <input data-field="category">
               </label>
+              <select class="button" data-role="category-picker">
+                <option value="">选择已有</option>
+              </select>
             </div>
-            <label>标签
-              <input data-field="tags" placeholder="用逗号分隔">
-            </label>
+            <div class="select-control">
+              <label>标签
+                <input data-field="tags" placeholder="用逗号分隔">
+              </label>
+              <select class="button" data-role="tag-picker">
+                <option value="">选择已有</option>
+              </select>
+            </div>
             <label>别名
               <input data-field="aliases" placeholder="用逗号分隔">
             </label>
@@ -475,6 +495,8 @@
       const siteList = document.querySelector('[data-role="site-list"]');
       const siteSearch = document.querySelector('[data-role="site-search"]');
       const siteCategory = document.querySelector('[data-role="site-category"]');
+      const categoryPicker = document.querySelector('[data-role="category-picker"]');
+      const tagPicker = document.querySelector('[data-role="tag-picker"]');
       const siteCount = document.querySelector('[data-role="site-count"]');
       const signOutButton = document.querySelector('[data-action="sign-out"]');
 
@@ -486,6 +508,18 @@
       siteCategory.addEventListener("change", () => {
         state.siteCategory = siteCategory.value;
         renderSites();
+      });
+
+      categoryPicker.addEventListener("change", () => {
+        if (!categoryPicker.value) return;
+        fields.category.value = categoryPicker.value;
+        categoryPicker.value = "";
+      });
+
+      tagPicker.addEventListener("change", () => {
+        if (!tagPicker.value) return;
+        appendListValue(fields.tags, tagPicker.value);
+        tagPicker.value = "";
       });
 
       document.addEventListener("click", (event) => {
@@ -592,6 +626,7 @@
         });
         state.sites = Array.isArray(rows) ? rows : [];
         renderCategoryFilter();
+        renderFormPickers();
         renderSites();
         setAdminStatus(`已加载 ${state.sites.length} 个网站。`);
       }
@@ -758,6 +793,47 @@
             ${category === "all" ? "全部分类" : escapeHTML(category)}
           </option>
         `).join("");
+      }
+
+      function renderFormPickers() {
+        const categories = getExistingCategories();
+        const tags = getExistingTags();
+        categoryPicker.innerHTML = '<option value="">选择已有</option>' + categories.map((category) => `
+          <option value="${escapeHTML(category)}">${escapeHTML(category)}</option>
+        `).join("");
+        tagPicker.innerHTML = '<option value="">选择已有</option>' + tags.map((tag) => `
+          <option value="${escapeHTML(tag)}">${escapeHTML(tag)}</option>
+        `).join("");
+      }
+
+      function getExistingCategories() {
+        return uniqueSorted(state.sites.map((site) => site.category));
+      }
+
+      function getExistingTags() {
+        return uniqueSorted(state.sites.flatMap((site) => Array.isArray(site.tags) ? site.tags : []));
+      }
+
+      function appendListValue(input, value) {
+        const items = splitList(input.value);
+        const normalizedValue = String(value || "").trim();
+        if (!normalizedValue) return;
+
+        const hasValue = items.some((item) => item.toLocaleLowerCase() === normalizedValue.toLocaleLowerCase());
+        input.value = (hasValue ? items : [...items, normalizedValue]).join(", ");
+      }
+
+      function uniqueSorted(values) {
+        const seen = new Set();
+        return values
+          .map((value) => String(value || "").trim())
+          .filter((value) => {
+            const key = value.toLocaleLowerCase();
+            if (!value || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          })
+          .sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
       }
 
       function getFilteredSites() {
