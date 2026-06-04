@@ -42,7 +42,8 @@
 
       button,
       input,
-      textarea {
+      textarea,
+      select {
         font: inherit;
       }
 
@@ -238,6 +239,13 @@
       .select-control {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(130px, 0.45fr);
+        gap: 10px;
+        align-items: end;
+      }
+
+      .icon-control {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
         gap: 10px;
         align-items: end;
       }
@@ -460,9 +468,12 @@
               <label>名称
                 <input data-field="name">
               </label>
-              <label>图标
-                <input data-field="icon">
-              </label>
+              <div class="icon-control">
+                <label>图标
+                  <input data-field="icon">
+                </label>
+                <button class="button" type="button" data-action="upload-icon">上传</button>
+              </div>
             </div>
             <div class="select-control">
               <label>分类
@@ -491,6 +502,7 @@
               <button class="button" type="button" data-action="reset-form">清空</button>
             </div>
             <p class="status" data-role="admin-status"></p>
+            <input type="file" hidden data-role="icon-upload" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon,.ico">
           </div>
         </article>
 
@@ -552,6 +564,7 @@
       const siteCount = document.querySelector('[data-role="site-count"]');
       const toastStack = document.querySelector('[data-role="toast-stack"]');
       const signOutButton = document.querySelector('[data-action="sign-out"]');
+      const iconUpload = document.querySelector('[data-role="icon-upload"]');
 
       siteSearch.addEventListener("input", () => {
         state.siteQuery = siteSearch.value.trim().toLocaleLowerCase();
@@ -575,6 +588,13 @@
         tagPicker.value = "";
       });
 
+      iconUpload.addEventListener("change", () => {
+        const [file] = iconUpload.files || [];
+        iconUpload.value = "";
+        if (!file) return;
+        uploadIconFile(file);
+      });
+
       document.addEventListener("click", (event) => {
         const actionButton = event.target.closest("[data-action]");
         const action = actionButton?.dataset.action;
@@ -585,6 +605,7 @@
         if (action === "sign-out") signOut();
         if (action === "save-site") runAction(actionButton, "保存中...", saveSite);
         if (action === "identify-site") identifySite();
+        if (action === "upload-icon") iconUpload.click();
         if (action === "reset-form") resetForm();
         if (action === "reload-sites") runAction(actionButton, "刷新中...", loadSites);
         if (action === "pin-site") runAction(actionButton, "置顶中...", () => pinSite(event.target.closest("[data-id]")?.dataset.id));
@@ -777,6 +798,34 @@
         }
         setAdminStatus("已根据网址填充站点名、图标和别名建议。");
         showToast("已根据网址填充站点名、图标和别名建议。");
+      }
+
+      function uploadIconFile(file) {
+        const allowedTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/svg+xml", "image/x-icon", "image/vnd.microsoft.icon"]);
+        const allowedExtensions = /\.(png|jpe?g|webp|svg|ico)$/i;
+        if (!allowedTypes.has(file.type) && !allowedExtensions.test(file.name)) {
+          setAdminStatus("只支持 png、jpg、jpeg、webp、svg 或 ico 图标文件。");
+          showToast("只支持 png、jpg、jpeg、webp、svg 或 ico 图标文件。", "error");
+          return;
+        }
+
+        if (file.size > 180 * 1024) {
+          setAdminStatus("图标文件过大，请上传 180KB 以内的小图标。");
+          showToast("图标文件过大，请上传 180KB 以内的小图标。", "error");
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.addEventListener("load", () => {
+          fields.icon.value = String(reader.result || "");
+          setAdminStatus(`已上传图标：${file.name}。保存网站后生效。`);
+          showToast("已填入上传图标，保存网站后生效。");
+        });
+        reader.addEventListener("error", () => {
+          setAdminStatus("读取图标文件失败。");
+          showToast("读取图标文件失败。", "error");
+        });
+        reader.readAsDataURL(file);
       }
 
       async function deleteSite(id) {
