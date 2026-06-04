@@ -46,6 +46,24 @@ npm test
 
 也可以直接复制 [`supabase/nav_user_state.sql`](./supabase/nav_user_state.sql) 的全部内容执行。
 
+如果还需要网站访问统计，继续执行：
+
+```sql
+-- 文件位置：supabase/site_visit_events.sql
+```
+
+也可以直接复制 [`supabase/site_visit_events.sql`](./supabase/site_visit_events.sql) 的全部内容执行。前端会匿名写入 pageview 事件，不向公开访客开放统计明细读取。可以在 Supabase SQL Editor 用下面的聚合查看每日访问量：
+
+```sql
+select
+  date_trunc('day', occurred_at) as day,
+  count(*) as views,
+  count(distinct visitor_id) as visitors
+from public.site_visit_events
+group by day
+order by day desc;
+```
+
 ### 2. 配置前端环境变量
 
 复制示例环境变量：

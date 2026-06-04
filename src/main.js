@@ -10,6 +10,7 @@ import { createPersonalDataSnapshot, mergePersonalData as mergePersonalDataState
 import { getAuthAccessToken, loadSyncSession as loadStoredSyncSession, normalizeSyncSession, persistSyncSession as persistStoredSyncSession, removeSyncSession } from "./features/sync-session.js";
 import { getSupabaseConfig, requestSupabaseAuth as requestSupabaseAuthApi, requestSupabaseRest as requestSupabaseRestApi } from "./features/supabase.js";
 import { normalizeRemoteUserSite, normalizeUserSiteDraft } from "./features/user-sites.js";
+import { buildPageViewEvent, getAnalyticsVisitorId } from "./features/analytics.js";
 import { renderUserPage as renderUserPageView, renderUserStats as renderUserStatsView } from "./pages/user.js";
 
 /**
@@ -56,6 +57,7 @@ const STORAGE_KEYS = {
   userSites: "nav-tool.userSites",
   syncSession: "nav-tool.sync.session",
   searchEngine: "nav-tool.search.engine",
+  analyticsVisitorId: "nav-tool.analytics.visitorId",
 };
 
 const searchEngines = rawSearchEngines
@@ -184,6 +186,7 @@ const state = {
 const root = document.querySelector("#app");
 const refs = {};
 let commandFocusRetryId = 0;
+let lastTrackedPagePath = "";
 
 window.handleIconError = handleIconError;
 init();
@@ -796,6 +799,7 @@ function render(options = {}) {
   syncRoute(state.nextRouteMode);
   state.nextRouteMode = "replace";
   updateSeo();
+  trackPageView();
 
   if (state.pendingScrollTop) {
     state.pendingScrollTop = false;
@@ -3532,6 +3536,32 @@ async function requestSupabaseAuth(path, body) {
 
 async function requestSupabaseRest(path, options = {}) {
   return requestSupabaseRestApi(SUPABASE_CONFIG, path, options, state.sync.accessToken);
+}
+
+function trackPageView() {
+  if (!state.sync.enabled) {
+    return;
+  }
+
+  const pagePath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  if (pagePath === lastTrackedPagePath) {
+    return;
+  }
+
+  lastTrackedPagePath = pagePath;
+  const visitorId = getAnalyticsVisitorId(localStorage, STORAGE_KEYS.analyticsVisitorId);
+  const event = buildPageViewEvent(window.location, document, visitorId);
+
+  requestSupabaseRestApi(SUPABASE_CONFIG, "/rest/v1/site_visit_events", {
+    method: "POST",
+    auth: false,
+    headers: {
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify(event),
+  }).catch(() => {
+    lastTrackedPagePath = "";
+  });
 }
 
 function setSyncBusy(busy, message = "", options = {}) {
