@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { copyFile, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { runInNewContext } from "node:vm";
 import { fileURLToPath } from "node:url";
@@ -75,6 +75,12 @@ const server = createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/api/open-icon-folder") {
       await openIconFolder();
       sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/upload-icon") {
+      const uploaded = await uploadIconFile();
+      sendJson(res, 200, uploaded);
       return;
     }
 
@@ -173,6 +179,64 @@ async function openIconFolder() {
       resolve();
     });
   });
+}
+
+async function uploadIconFile() {
+  const filePath = await pickIconFile();
+  const fileName = sanitizeIconFileName(path.basename(filePath));
+  const targetPath = path.join(iconDir, fileName);
+  await copyFile(filePath, targetPath);
+  return {
+    ok: true,
+    fileName,
+    iconPath: `icon/${fileName}`,
+  };
+}
+
+async function pickIconFile() {
+  const script = [
+    "Add-Type -AssemblyName System.Windows.Forms",
+    "$dialog = New-Object System.Windows.Forms.OpenFileDialog",
+    '$dialog.Title = "选择要上传的图标文件"',
+    '$dialog.Filter = "图标和图片 (*.png;*.jpg;*.jpeg;*.webp;*.svg;*.ico)|*.png;*.jpg;*.jpeg;*.webp;*.svg;*.ico|所有文件 (*.*)|*.*"',
+    "$dialog.Multiselect = $false",
+    "if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {",
+    "  [Console]::OutputEncoding = [System.Text.Encoding]::UTF8",
+    "  Write-Output $dialog.FileName",
+    "}",
+  ].join("; ");
+
+  const output = await runPowerShell(script);
+  const filePath = String(output || "").trim();
+  if (!filePath) {
+    throw new Error("已取消上传图标。");
+  }
+  return filePath;
+}
+
+function sanitizeIconFileName(fileName) {
+  const trimmed = String(fileName || "").trim();
+  if (!trimmed) {
+    throw new Error("图标文件名不能为空");
+  }
+
+  const parsed = path.parse(trimmed);
+  const extension = parsed.ext.toLowerCase();
+  const allowedExtensions = new Set([".png", ".jpg", ".jpeg", ".webp", ".svg", ".ico"]);
+  if (!allowedExtensions.has(extension)) {
+    throw new Error("只支持上传 png、jpg、jpeg、webp、svg 或 ico 图标文件");
+  }
+
+  const safeName = parsed.name
+    .normalize("NFKD")
+    .replace(/[^\w.-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+  if (!safeName || safeName === "." || safeName === "..") {
+    throw new Error("图标文件名无效");
+  }
+
+  return `${safeName}${extension}`;
 }
 
 async function pickMarkdownFile() {
