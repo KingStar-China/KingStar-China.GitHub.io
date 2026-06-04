@@ -445,7 +445,6 @@ function renderSiteEditor(site) {
         <div class="meta-row">
           <input id="site-icon" data-field="icon" value="${escapeAttr(site.icon || "")}" placeholder="icon/example.png 或 https://...">
           <button type="button" class="mini-button" data-action="open-icon-folder">打开ICON文件夹</button>
-          <button type="button" class="mini-button" data-action="upload-icon">上传图标</button>
         </div>
         <span class="helper">支持 public/icon 下的相对路径，也支持直接填网络图片地址；这里有值时前台优先使用这里，留空时才会尝试网站自身 favicon。</span>
         ${state.iconFiles.length > 0 ? `
@@ -624,14 +623,6 @@ function handleClick(event) {
   if (action === "open-icon-folder") {
     openIconFolder().catch((error) => {
       setStatus("error", error.message);
-      render();
-    });
-    return;
-  }
-
-  if (action === "upload-icon") {
-    uploadIcon().catch((error) => {
-      setStatus(error.message === "已取消上传图标。" ? "info" : "error", error.message, false);
       render();
     });
     return;
@@ -1027,38 +1018,6 @@ async function openIconFolder() {
   }
 
   setStatus("success", "已打开 public/icon 文件夹。", true);
-}
-
-async function uploadIcon() {
-  const item = getSelectedItem();
-  if (!item || state.section !== "sites") {
-    return;
-  }
-
-  setStatus("info", "正在选择并上传图标...", true);
-  render();
-
-  const response = await fetch("/api/upload-icon", { method: "POST" });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(result.error || `上传图标失败：${response.status}`);
-  }
-
-  const iconPath = String(result.iconPath || "").trim();
-  const fileName = String(result.fileName || "").trim();
-  if (!iconPath || !fileName) {
-    throw new Error("上传图标成功，但服务端没有返回图标路径");
-  }
-
-  item.icon = iconPath;
-  state.dirty.sites = true;
-  if (!state.iconFiles.includes(fileName)) {
-    state.iconFiles = [...state.iconFiles, fileName].sort((left, right) => left.localeCompare(right, "zh-CN"));
-  }
-  state.iconPickerOpen = false;
-  state.iconQuery = "";
-  setStatus("success", `已上传并选择图标：${iconPath}`, true);
-  render();
 }
 
 async function fetchSelectedSiteMetadata() {
