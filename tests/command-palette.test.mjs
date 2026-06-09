@@ -48,6 +48,21 @@ test("命令面板搜索结果会按站点和博客分组", () => {
   assert.equal(sections[1].title, "博客结果");
 });
 
+test("站点搜索结果会显示不带协议的网址", () => {
+  const deps = createPaletteDeps({
+    state: {
+      commandQuery: "github",
+      recent: [],
+    },
+    sites: [
+      createSite({ id: "site-1", name: "GitHub", url: "https://github.com/openai/" }),
+    ],
+  });
+
+  const sections = getCommandSections(deps);
+  assert.equal(sections[0].items[0].displayUrl, "github.com/openai");
+});
+
 test("打开命令面板会重置选中索引", () => {
   const state = {
     commandOpen: false,
