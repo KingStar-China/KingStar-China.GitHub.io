@@ -118,9 +118,14 @@ function createSiteCommandResult(site, getHost) {
     id: site.id,
     badge: site.category || "网站",
     title: site.name,
+    displayUrl: formatDisplayUrl(site.url),
     subtitle: site.description || site.url,
     meta: site.tags.slice(0, 3).join(" / ") || getHost(site.url),
   };
+}
+
+function formatDisplayUrl(url) {
+  return String(url || "").replace(/^https?:\/\//i, "").replace(/\/$/, "");
 }
 
 function createPostCommandResult(post, formatShortDate) {

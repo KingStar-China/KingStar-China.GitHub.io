@@ -2915,6 +2915,23 @@ a {
   font-size: 0.98rem;
 }
 
+.command-item__title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.command-item__title span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .command-item__body span {
   color: var(--muted);
   line-height: 1.5;

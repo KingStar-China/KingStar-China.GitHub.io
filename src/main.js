@@ -2043,7 +2043,10 @@ function renderCommandItem(item, absoluteIndex) {
       >
         <span class="command-item__badge ${badgeClass}">${escapeHTML(item.badge)}</span>
         <div class="command-item__body">
-          <strong>${escapeHTML(item.title)}</strong>
+          <div class="command-item__title">
+            <strong>${escapeHTML(item.title)}</strong>
+            <span>${escapeHTML(item.displayUrl || "")}</span>
+          </div>
           <span>${escapeHTML(item.subtitle)}</span>
         </div>
         <span class="command-item__meta">${escapeHTML(item.meta)}</span>
