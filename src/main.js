@@ -4228,7 +4228,7 @@ function loadIdSet(key) {
       return new Set();
     }
 
-    return new Set(value.filter((id) => siteIds.has(id)));
+    return new Set(value.map((id) => String(id)).filter(Boolean));
   } catch {
     return new Set();
   }
@@ -4241,7 +4241,7 @@ function loadIdList(key) {
       return [];
     }
 
-    return value.filter((id) => siteIds.has(id));
+    return [...new Set(value.map((id) => String(id)).filter(Boolean))];
   } catch {
     return [];
   }
