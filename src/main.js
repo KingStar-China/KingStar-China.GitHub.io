@@ -765,7 +765,7 @@ function render(options = {}) {
   refs.sectionTabs.innerHTML = renderSectionTabs();
   refs.summary.textContent = buildSummary();
   refs.heroSearch.innerHTML = state.section === "nav" || state.section === "blog-list" || state.section === "user" ? renderHeroSearch() : "";
-  refs.stats.innerHTML = state.section === "user" ? "" : state.section === "blog-list" || state.section === "blog-detail" ? renderBlogStats() : renderNavStats();
+  refs.stats.innerHTML = state.section === "user" ? renderUserStats() : state.section === "blog-list" || state.section === "blog-detail" ? renderBlogStats() : renderNavStats();
   refs.toolbar.innerHTML = renderToolbar();
   refs.content.innerHTML = renderContent();
   renderCommandPaletteState({ maintainFocus: state.commandOpen });
