@@ -189,7 +189,21 @@ let commandFocusRetryId = 0;
 let lastTrackedPagePath = "";
 
 window.handleIconError = handleIconError;
-init();
+if (!redirectCanonicalHost()) {
+  init();
+}
+
+function redirectCanonicalHost() {
+  const canonicalHost = new URL(siteMeta.url).hostname;
+  if (window.location.hostname !== `www.${canonicalHost}`) {
+    return false;
+  }
+
+  const target = new URL(window.location.href);
+  target.hostname = canonicalHost;
+  window.location.replace(target.toString());
+  return true;
+}
 
 function init() {
   if ("scrollRestoration" in window.history) {
@@ -3145,23 +3159,25 @@ async function restoreSyncSession() {
   const cachedUserSites = loadCachedUserSites(state.sync.userId);
   state.userSites = cachedUserSites || [];
   rebuildSiteIndexes();
-  setSyncMessage(cachedUserSites ? "已从本机缓存恢复账号数据。" : "正在恢复同步会话...");
+  setSyncMessage(cachedUserSites ? "已从本机缓存恢复账号数据，正在连接云端数据库..." : "正在恢复同步会话...");
   render();
 
   try {
     if (isSyncSessionExpired()) {
       await refreshSyncSession();
     }
-
-    if (!cachedUserSites) {
-      await loadRemoteUserSites();
-      render();
-    }
-
-    setSyncMessage("已恢复登录。本机缓存优先，点立即同步可更新云端数据。");
   } catch (error) {
     signOutSyncAccount();
     setSyncMessage(`同步登录已过期，请重新登录：${getErrorMessage(error)}`);
+    return;
+  }
+
+  try {
+    await mergeRemotePersonalData();
+    render();
+    setSyncMessage("已连接云端数据库并恢复账号数据。");
+  } catch (error) {
+    setSyncMessage(`数据库连接失败，已保留本机缓存：${getErrorMessage(error)}`);
   }
 }
 
