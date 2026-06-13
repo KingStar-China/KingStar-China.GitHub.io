@@ -118,7 +118,7 @@ test("运行站点结果会直接打开目标 URL 并记录最近访问", () => 
   assert.equal(tracker.renderCalls, 1);
 });
 
-test("站点结果被浏览器拦截时不会误更新状态", () => {
+test("站点结果没有窗口句柄时仍会记录最近访问", () => {
   const tracker = createResultSpies();
   const originalWindow = globalThis.window;
   globalThis.window = {
@@ -142,9 +142,9 @@ test("站点结果被浏览器拦截时不会误更新状态", () => {
   }
 
   assert.deepEqual(tracker.openCalls, [["https://github.com/", "_blank", "noopener,noreferrer"]]);
-  assert.deepEqual(tracker.trackRecentCalls, []);
-  assert.equal(tracker.closeCalls, 0);
-  assert.equal(tracker.renderCalls, 0);
+  assert.deepEqual(tracker.trackRecentCalls, ["site-1"]);
+  assert.equal(tracker.closeCalls, 1);
+  assert.equal(tracker.renderCalls, 1);
 });
 
 test("运行博客结果会打开文章并关闭面板", () => {
