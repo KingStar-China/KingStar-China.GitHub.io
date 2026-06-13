@@ -54,16 +54,14 @@ export function runCommandResult(result, deps) {
       return;
     }
 
+    trackRecent(site.id);
     const openedWindow = window.open(site.url, "_blank", "noopener,noreferrer");
-    if (!openedWindow) {
-      return;
+    if (openedWindow) {
+      try {
+        openedWindow.opener = null;
+      } catch {}
     }
 
-    try {
-      openedWindow.opener = null;
-    } catch {}
-
-    trackRecent(site.id);
     closeCommandPalette();
     render();
     return;

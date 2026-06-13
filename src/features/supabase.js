@@ -38,6 +38,7 @@ async function requestSupabase(config, path, options = {}, accessToken = "") {
     method: options.method || "GET",
     headers,
     body: options.body,
+    keepalive: Boolean(options.keepalive),
   });
 
   const text = await response.text();

@@ -214,6 +214,8 @@ function init() {
   window.addEventListener("popstate", handlePopState);
   window.addEventListener("hashchange", handlePopState);
   window.addEventListener("scroll", handleScroll, { passive: true });
+  window.addEventListener("pagehide", flushPendingRemotePersonalSave);
+  document.addEventListener("visibilitychange", handleVisibilityChange);
 
   hydrateFromLocation();
   syncTheme(state.theme);
@@ -2851,10 +2853,27 @@ function queueRemotePersonalSave() {
 
   window.clearTimeout(state.sync.saveTimer);
   state.sync.saveTimer = window.setTimeout(() => {
+    state.sync.saveTimer = 0;
     saveRemotePersonalData().catch((error) => {
       setSyncMessage(`同步失败：${getErrorMessage(error)}`);
     });
   }, REMOTE_SAVE_DEBOUNCE_MS);
+}
+
+function handleVisibilityChange() {
+  if (document.visibilityState === "hidden") {
+    flushPendingRemotePersonalSave();
+  }
+}
+
+function flushPendingRemotePersonalSave() {
+  if (!state.sync.enabled || !state.sync.signedIn || !state.sync.saveTimer) {
+    return;
+  }
+
+  window.clearTimeout(state.sync.saveTimer);
+  state.sync.saveTimer = 0;
+  saveRemotePersonalData({ keepalive: true }).catch(() => {});
 }
 
 async function syncPersonalDataNow() {
@@ -3237,7 +3256,7 @@ async function loadRemotePersonalData() {
   return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 }
 
-async function saveRemotePersonalData() {
+async function saveRemotePersonalData({ keepalive = false } = {}) {
   if (!state.sync.accessToken || !state.sync.userId) {
     return;
   }
@@ -3247,6 +3266,7 @@ async function saveRemotePersonalData() {
     headers: {
       Prefer: "resolution=merge-duplicates",
     },
+    keepalive,
     body: JSON.stringify({
       user_id: state.sync.userId,
       payload: getPersonalDataSnapshot(),
