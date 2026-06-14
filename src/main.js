@@ -9,7 +9,7 @@ import { getCommandSections as getCommandSectionsState, getFlatCommandResults as
 import { createPersonalDataSnapshot, mergePersonalData as mergePersonalDataState, normalizePersonalData } from "./features/personal-data.js";
 import { getAuthAccessToken, loadSyncSession as loadStoredSyncSession, normalizeSyncSession, persistSyncSession as persistStoredSyncSession, removeSyncSession } from "./features/sync-session.js";
 import { getSupabaseConfig, requestSupabaseAuth as requestSupabaseAuthApi, requestSupabaseRest as requestSupabaseRestApi } from "./features/supabase.js";
-import { normalizeRemoteUserSite, normalizeUserSiteDraft } from "./features/user-sites.js";
+import { mergeSitesBySubmittedAt, normalizeRemoteUserSite, normalizeUserSiteDraft } from "./features/user-sites.js";
 import { buildPageViewEvent, getAnalyticsVisitorId } from "./features/analytics.js";
 import { renderUserPage as renderUserPageView, renderUserStats as renderUserStatsView } from "./pages/user.js";
 
@@ -3239,7 +3239,7 @@ async function loadRemotePublicSites() {
 
   try {
     const rows = await requestSupabaseRest(
-      "/rest/v1/public_sites?select=id,name,url,category,tags,icon,description,aliases,sort_order&order=sort_order.asc,created_at.asc",
+      "/rest/v1/public_sites?select=id,name,url,category,tags,icon,description,aliases,sort_order,created_at&order=created_at.desc",
       { auth: false },
     );
     const remoteSites = Array.isArray(rows) ? rows.map(normalizeRemotePublicSite).filter(Boolean) : [];
@@ -3508,7 +3508,7 @@ async function removeUserSite(siteId) {
 }
 
 function rebuildSiteIndexes() {
-  sites = [...state.userSites, ...publicSites];
+  sites = mergeSitesBySubmittedAt(state.userSites, publicSites);
   categoryOrder = [...new Set(sites.map((site) => site.category))];
   siteIds = new Set(sites.map((site) => site.id));
   siteMap = new Map(sites.map((site) => [site.id, site]));
