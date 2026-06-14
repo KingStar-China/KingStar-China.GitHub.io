@@ -40,8 +40,45 @@ export function normalizeRemoteUserSite(site) {
     aliases: Array.isArray(site.aliases) ? site.aliases.map((alias) => String(alias).trim()).filter(Boolean) : [],
     icon: String(site.icon || ""),
     description: normalizeRemoteDescription(site.description),
+    createdAt: normalizeRemoteTimestamp(site.created_at || site.createdAt),
     source: "user",
   };
+}
+
+export function mergeSitesBySubmittedAt(userSites, publicSites) {
+  return [
+    ...withOriginalIndex(userSites),
+    ...withOriginalIndex(publicSites, Array.isArray(userSites) ? userSites.length : 0),
+  ]
+    .sort((left, right) => {
+      const leftTime = getSubmittedTime(left.site);
+      const rightTime = getSubmittedTime(right.site);
+
+      if (leftTime !== rightTime) {
+        return rightTime - leftTime;
+      }
+
+      return left.index - right.index;
+    })
+    .map((entry) => entry.site);
+}
+
+function withOriginalIndex(sites, offset = 0) {
+  return (Array.isArray(sites) ? sites : []).map((site, index) => ({
+    site,
+    index: offset + index,
+  }));
+}
+
+function getSubmittedTime(site) {
+  const submittedAt = site?.createdAt || site?.created_at;
+  const timestamp = Date.parse(String(submittedAt || ""));
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function normalizeRemoteTimestamp(value) {
+  const timestamp = String(value || "").trim();
+  return Number.isFinite(Date.parse(timestamp)) ? timestamp : "";
 }
 
 function normalizeRemoteDescription(value) {

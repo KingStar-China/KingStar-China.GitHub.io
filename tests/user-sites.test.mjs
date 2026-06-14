@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizeRemoteUserSite, normalizeUserSiteDraft } from "../src/features/user-sites.js";
+import { mergeSitesBySubmittedAt, normalizeRemoteUserSite, normalizeUserSiteDraft } from "../src/features/user-sites.js";
 
 test("自定义站点地址和图标地址缺少协议时默认补全 https", () => {
   const site = normalizeUserSiteDraft({
@@ -58,4 +58,20 @@ test("自定义站点会保存并读取别名", () => {
   });
 
   assert.deepEqual(remote.aliases, ["baidu", "百度一下"]);
+});
+
+test("公共站点和用户站点会完全按提交时间倒序合并", () => {
+  const userSites = [
+    { id: "user-old", name: "用户先提交", createdAt: "2026-06-14T08:00:00.000Z" },
+    { id: "user-new", name: "用户后提交", createdAt: "2026-06-14T10:00:00.000Z" },
+  ];
+  const publicSites = [
+    { id: "public-newest", name: "超级用户最新提交", createdAt: "2026-06-14T11:00:00.000Z" },
+    { id: "public-old", name: "公共旧站点", createdAt: "2026-06-14T09:00:00.000Z" },
+  ];
+
+  assert.deepEqual(
+    mergeSitesBySubmittedAt(userSites, publicSites).map((site) => site.id),
+    ["public-newest", "user-new", "public-old", "user-old"],
+  );
 });
