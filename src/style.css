@@ -5582,6 +5582,29 @@ body.is-command-open {
   --theme-accent-glow: rgba(81, 170, 176, 0.22);
 }
 
+[data-theme="dark"][data-theme-preset="aurora"] {
+  --theme-bg-left: rgba(18, 136, 186, 0.28);
+  --theme-bg-right: rgba(18, 181, 136, 0.22);
+  --theme-bg-overlay: rgba(203, 255, 245, 0.06);
+  --theme-grid-color: rgba(105, 216, 255, 0.08);
+  --theme-hero-tint: linear-gradient(135deg, rgba(84, 187, 255, 0.24), rgba(94, 238, 191, 0.16) 48%, transparent 76%);
+  --theme-surface-soft: rgba(7, 31, 41, 0.58);
+  --theme-stat-bg: rgba(10, 42, 52, 0.66);
+  --theme-hero-glow: radial-gradient(circle at 88% 18%, rgba(73, 193, 255, 0.34), transparent 34%), radial-gradient(circle at 74% 80%, rgba(79, 233, 192, 0.24), transparent 28%);
+  --theme-hero-ribbon: linear-gradient(135deg, rgba(79, 185, 255, 0.24), rgba(14, 70, 88, 0.48) 42%, rgba(69, 217, 183, 0.16) 78%, rgba(7, 18, 27, 0.08));
+  --theme-hero-stroke: rgba(106, 217, 255, 0.22);
+  --theme-shelf-glow: rgba(72, 208, 255, 0.22);
+  --chip-active: #14756d;
+  --chip-active-text: #f4fffc;
+  --brand-soft: rgba(20, 117, 109, 0.2);
+  --brand-strong: #a4f3e4;
+  --theme-tag-bg: rgba(73, 240, 168, 0.14);
+  --theme-tag-border: rgba(90, 232, 170, 0.22);
+  --theme-tag-text: #93f5c6;
+  --theme-accent-glow: rgba(66, 205, 255, 0.34);
+  --surface-soft: var(--theme-surface-soft);
+}
+
 [data-theme="dark"] body::after {
   background:
     linear-gradient(180deg, rgba(7, 9, 14, 0.18), rgba(7, 9, 14, 0.06)),
