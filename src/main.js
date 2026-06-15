@@ -54,6 +54,7 @@ const STORAGE_KEYS = {
   workbenchNote: "nav-tool.workbench.note",
   workbenchTodos: "nav-tool.workbench.todos",
   personalUpdatedAt: "nav-tool.personal.updatedAt",
+  publicSites: "nav-tool.publicSites",
   userSites: "nav-tool.userSites",
   syncSession: "nav-tool.sync.session",
   searchEngine: "nav-tool.search.engine",
@@ -80,6 +81,7 @@ const POSTS_PER_PAGE = 5;
 const COMMAND_RESULT_LIMIT = 8;
 const RECENT_HISTORY_LIMIT = 20;
 const REMOTE_SAVE_DEBOUNCE_MS = 800;
+const REMOTE_PUBLIC_SITES_RETRY_DELAYS = [1_500, 4_000, 10_000, 20_000];
 
 /** @type {SiteItem[]} */
 const defaultSites = rawSites.map((site) => ({
@@ -100,8 +102,8 @@ const posts = rawPosts
   }))
   .sort((left, right) => new Date(right.publishedAt).getTime() - new Date(left.publishedAt).getTime());
 
-let sites = [...defaultSites];
-let publicSites = [...defaultSites];
+let publicSites = loadCachedPublicSites() || [...defaultSites];
+let sites = mergeSitesBySubmittedAt([], publicSites);
 let categoryOrder = [...new Set(sites.map((site) => site.category))];
 let siteIds = new Set(sites.map((site) => site.id));
 let siteMap = new Map(sites.map((site) => [site.id, site]));
@@ -187,6 +189,9 @@ const root = document.querySelector("#app");
 const refs = {};
 let commandFocusRetryId = 0;
 let lastTrackedPagePath = "";
+let publicSitesRetryTimer = 0;
+let publicSitesLoading = false;
+let publicSitesLoaded = false;
 
 window.handleIconError = handleIconError;
 if (!redirectCanonicalHost()) {
@@ -229,6 +234,7 @@ function init() {
   window.addEventListener("hashchange", handlePopState);
   window.addEventListener("scroll", handleScroll, { passive: true });
   window.addEventListener("pagehide", flushPendingRemotePersonalSave);
+  window.addEventListener("online", handleNetworkOnline);
   document.addEventListener("visibilitychange", handleVisibilityChange);
 
   hydrateFromLocation();
@@ -2880,6 +2886,23 @@ function handleVisibilityChange() {
   }
 }
 
+function handleNetworkOnline() {
+  loadRemotePublicSites({ force: true });
+
+  if (!state.sync.enabled || !state.sync.signedIn) {
+    return;
+  }
+
+  mergeRemotePersonalData()
+    .then(() => {
+      render();
+      setSyncMessage("网络已恢复，云端数据已更新。");
+    })
+    .catch((error) => {
+      setSyncMessage(`网络已恢复，但数据库连接失败：${getErrorMessage(error)}`);
+    });
+}
+
 function flushPendingRemotePersonalSave() {
   if (!state.sync.enabled || !state.sync.signedIn || !state.sync.saveTimer) {
     return;
@@ -3232,10 +3255,17 @@ async function mergeRemotePersonalData() {
   render();
 }
 
-async function loadRemotePublicSites() {
-  if (!state.sync.enabled) {
+async function loadRemotePublicSites({ retryIndex = 0, force = false } = {}) {
+  if (!state.sync.enabled || publicSitesLoading) {
     return;
   }
+
+  if (force) {
+    window.clearTimeout(publicSitesRetryTimer);
+    publicSitesRetryTimer = 0;
+  }
+
+  publicSitesLoading = true;
 
   try {
     const rows = await requestSupabaseRest(
@@ -3247,13 +3277,34 @@ async function loadRemotePublicSites() {
       return;
     }
 
+    window.clearTimeout(publicSitesRetryTimer);
+    publicSitesRetryTimer = 0;
+    publicSitesLoaded = true;
     publicSites = remoteSites;
+    persistCachedPublicSites();
     rebuildSiteIndexes();
     render();
   } catch {
-    publicSites = [...defaultSites];
-    rebuildSiteIndexes();
+    if (!publicSitesLoaded) {
+      publicSites = [...defaultSites];
+      rebuildSiteIndexes();
+    }
+
+    scheduleRemotePublicSitesRetry(retryIndex);
+  } finally {
+    publicSitesLoading = false;
   }
+}
+
+function scheduleRemotePublicSitesRetry(retryIndex) {
+  if (publicSitesRetryTimer || retryIndex >= REMOTE_PUBLIC_SITES_RETRY_DELAYS.length) {
+    return;
+  }
+
+  publicSitesRetryTimer = window.setTimeout(() => {
+    publicSitesRetryTimer = 0;
+    loadRemotePublicSites({ retryIndex: retryIndex + 1 });
+  }, REMOTE_PUBLIC_SITES_RETRY_DELAYS[retryIndex]);
 }
 
 async function loadRemoteUserSites() {
@@ -3542,6 +3593,27 @@ function applyPersonalDataSnapshot(snapshot) {
   localStorage.setItem(STORAGE_KEYS.workbenchNote, data.workbenchNote);
   localStorage.setItem(STORAGE_KEYS.workbenchTodos, JSON.stringify(data.workbenchTodos));
   localStorage.setItem(STORAGE_KEYS.personalUpdatedAt, new Date().toISOString());
+}
+
+function loadCachedPublicSites() {
+  try {
+    const value = JSON.parse(localStorage.getItem(STORAGE_KEYS.publicSites) || "null");
+    if (!value || !Array.isArray(value.sites)) {
+      return null;
+    }
+
+    const cachedSites = value.sites.map(normalizeRemotePublicSite).filter(Boolean);
+    return cachedSites.length > 0 ? cachedSites : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistCachedPublicSites() {
+  localStorage.setItem(STORAGE_KEYS.publicSites, JSON.stringify({
+    sites: publicSites,
+    updatedAt: new Date().toISOString(),
+  }));
 }
 
 function loadCachedUserSites(userId) {
