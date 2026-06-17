@@ -387,6 +387,15 @@ function handleInput(event) {
 }
 function handlePointerDown(event) {
   const actionButton = event.target.closest("button[data-action]");
+  const commandSiteLink = state.commandOpen ? event.target.closest(".command-palette a[data-site-id]") : null;
+
+  if (commandSiteLink && event.button === 0) {
+    event.preventDefault();
+    event.stopPropagation();
+    refs.commandInput?.blur();
+    runCommandResult({ kind: "site", id: commandSiteLink.dataset.siteId });
+    return;
+  }
 
   if (!actionButton) {
     return;
