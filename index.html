@@ -23,11 +23,36 @@
     <script>
       (() => {
         const themeKey = "nav-tool.theme";
+        const themeVersionKey = "nav-tool.themeVersion";
         const themePresetKey = "nav-tool.themePreset";
-        const stored = localStorage.getItem(themeKey);
-        const storedPreset = localStorage.getItem(themePresetKey);
-        document.documentElement.dataset.theme = stored || "dark";
+        const currentThemeVersion = "2";
+        const validThemes = new Set(["dark", "light"]);
+        let stored = "";
+        let storedVersion = "";
+        let storedPreset = "";
+
+        try {
+          stored = localStorage.getItem(themeKey) || "";
+          storedVersion = localStorage.getItem(themeVersionKey) || "";
+          storedPreset = localStorage.getItem(themePresetKey) || "";
+        } catch {
+          stored = "";
+          storedVersion = "";
+          storedPreset = "";
+        }
+
+        const theme = storedVersion === currentThemeVersion && validThemes.has(stored) ? stored : "dark";
+        document.documentElement.dataset.theme = theme;
         document.documentElement.dataset.themePreset = storedPreset || "aurora";
+        document.documentElement.style.colorScheme = theme;
+
+        if (storedVersion !== currentThemeVersion || !validThemes.has(stored)) {
+          try {
+            localStorage.setItem(themeKey, theme);
+            localStorage.setItem(themeVersionKey, currentThemeVersion);
+          } catch {
+          }
+        }
       })();
     </script>
     <link rel="stylesheet" href="./src/style.css">

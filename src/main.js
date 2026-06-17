@@ -48,6 +48,7 @@ import { renderUserPage as renderUserPageView, renderUserStats as renderUserStat
 
 const STORAGE_KEYS = {
   theme: "nav-tool.theme",
+  themeVersion: "nav-tool.themeVersion",
   themePreset: "nav-tool.themePreset",
   favorites: "nav-tool.favorites",
   recent: "nav-tool.recent",
@@ -75,6 +76,9 @@ const searchEngines = rawSearchEngines
 
 const defaultSearchEngine = searchEngines[0]?.id || "baidu";
 const DEFAULT_THEME_PRESET = "aurora";
+const DEFAULT_THEME = "dark";
+const CURRENT_THEME_VERSION = "2";
+const VALID_THEMES = new Set(["dark", "light"]);
 const SUPABASE_CONFIG = getSupabaseConfig();
 
 const POSTS_PER_PAGE = 5;
@@ -129,7 +133,7 @@ const state = {
   view: "all",
   favorites: loadIdSet(STORAGE_KEYS.favorites),
   recent: loadIdList(STORAGE_KEYS.recent),
-  theme: document.documentElement.dataset.theme || "dark",
+  theme: getThemeId(document.documentElement.dataset.theme),
   themePreset: getThemePresetId(loadStoredText(STORAGE_KEYS.themePreset)),
   themeShelfExpanded: false,
   themeShowcaseIndex: getThemePresetIndex(loadStoredText(STORAGE_KEYS.themePreset)),
@@ -2319,6 +2323,10 @@ function getThemePresetId(value) {
   return themeMap.has(value) ? value : DEFAULT_THEME_PRESET;
 }
 
+function getThemeId(value) {
+  return VALID_THEMES.has(value) ? value : DEFAULT_THEME;
+}
+
 function getThemePresetIndex(value) {
   const themeId = getThemePresetId(value);
   const index = themes.findIndex((theme) => theme.id === themeId);
@@ -3809,9 +3817,11 @@ function syncWorkbenchClock() {
 }
 
 function syncTheme(theme) {
-  state.theme = theme;
-  document.documentElement.dataset.theme = theme;
-  localStorage.setItem(STORAGE_KEYS.theme, theme);
+  state.theme = getThemeId(theme);
+  document.documentElement.dataset.theme = state.theme;
+  document.documentElement.style.colorScheme = state.theme;
+  localStorage.setItem(STORAGE_KEYS.theme, state.theme);
+  localStorage.setItem(STORAGE_KEYS.themeVersion, CURRENT_THEME_VERSION);
   applyThemePreset();
 }
 
