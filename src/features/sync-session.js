@@ -29,6 +29,11 @@ export function getAuthAccessToken(session) {
   return session?.session?.access_token || session?.access_token || "";
 }
 
+export function isPermanentSessionRefreshError(error) {
+  const status = Number(error?.status) || 0;
+  return status === 400 || status === 401 || status === 403;
+}
+
 export function normalizeSyncSession(session, fallback = {}) {
   const activeSession = session.session || session;
   const user = activeSession.user || session.user || {};

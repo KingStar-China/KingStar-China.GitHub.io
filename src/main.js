@@ -7,7 +7,7 @@ import { getPostSearchScore, getSiteSearchScore, matchesPostQuery, matchesSiteQu
 import { formatPostReadingTime, getAdjacentPosts, getRelatedPosts } from "./lib/blog.js";
 import { getCommandSections as getCommandSectionsState, getFlatCommandResults as getFlatCommandResultsState, runCommandResult as executeCommandResult, openCommandPalette as openCommandPaletteState, closeCommandPalette as closeCommandPaletteState } from "./lib/command-palette.js";
 import { createPersonalDataSnapshot, mergePersonalData as mergePersonalDataState, normalizePersonalData } from "./features/personal-data.js";
-import { getAuthAccessToken, loadSyncSession as loadStoredSyncSession, normalizeSyncSession, persistSyncSession as persistStoredSyncSession, removeSyncSession } from "./features/sync-session.js";
+import { getAuthAccessToken, isPermanentSessionRefreshError, loadSyncSession as loadStoredSyncSession, normalizeSyncSession, persistSyncSession as persistStoredSyncSession, removeSyncSession } from "./features/sync-session.js";
 import { getSupabaseConfig, requestSupabaseAuth as requestSupabaseAuthApi, requestSupabaseRest as requestSupabaseRestApi } from "./features/supabase.js";
 import { mergeSitesBySubmittedAt, normalizeRemoteUserSite, normalizeUserSiteDraft } from "./features/user-sites.js";
 import { buildPageViewEvent, getAnalyticsVisitorId } from "./features/analytics.js";
@@ -86,6 +86,8 @@ const COMMAND_RESULT_LIMIT = 8;
 const RECENT_HISTORY_LIMIT = 20;
 const REMOTE_SAVE_DEBOUNCE_MS = 800;
 const REMOTE_PUBLIC_SITES_RETRY_DELAYS = [1_500, 4_000, 10_000, 20_000];
+const SESSION_REFRESH_AHEAD_MS = 60_000;
+const SESSION_REFRESH_RETRY_MS = 60_000;
 
 /** @type {SiteItem[]} */
 const defaultSites = rawSites.map((site) => ({
@@ -196,6 +198,9 @@ let lastTrackedPagePath = "";
 let publicSitesRetryTimer = 0;
 let publicSitesLoading = false;
 let publicSitesLoaded = false;
+let syncSessionRefreshTimer = 0;
+let syncSessionRefreshPromise = null;
+let syncResumePromise = null;
 
 window.handleIconError = handleIconError;
 if (!redirectCanonicalHost()) {
@@ -2900,24 +2905,46 @@ function queueRemotePersonalSave() {
 function handleVisibilityChange() {
   if (document.visibilityState === "hidden") {
     flushPendingRemotePersonalSave();
+    return;
   }
+
+  resumeSignedInSession("页面已恢复，用户站点已更新。", "页面已恢复，但暂时无法连接云端");
 }
 
 function handleNetworkOnline() {
   loadRemotePublicSites({ force: true });
+  resumeSignedInSession("网络已恢复，用户站点已更新。", "网络已恢复，但暂时无法连接云端");
+}
 
+function resumeSignedInSession(successMessage, failurePrefix) {
   if (!state.sync.enabled || !state.sync.signedIn) {
-    return;
+    return Promise.resolve();
   }
 
-  mergeRemotePersonalData()
-    .then(() => {
+  if (syncResumePromise) {
+    return syncResumePromise;
+  }
+
+  syncResumePromise = (async () => {
+    try {
+      await ensureActiveSyncSession();
+    } catch (error) {
+      handleSessionRefreshFailure(error, failurePrefix);
+      return;
+    }
+
+    try {
+      await loadRemoteUserSites();
       render();
-      setSyncMessage("网络已恢复，云端数据已更新。");
-    })
-    .catch((error) => {
-      setSyncMessage(`网络已恢复，但数据库连接失败：${getErrorMessage(error)}`);
-    });
+      setSyncMessage(successMessage);
+    } catch (error) {
+      setSyncMessage(`${failurePrefix}，已保留用户站点缓存：${getErrorMessage(error)}`);
+    }
+  })().finally(() => {
+    syncResumePromise = null;
+  });
+
+  return syncResumePromise;
 }
 
 function flushPendingRemotePersonalSave() {
@@ -3120,6 +3147,8 @@ async function updateSyncPassword() {
 
 function signOutSyncAccount() {
   window.clearTimeout(state.sync.saveTimer);
+  window.clearTimeout(syncSessionRefreshTimer);
+  syncSessionRefreshTimer = 0;
   removeSyncSession(localStorage, STORAGE_KEYS.syncSession);
   state.userSites = [];
   rebuildSiteIndexes();
@@ -3205,10 +3234,11 @@ async function restoreSyncSession() {
   try {
     if (isSyncSessionExpired()) {
       await refreshSyncSession();
+    } else {
+      scheduleSyncSessionRefresh();
     }
   } catch (error) {
-    signOutSyncAccount();
-    setSyncMessage(`同步登录已过期，请重新登录：${getErrorMessage(error)}`);
+    handleSessionRefreshFailure(error, "登录续期失败");
     return;
   }
 
@@ -3236,14 +3266,68 @@ function applySyncSession(session) {
 
 function persistSyncSession() {
   persistStoredSyncSession(localStorage, STORAGE_KEYS.syncSession, state.sync);
+  scheduleSyncSessionRefresh();
 }
 
 async function refreshSyncSession() {
-  const session = await requestSupabaseAuth("/auth/v1/token?grant_type=refresh_token", {
-    refresh_token: state.sync.refreshToken,
-  });
-  applySyncSession(session);
-  persistSyncSession();
+  if (syncSessionRefreshPromise) {
+    return syncSessionRefreshPromise;
+  }
+
+  const refreshToken = state.sync.refreshToken;
+  const refreshPromise = (async () => {
+    const session = await requestSupabaseAuth("/auth/v1/token?grant_type=refresh_token", {
+      refresh_token: refreshToken,
+    });
+
+    if (!state.sync.signedIn || state.sync.refreshToken !== refreshToken) {
+      return;
+    }
+
+    applySyncSession(session);
+    persistSyncSession();
+  })();
+
+  syncSessionRefreshPromise = refreshPromise;
+
+  try {
+    await refreshPromise;
+  } finally {
+    if (syncSessionRefreshPromise === refreshPromise) {
+      syncSessionRefreshPromise = null;
+    }
+  }
+}
+
+function scheduleSyncSessionRefresh(delayOverride = null) {
+  window.clearTimeout(syncSessionRefreshTimer);
+  syncSessionRefreshTimer = 0;
+
+  if (!state.sync.enabled || !state.sync.signedIn || !state.sync.refreshToken) {
+    return;
+  }
+
+  const delay = Number.isFinite(delayOverride)
+    ? Math.max(1_000, delayOverride)
+    : Math.max(1_000, state.sync.expiresAt - Date.now() - SESSION_REFRESH_AHEAD_MS);
+
+  syncSessionRefreshTimer = window.setTimeout(() => {
+    syncSessionRefreshTimer = 0;
+    refreshSyncSession().catch((error) => {
+      handleSessionRefreshFailure(error, "自动续期失败");
+    });
+  }, delay);
+}
+
+function handleSessionRefreshFailure(error, prefix) {
+  if (isPermanentSessionRefreshError(error)) {
+    signOutSyncAccount();
+    setSyncMessage(`登录已失效，请重新登录：${getErrorMessage(error)}`);
+    return;
+  }
+
+  scheduleSyncSessionRefresh(SESSION_REFRESH_RETRY_MS);
+  setSyncMessage(`${prefix}，已保留本机登录和用户站点缓存，稍后自动重试：${getErrorMessage(error)}`);
 }
 
 async function ensureActiveSyncSession() {

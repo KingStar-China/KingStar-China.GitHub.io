@@ -45,7 +45,10 @@ async function requestSupabase(config, path, options = {}, accessToken = "") {
   const payload = text ? JSON.parse(text) : null;
 
   if (!response.ok) {
-    throw new Error(payload?.msg || payload?.message || response.statusText);
+    const error = new Error(payload?.msg || payload?.message || response.statusText);
+    error.status = response.status;
+    error.code = String(payload?.code || payload?.error_code || payload?.error || "");
+    throw error;
   }
 
   return payload;
