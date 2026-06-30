@@ -2889,6 +2889,24 @@ a {
   color: var(--heading);
 }
 
+.command-item__icon {
+  width: 58px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.command-item__icon .site-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+}
+
+.command-item__icon .site-icon img {
+  width: 72%;
+  height: 72%;
+}
+
 .command-item__badge {
   display: inline-flex;
   align-items: center;
