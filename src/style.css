@@ -1,8 +1,6 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap");
-
 :root {
   color-scheme: light;
-  font-family: "IBM Plex Sans", "Noto Sans SC", "Segoe UI", sans-serif;
+  font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", Arial, sans-serif;
   --bg: #ebf0f3;
   --bg-accent: rgba(57, 94, 122, 0.1);
   --panel: rgba(255, 255, 255, 0.8);
@@ -5647,11 +5645,28 @@ body.is-command-open {
     linear-gradient(180deg, rgba(7, 9, 14, 0.18), rgba(7, 9, 14, 0.06)),
     radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.08), transparent 24%),
     radial-gradient(circle at 50% 100%, rgba(0, 0, 0, 0.14), transparent 42%),
-    var(--site-bg-image) center top / 100% auto no-repeat,
     var(--bg);
 }
 
 [data-theme="light"] body::after {
+  background:
+    linear-gradient(180deg, rgba(250, 240, 248, 0.62), rgba(243, 249, 251, 0.34)),
+    radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.52), transparent 26%),
+    radial-gradient(circle at top center, rgba(230, 165, 213, 0.14), transparent 30%),
+    linear-gradient(180deg, var(--theme-bg-overlay), transparent 42%),
+    var(--bg);
+}
+
+.is-bg-ready[data-theme="dark"] body::after {
+  background:
+    linear-gradient(180deg, rgba(7, 9, 14, 0.18), rgba(7, 9, 14, 0.06)),
+    radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.08), transparent 24%),
+    radial-gradient(circle at 50% 100%, rgba(0, 0, 0, 0.14), transparent 42%),
+    var(--site-bg-image) center top / 100% auto no-repeat,
+    var(--bg);
+}
+
+.is-bg-ready[data-theme="light"] body::after {
   background:
     linear-gradient(180deg, rgba(250, 240, 248, 0.62), rgba(243, 249, 251, 0.34)),
     radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.52), transparent 26%),
