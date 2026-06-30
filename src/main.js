@@ -2081,7 +2081,7 @@ function renderCommandItem(item, absoluteIndex) {
         rel="noreferrer noopener"
         data-site-id="${escapeHTML(site.id)}"
       >
-        <span class="command-item__badge ${badgeClass}">${escapeHTML(item.badge)}</span>
+        <span class="command-item__icon">${renderIcon(site)}</span>
         <div class="command-item__body">
           <div class="command-item__title">
             <strong>${escapeHTML(item.title)}</strong>
