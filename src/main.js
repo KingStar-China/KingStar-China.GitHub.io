@@ -6,6 +6,7 @@ import { themes } from "./data/themes.js";
 import { getPostSearchScore, getSiteSearchScore, matchesPostQuery, matchesSiteQuery } from "./lib/search.js";
 import { formatPostReadingTime, getAdjacentPosts, getRelatedPosts } from "./lib/blog.js";
 import { getCommandSections as getCommandSectionsState, getFlatCommandResults as getFlatCommandResultsState, runCommandResult as executeCommandResult, openCommandPalette as openCommandPaletteState, closeCommandPalette as closeCommandPaletteState } from "./lib/command-palette.js";
+import { hasSamePublicSites, runAfterFirstPaint } from "./lib/startup.js";
 import { createPersonalDataSnapshot, mergePersonalData as mergePersonalDataState, normalizePersonalData } from "./features/personal-data.js";
 import { getAuthAccessToken, isPermanentSessionRefreshError, loadSyncSession as loadStoredSyncSession, normalizeSyncSession, persistSyncSession as persistStoredSyncSession, removeSyncSession } from "./features/sync-session.js";
 import { getSupabaseConfig, requestSupabaseAuth as requestSupabaseAuthApi, requestSupabaseRest as requestSupabaseRestApi } from "./features/supabase.js";
@@ -95,6 +96,7 @@ const defaultSites = rawSites.map((site) => ({
   tags: Array.isArray(site.tags) ? site.tags : [],
   aliases: Array.isArray(site.aliases) ? site.aliases : [],
 }));
+const cachedPublicSites = loadCachedPublicSites();
 
 /** @type {BlogPost[]} */
 const posts = rawPosts
@@ -108,7 +110,7 @@ const posts = rawPosts
   }))
   .sort((left, right) => new Date(right.publishedAt).getTime() - new Date(left.publishedAt).getTime());
 
-let publicSites = loadCachedPublicSites() || [...defaultSites];
+let publicSites = cachedPublicSites || [...defaultSites];
 let sites = mergeSitesBySubmittedAt([], publicSites);
 let categoryOrder = [...new Set(sites.map((site) => site.category))];
 let siteIds = new Set(sites.map((site) => site.id));
@@ -197,7 +199,7 @@ let commandFocusRetryId = 0;
 let lastTrackedPagePath = "";
 let publicSitesRetryTimer = 0;
 let publicSitesLoading = false;
-let publicSitesLoaded = false;
+let publicSitesLoaded = Boolean(cachedPublicSites);
 let syncSessionRefreshTimer = 0;
 let syncSessionRefreshPromise = null;
 let syncResumePromise = null;
@@ -250,13 +252,24 @@ function init() {
   syncTheme(state.theme);
   startWorkbenchClock();
   render();
-  loadRemotePublicSites();
-  handlePasswordRecoveryRedirect().then((handled) => {
-    if (!handled) {
-      restoreSyncSession();
-    }
-  });
+  schedulePostPaintStartup();
 }
+
+function schedulePostPaintStartup() {
+  runAfterFirstPaint(() => {
+    document.documentElement.classList.add("is-bg-ready");
+    trackPageView();
+    loadRemotePublicSites();
+    runAfterFirstPaint(() => {
+      handlePasswordRecoveryRedirect().then((handled) => {
+        if (!handled) {
+          restoreSyncSession();
+        }
+      });
+    }, window);
+  }, window);
+}
+
 function createShell() {
   return `
     <div class="app-shell">
@@ -839,7 +852,6 @@ function render(options = {}) {
   syncRoute(state.nextRouteMode);
   state.nextRouteMode = "replace";
   updateSeo();
-  trackPageView();
 
   if (state.pendingScrollTop) {
     state.pendingScrollTop = false;
@@ -3381,8 +3393,12 @@ async function loadRemotePublicSites({ retryIndex = 0, force = false } = {}) {
     window.clearTimeout(publicSitesRetryTimer);
     publicSitesRetryTimer = 0;
     publicSitesLoaded = true;
+    const unchanged = hasSamePublicSites(publicSites, remoteSites);
     publicSites = remoteSites;
     persistCachedPublicSites();
+    if (unchanged) {
+      return;
+    }
     rebuildSiteIndexes();
     render();
   } catch {
