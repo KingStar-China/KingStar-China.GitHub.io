@@ -47,8 +47,37 @@ test("已登录用户页默认只展示个人站点管理内容", () => {
   assert.match(markup, /用户站点一/);
   assert.match(markup, /data-action="open-add-user-site"/);
   assert.match(markup, /data-action="open-user-settings"/);
+  assert.match(markup, /name="user-site-filter"/);
+  assert.match(markup, /data-lpignore="true"/);
   assert.doesNotMatch(markup, /当前密码/);
   assert.doesNotMatch(markup, /data-user-site-field="url"/);
+});
+
+test("登录路由显示账号表单并使用独立的自动填充字段", () => {
+  const markup = renderTestUserPage({
+    section: "login",
+    sync: {
+      signedIn: false,
+    },
+  });
+
+  assert.match(markup, /登录到少昊导航/);
+  assert.match(markup, /name="username"/);
+  assert.match(markup, /autocomplete="username"/);
+  assert.match(markup, /name="current-password"/);
+});
+
+test("用户后台恢复会话时不会渲染登录账号输入框", () => {
+  const markup = renderTestUserPage({
+    section: "user",
+    sync: {
+      signedIn: false,
+    },
+  });
+
+  assert.match(markup, /正在恢复登录状态/);
+  assert.doesNotMatch(markup, /data-role="sync-email"/);
+  assert.doesNotMatch(markup, /data-role="sync-password"/);
 });
 
 test("添加网站按钮对应独立网站表单弹窗", () => {
@@ -84,19 +113,22 @@ function renderTestUserPage(stateOverrides = {}) {
     description: "测试站点",
     source: "user",
   };
+  const sync = {
+    signedIn: true,
+    enabled: true,
+    busy: false,
+    authMode: "",
+    userEmail: "user@example.com",
+    email: "user@example.com",
+    message: "同步可用",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+    ...stateOverrides.sync,
+  };
   const state = {
-    sync: {
-      signedIn: true,
-      enabled: true,
-      busy: false,
-      authMode: "",
-      userEmail: "user@example.com",
-      email: "user@example.com",
-      message: "同步可用",
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    },
+    section: "user",
+    sync,
     userSites: [userSite],
     userSiteQuery: "",
     userSiteCategory: "all",
@@ -113,6 +145,7 @@ function renderTestUserPage(stateOverrides = {}) {
       description: "",
     },
     ...stateOverrides,
+    sync,
   };
 
   return renderUserPage({

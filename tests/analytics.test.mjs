@@ -56,3 +56,19 @@ test("访问统计会记录外部来源 origin", () => {
   assert.equal(event.route_type, "blog");
   assert.equal(event.referrer, "https://example.com");
 });
+
+test("登录页和用户后台使用不同的统计路由", () => {
+  const loginEvent = buildPageViewEvent(
+    new URL("https://845864204.xyz/?section=login"),
+    { title: "登录", referrer: "" },
+    "visitor-1",
+  );
+  const userEvent = buildPageViewEvent(
+    new URL("https://845864204.xyz/?section=user"),
+    { title: "用户后台", referrer: "" },
+    "visitor-1",
+  );
+
+  assert.equal(loginEvent.route_type, "login");
+  assert.equal(userEvent.route_type, "user");
+});

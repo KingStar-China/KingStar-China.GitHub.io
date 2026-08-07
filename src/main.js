@@ -194,6 +194,7 @@ const state = {
   blogPage: 1,
   selectedPostId: posts[0]?.id || "",
   postsPerPage: POSTS_PER_PAGE,
+  passwordRecoveryPending: hasPasswordRecoveryHash(window.location.hash),
   commandOpen: false,
   commandQuery: "",
   commandIndex: 0,
@@ -266,13 +267,19 @@ function init() {
 
 function schedulePostPaintStartup() {
   runAfterFirstPaint(() => {
+    const deferPageView = state.passwordRecoveryPending;
     document.documentElement.classList.add("is-bg-ready");
-    trackPageView();
+    if (!deferPageView) {
+      trackPageView();
+    }
     loadRemotePublicSites();
     runAfterFirstPaint(() => {
       handlePasswordRecoveryRedirect().then((handled) => {
         if (!handled) {
           restoreSyncSession();
+        }
+        if (deferPageView) {
+          trackPageView();
         }
       });
     }, window);
@@ -863,7 +870,7 @@ function render(options = {}) {
   state.blogPage = clampPage(state.blogPage);
   document.documentElement.classList.toggle("has-user-modal", state.userSiteModalOpen || state.userSettingsOpen);
   root.querySelector(".app-shell")?.classList.toggle("is-article-view", state.section === "blog-detail");
-  root.querySelector(".app-shell")?.classList.toggle("is-user-view", state.section === "user");
+  root.querySelector(".app-shell")?.classList.toggle("is-user-view", state.section === "user" || state.section === "login");
   refs.themeShelf.classList.toggle("is-expanded", state.themeShelfExpanded);
   refs.themeShelf.innerHTML = renderThemeShelf();
   refs.themeToggle = refs.themeShelf.querySelector('[data-role="theme-toggle"]');
@@ -873,7 +880,7 @@ function render(options = {}) {
   refs.sectionTabs.innerHTML = renderSectionTabs();
   refs.summary.textContent = buildSummary();
   refs.heroSearch.innerHTML = state.section === "nav" || state.section === "blog-list" ? renderHeroSearch() : "";
-  refs.stats.innerHTML = state.section === "user" ? "" : state.section === "blog-list" || state.section === "blog-detail" ? renderBlogStats() : renderNavStats();
+  refs.stats.innerHTML = state.section === "user" || state.section === "login" ? "" : state.section === "blog-list" || state.section === "blog-detail" ? renderBlogStats() : renderNavStats();
   refs.toolbar.innerHTML = renderToolbar();
   refs.content.innerHTML = renderContent();
   renderCommandPaletteState({ maintainFocus: state.commandOpen });
@@ -904,7 +911,9 @@ function render(options = {}) {
   syncActiveHeading();
   syncActiveTocLink();
   syncWorkbenchClock();
-  syncRoute(state.nextRouteMode);
+  if (!state.passwordRecoveryPending) {
+    syncRoute(state.nextRouteMode);
+  }
   state.nextRouteMode = "replace";
   updateSeo();
 
@@ -1271,7 +1280,7 @@ function renderToolbar() {
     return renderNavToolbar();
   }
 
-  if (state.section === "user") {
+  if (state.section === "user" || state.section === "login") {
     return "";
   }
 
@@ -1470,7 +1479,7 @@ function renderBlogDetailToolbar() {
   `;
 }
 function renderContent() {
-  if (state.section === "user") {
+  if (state.section === "user" || state.section === "login") {
     return renderUserPage();
   }
 
@@ -2736,7 +2745,7 @@ function getHost(url) {
 }
 
 function buildSummary() {
-  if (state.section === "user") {
+  if (state.section === "user" || state.section === "login") {
     return "";
   }
 
@@ -2790,11 +2799,15 @@ function isSectionActive(value) {
     return state.section === "blog-list" || state.section === "blog-detail";
   }
 
+  if (value === "user") {
+    return state.section === "user" || state.section === "login";
+  }
+
   return state.section === value;
 }
 
 function getSectionId(value) {
-  if (value === "blog-list" || value === "user") {
+  if (value === "blog-list" || value === "user" || value === "login") {
     return value;
   }
 
@@ -3110,6 +3123,9 @@ async function completeSyncSignIn(session, message) {
   } catch (error) {
     setSyncMessage(`已登录，但同步失败：${getErrorMessage(error)}`);
   }
+  state.section = "user";
+  state.userSettingsOpen = false;
+  state.nextRouteMode = "replace";
 }
 
 async function trySignInExistingAccount(email, password) {
@@ -3234,16 +3250,32 @@ function signOutSyncAccount() {
   state.sync.newPassword = "";
   state.sync.confirmPassword = "";
   state.sync.message = "已退出云端同步，本机数据仍保留。";
+  state.section = "login";
+  state.nextRouteMode = "replace";
   render();
 }
 
 async function handlePasswordRecoveryRedirect() {
   if (!state.sync.enabled) {
+    const hadPendingRecovery = state.passwordRecoveryPending;
+    state.passwordRecoveryPending = false;
+    if (hadPendingRecovery) {
+      state.section = "login";
+      window.history.replaceState(null, "", `${window.location.pathname}?section=login`);
+      render();
+    }
     return false;
   }
 
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
   if (hash.get("type") !== "recovery" || !hash.get("access_token")) {
+    const hadPendingRecovery = state.passwordRecoveryPending;
+    state.passwordRecoveryPending = false;
+    if (hadPendingRecovery) {
+      state.section = "login";
+      window.history.replaceState(null, "", `${window.location.pathname}?section=login`);
+      render();
+    }
     return false;
   }
 
@@ -3265,7 +3297,9 @@ async function handlePasswordRecoveryRedirect() {
     });
     state.sync.email = state.sync.userEmail;
     state.sync.authMode = "recovery";
+    state.userSettingsOpen = true;
     persistSyncSession();
+    state.passwordRecoveryPending = false;
     window.history.replaceState(null, "", `${window.location.pathname}?section=user`);
     state.section = "user";
     setSyncMessage("已通过重置链接验证，请设置新密码。");
@@ -3273,7 +3307,10 @@ async function handlePasswordRecoveryRedirect() {
     return true;
   } catch (error) {
     setSyncMessage(`重置链接验证失败：${getErrorMessage(error)}`);
-    window.history.replaceState(null, "", `${window.location.pathname}?section=user`);
+    state.section = "login";
+    state.userSettingsOpen = false;
+    state.passwordRecoveryPending = false;
+    window.history.replaceState(null, "", `${window.location.pathname}?section=login`);
     render();
     return true;
   }
@@ -3286,6 +3323,11 @@ async function restoreSyncSession() {
 
   const session = loadSyncSession();
   if (!session?.accessToken || !session?.refreshToken || !session?.userId) {
+    if (state.section === "user") {
+      state.section = "login";
+      state.nextRouteMode = "replace";
+      render();
+    }
     return;
   }
 
@@ -3296,6 +3338,10 @@ async function restoreSyncSession() {
   state.sync.accessToken = session.accessToken;
   state.sync.refreshToken = session.refreshToken;
   state.sync.expiresAt = session.expiresAt || 0;
+  if (state.section === "login") {
+    state.section = "user";
+    state.nextRouteMode = "replace";
+  }
   const cachedUserSites = loadCachedUserSites(state.sync.userId);
   state.userSites = cachedUserSites || [];
   rebuildSiteIndexes();
@@ -3324,6 +3370,11 @@ async function restoreSyncSession() {
 
 function loadSyncSession() {
   return loadStoredSyncSession(localStorage, STORAGE_KEYS.syncSession);
+}
+
+function hasStoredSyncSession() {
+  const session = loadSyncSession();
+  return Boolean(session?.accessToken && session?.refreshToken && session?.userId);
 }
 
 function applySyncSession(session) {
@@ -4073,7 +4124,18 @@ function hydrateFromLocation() {
     return;
   }
 
-  state.section = getSectionId(route.type);
+  const nextSection = getSectionId(route.type);
+  if (nextSection === "user" && !state.passwordRecoveryPending && !state.sync.signedIn && !hasStoredSyncSession()) {
+    state.section = "login";
+    return;
+  }
+
+  state.section = nextSection === "login" && state.sync.signedIn ? "user" : nextSection;
+}
+
+function hasPasswordRecoveryHash(hash) {
+  const params = new URLSearchParams(String(hash || "").replace(/^#/, ""));
+  return params.get("type") === "recovery" && Boolean(params.get("access_token"));
 }
 
 function syncRoute(mode = "replace") {
@@ -4114,6 +4176,10 @@ function buildRoutePath() {
     return buildQueryRoute("user");
   }
 
+  if (state.section === "login") {
+    return buildQueryRoute("login");
+  }
+
   if (state.section === "blog-detail") {
     const post = getSelectedPost();
     if (post) {
@@ -4149,6 +4215,10 @@ function buildQueryRoute(type, { postId = "", blogSearch = "", blogTag = "", pag
 
   if (type === "user") {
     params.set("section", "user");
+  }
+
+  if (type === "login") {
+    params.set("section", "login");
   }
 
   if (blogSearch) {
@@ -4221,7 +4291,7 @@ function getBlogListHref() {
 }
 
 function getUserHref() {
-  return buildQueryRoute("user");
+  return buildQueryRoute(state.sync.signedIn || hasStoredSyncSession() ? "user" : "login");
 }
 
 function getPostHref(postId) {
@@ -4236,6 +4306,16 @@ function parseLocationRoute(url) {
   const section = url.searchParams.get("section") || "";
   const hasBlogQuery = blogSearch || blogTag || page;
   const normalizedPath = url.pathname.replace(/\/+$/, "") || "/";
+
+  if (normalizedPath === "/login" || section === "login") {
+    return {
+      type: "login",
+      postId: "",
+      blogSearch,
+      blogTag,
+      page,
+    };
+  }
 
   if (normalizedPath === "/user" || normalizedPath === "/promo") {
     return {
@@ -4316,6 +4396,16 @@ function parseHashRoute(hash) {
     };
   }
 
+  if (normalizedPath === "/login") {
+    return {
+      type: "login",
+      postId: "",
+      blogSearch: params.get("blogSearch") || "",
+      blogTag: params.get("blogTag") || "",
+      page: params.get("page") || "",
+    };
+  }
+
   return {
     type: "nav",
     postId: "",
@@ -4367,6 +4457,10 @@ function buildPageTitle() {
     return `用户中心 | ${siteMeta.name}`;
   }
 
+  if (state.section === "login") {
+    return `用户登录 | ${siteMeta.name}`;
+  }
+
   if (state.query || state.category !== "all" || state.tag !== "all" || state.view !== "all") {
     return `导航筛选 | ${siteMeta.name}`;
   }
@@ -4389,7 +4483,11 @@ function buildPageDescription() {
   }
 
   if (state.section === "user") {
-    return "用户中心用于管理个人账号、云端同步和自定义站点。";
+    return "用户中心用于管理账号内的个人站点。";
+  }
+
+  if (state.section === "login") {
+    return "登录少昊导航账号，恢复个人站点与同步数据。";
   }
 
   return siteMeta.description;
