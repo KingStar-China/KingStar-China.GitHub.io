@@ -469,9 +469,7 @@ function handleClick(event) {
     if (action === "set-search-engine") {
       state.searchEngine = getSearchEngineId(value);
       localStorage.setItem(STORAGE_KEYS.searchEngine, state.searchEngine);
-      refs.heroSearch.innerHTML = renderHeroSearch();
-      refs.engineSearchInput = refs.heroSearch.querySelector('[data-role="engine-search"]');
-      syncHeroSearchBox();
+      syncSearchEngineControls();
       return;
     }
 
@@ -1206,6 +1204,7 @@ function renderHeroSearch() {
             class="engine-chip ${state.searchEngine === engine.id ? "is-active" : ""}"
             data-action="set-search-engine"
             data-value="${escapeHTML(engine.id)}"
+            aria-pressed="${state.searchEngine === engine.id ? "true" : "false"}"
           >
             ${escapeHTML(engine.label)}
           </button>
@@ -1222,6 +1221,15 @@ function syncHeroSearchBox() {
 
   refs.engineSearchInput.value = state.engineQuery;
   refs.engineSearchInput.placeholder = getActiveSearchEngine().placeholder;
+}
+
+function syncSearchEngineControls() {
+  refs.heroSearch.querySelectorAll('[data-action="set-search-engine"]').forEach((button) => {
+    const isActive = button.dataset.value === state.searchEngine;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+  syncHeroSearchBox();
 }
 
 function renderToolbar() {
