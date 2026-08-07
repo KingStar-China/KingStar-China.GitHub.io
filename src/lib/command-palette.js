@@ -95,6 +95,10 @@ export function closeCommandPalette(state) {
   state.commandIndex = 0;
 }
 
+export function shouldRunSiteCommandOnPointerDown(event) {
+  return event?.button === 0 && event?.pointerType === "mouse";
+}
+
 function getDefaultCommandSections({ state, posts, siteMap, getHost, formatShortDate }) {
   const recentSites = state.recent
     .map((id) => siteMap.get(id))

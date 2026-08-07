@@ -5,6 +5,7 @@ import {
   getCommandSections,
   openCommandPalette,
   runCommandResult,
+  shouldRunSiteCommandOnPointerDown,
 } from "../src/lib/command-palette.js";
 
 test("命令面板默认显示最近访问和最新文章", () => {
@@ -85,6 +86,13 @@ test("关闭命令面板会清空关键词和索引", () => {
   assert.equal(state.commandOpen, false);
   assert.equal(state.commandQuery, "");
   assert.equal(state.commandIndex, 0);
+});
+
+test("搜索结果只允许鼠标在 pointerdown 阶段立即打开", () => {
+  assert.equal(shouldRunSiteCommandOnPointerDown({ button: 0, pointerType: "mouse" }), true);
+  assert.equal(shouldRunSiteCommandOnPointerDown({ button: 0, pointerType: "touch" }), false);
+  assert.equal(shouldRunSiteCommandOnPointerDown({ button: 0, pointerType: "pen" }), false);
+  assert.equal(shouldRunSiteCommandOnPointerDown({ button: 1, pointerType: "mouse" }), false);
 });
 
 test("运行站点结果会直接打开目标 URL 并记录最近访问", () => {
