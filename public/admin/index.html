@@ -194,29 +194,6 @@
         font-size: 0.95rem;
       }
 
-      .login-card__divider {
-        display: grid;
-        grid-template-columns: 1fr auto 1fr;
-        align-items: center;
-        gap: 12px;
-        color: var(--muted);
-      }
-
-      .login-card__divider::before,
-      .login-card__divider::after {
-        content: "";
-        height: 1px;
-        background: var(--border);
-      }
-
-      .login-card__register {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-        color: var(--muted);
-      }
-
       .form {
         display: grid;
         gap: 12px;
@@ -444,11 +421,6 @@
           <button class="button primary full" type="button" data-action="sign-in">登录后台</button>
           <p class="status" data-role="login-status"></p>
         </div>
-        <div class="login-card__divider"><span>或</span></div>
-        <p class="login-card__register">
-          <span>首次使用？</span>
-          <button class="button" type="button" data-action="sign-up">创建管理员账号</button>
-        </p>
       </section>
 
       <section class="layout hidden" data-view="admin">
@@ -532,11 +504,12 @@
       const SUPABASE_URL = "https://zfvwrnuenurxauvvfsuw.supabase.co";
       const SUPABASE_KEY = "sb_publishable_TQuGLzZKqPmkr3_d_LCyAw_aA9RAsOy";
       const SESSION_KEY = "nav-admin.session";
-      const ADMIN_EMAIL = "mr.king.office@foxmail.com";
 
       const state = {
         accessToken: "",
         refreshToken: "",
+        expiresAt: 0,
+        userId: "",
         userEmail: "",
         editingId: "",
         sites: [],
@@ -565,6 +538,7 @@
       const toastStack = document.querySelector('[data-role="toast-stack"]');
       const signOutButton = document.querySelector('[data-action="sign-out"]');
       const iconUpload = document.querySelector('[data-role="icon-upload"]');
+      let refreshSessionPromise = null;
 
       siteSearch.addEventListener("input", () => {
         state.siteQuery = siteSearch.value.trim().toLocaleLowerCase();
@@ -601,8 +575,7 @@
         if (!action) return;
 
         if (action === "sign-in") runAction(actionButton, "登录中...", signIn);
-        if (action === "sign-up") runAction(actionButton, "创建中...", signUp);
-        if (action === "sign-out") signOut();
+        if (action === "sign-out") runAction(actionButton, "退出中...", signOut);
         if (action === "save-site") runAction(actionButton, "保存中...", saveSite);
         if (action === "identify-site") identifySite();
         if (action === "upload-icon") iconUpload.click();
@@ -613,8 +586,8 @@
         if (action === "delete-site") runAction(actionButton, "删除中...", () => deleteSite(event.target.closest("[data-id]")?.dataset.id));
       });
 
-      restoreSession();
       showLogin();
+      restoreSession();
 
       async function restoreSession() {
         try {
@@ -623,12 +596,15 @@
 
           state.accessToken = session.accessToken;
           state.refreshToken = session.refreshToken || "";
+          state.expiresAt = Number(session.expiresAt) || 0;
+          state.userId = session.userId || "";
           state.userEmail = session.userEmail || "";
+          await ensureFreshSession(true);
           await ensureAdmin();
           showAdmin();
           await loadSites();
         } catch {
-          signOut();
+          await signOut({ revoke: false });
         }
       }
 
@@ -639,52 +615,17 @@
             email: normalizeEmail(fields.email.value),
             password: fields.password.value,
           });
-          const activeSession = session.session || session;
-          state.accessToken = activeSession.access_token || "";
-          state.refreshToken = activeSession.refresh_token || "";
-          state.userEmail = normalizeEmail(activeSession.user?.email || session.user?.email || fields.email.value);
-          if (!state.accessToken) throw new Error("没有获得有效会话。");
+          applyAuthSession(session, { userEmail: fields.email.value });
 
           await ensureAdmin();
-          localStorage.setItem(SESSION_KEY, JSON.stringify({
-            accessToken: state.accessToken,
-            refreshToken: state.refreshToken,
-            userEmail: state.userEmail,
-          }));
+          persistSession();
           fields.password.value = "";
           showAdmin();
           await loadSites({ silent: true });
           showToast("已登录后台。");
         } catch (error) {
+          await signOut({ revoke: Boolean(state.accessToken) });
           const message = `登录失败：${getErrorMessage(error)}`;
-          setLoginStatus(message);
-          showToast(message, "error");
-        }
-      }
-
-      async function signUp() {
-        const email = normalizeEmail(fields.email.value);
-        const password = fields.password.value;
-        if (!email || !password) {
-          setLoginStatus("请输入邮箱和你要设置的密码。");
-          showToast("请输入邮箱和你要设置的密码。", "error");
-          return;
-        }
-
-        if (email !== ADMIN_EMAIL) {
-          setLoginStatus("这个邮箱不在管理员白名单，不能从后台创建账号。");
-          showToast("这个邮箱不在管理员白名单，不能从后台创建账号。", "error");
-          return;
-        }
-
-        setLoginStatus("正在创建账号...");
-        try {
-          await requestAuth("/auth/v1/signup", { email, password });
-          fields.password.value = "";
-          setLoginStatus("账号已提交创建。请先到邮箱完成确认，然后回到这里登录。");
-          showToast("账号已提交创建，请到邮箱完成确认。");
-        } catch (error) {
-          const message = `创建失败：${getErrorMessage(error)}`;
           setLoginStatus(message);
           showToast(message, "error");
         }
@@ -695,7 +636,11 @@
       }
 
       async function ensureAdmin() {
-        const rows = await requestRest(`/rest/v1/admin_users?email=eq.${encodeURIComponent(state.userEmail)}&select=email`, {
+        if (!state.userId) {
+          throw new Error("没有获得有效的用户身份。");
+        }
+
+        const rows = await requestRest(`/rest/v1/admin_users?user_id=eq.${encodeURIComponent(state.userId)}&select=user_id`, {
           auth: true,
         });
         if (!Array.isArray(rows) || rows.length === 0) {
@@ -1051,15 +996,34 @@
         shell.classList.remove("shell--login");
       }
 
-      function signOut() {
+      async function signOut(options = {}) {
+        const token = state.accessToken;
+        const revoke = options.revoke !== false;
+
         state.accessToken = "";
         state.refreshToken = "";
+        state.expiresAt = 0;
+        state.userId = "";
         state.userEmail = "";
         localStorage.removeItem(SESSION_KEY);
         views.login.classList.remove("hidden");
         views.admin.classList.add("hidden");
         signOutButton.classList.add("hidden");
         showLogin();
+
+        if (revoke && token) {
+          try {
+            await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+              method: "POST",
+              headers: {
+                apikey: SUPABASE_KEY,
+                Authorization: `Bearer ${token}`,
+              },
+            });
+          } catch {
+            // Local logout is complete even when the remote session cannot be revoked.
+          }
+        }
       }
 
       function showLogin() {
@@ -1078,7 +1042,86 @@
       }
 
       async function requestRest(path, options = {}) {
-        return requestSupabase(path, options, Boolean(options.auth));
+        const authed = Boolean(options.auth);
+        if (!authed) {
+          return requestSupabase(path, options, false);
+        }
+
+        await ensureFreshSession();
+        try {
+          return await requestSupabase(path, options, true);
+        } catch (error) {
+          if (error?.status !== 401 || !state.refreshToken) {
+            throw error;
+          }
+
+          await refreshSession();
+          return requestSupabase(path, options, true);
+        }
+      }
+
+      async function ensureFreshSession(force = false) {
+        const expiresSoon = !state.expiresAt || state.expiresAt <= Date.now() + 60_000;
+        if (!force && !expiresSoon) return;
+        if (!state.refreshToken) {
+          if (!state.accessToken) throw new Error("登录会话已失效，请重新登录。");
+          return;
+        }
+
+        await refreshSession();
+      }
+
+      async function refreshSession() {
+        if (!state.refreshToken) {
+          throw new Error("登录会话已失效，请重新登录。");
+        }
+
+        if (!refreshSessionPromise) {
+          const refreshToken = state.refreshToken;
+          refreshSessionPromise = requestAuth("/auth/v1/token?grant_type=refresh_token", {
+            refresh_token: refreshToken,
+          }).then((session) => {
+            applyAuthSession(session, {
+              refreshToken,
+              userId: state.userId,
+              userEmail: state.userEmail,
+            });
+            persistSession();
+          }).finally(() => {
+            refreshSessionPromise = null;
+          });
+        }
+
+        return refreshSessionPromise;
+      }
+
+      function applyAuthSession(payload, fallback = {}) {
+        const activeSession = payload?.session || payload || {};
+        const user = activeSession.user || payload?.user || {};
+        const expiresAtSeconds = Number(activeSession.expires_at);
+        const expiresInSeconds = Number(activeSession.expires_in);
+
+        state.accessToken = activeSession.access_token || "";
+        state.refreshToken = activeSession.refresh_token || fallback.refreshToken || "";
+        state.userId = user.id || fallback.userId || "";
+        state.userEmail = normalizeEmail(user.email || fallback.userEmail);
+        state.expiresAt = Number.isFinite(expiresAtSeconds) && expiresAtSeconds > 0
+          ? expiresAtSeconds * 1000
+          : Date.now() + (Number.isFinite(expiresInSeconds) && expiresInSeconds > 0 ? expiresInSeconds * 1000 : 3_600_000);
+
+        if (!state.accessToken || !state.refreshToken || !state.userId) {
+          throw new Error("没有获得完整的登录会话。");
+        }
+      }
+
+      function persistSession() {
+        localStorage.setItem(SESSION_KEY, JSON.stringify({
+          accessToken: state.accessToken,
+          refreshToken: state.refreshToken,
+          expiresAt: state.expiresAt,
+          userId: state.userId,
+          userEmail: state.userEmail,
+        }));
       }
 
       async function requestSupabase(path, options = {}, authed = false) {
@@ -1096,7 +1139,9 @@
         const text = await response.text();
         const payload = text ? JSON.parse(text) : null;
         if (!response.ok) {
-          throw new Error(payload?.msg || payload?.message || response.statusText);
+          const error = new Error(payload?.msg || payload?.message || response.statusText);
+          error.status = response.status;
+          throw error;
         }
         return payload;
       }
