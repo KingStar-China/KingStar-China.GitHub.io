@@ -30,6 +30,56 @@ export function normalizePersonalData(value, validSiteIds, recentLimit) {
   };
 }
 
+export function switchPersonalDataAccount(storage, {
+  ownerKey,
+  cacheKeyPrefix,
+  userId,
+  currentSnapshot,
+}) {
+  const nextUserId = String(userId || "");
+  const previousUserId = String(storage.getItem(ownerKey) || "");
+  if (!nextUserId) {
+    return { changed: false, previousUserId, snapshot: null };
+  }
+
+  const changed = Boolean(previousUserId && previousUserId !== nextUserId);
+  if (changed) {
+    persistPersonalDataAccount(storage, cacheKeyPrefix, previousUserId, currentSnapshot);
+  }
+
+  const snapshot = changed
+    ? loadPersonalDataAccount(storage, cacheKeyPrefix, nextUserId)
+    : null;
+  storage.setItem(ownerKey, nextUserId);
+
+  return { changed, previousUserId, snapshot };
+}
+
+export function loadPersonalDataAccount(storage, cacheKeyPrefix, userId) {
+  try {
+    const value = JSON.parse(storage.getItem(getPersonalDataAccountKey(cacheKeyPrefix, userId)) || "null");
+    return value && typeof value.payload === "object" ? value.payload : null;
+  } catch {
+    return null;
+  }
+}
+
+export function persistPersonalDataAccount(storage, cacheKeyPrefix, userId, snapshot) {
+  const normalizedUserId = String(userId || "");
+  if (!normalizedUserId || !snapshot || typeof snapshot !== "object") {
+    return;
+  }
+
+  storage.setItem(getPersonalDataAccountKey(cacheKeyPrefix, normalizedUserId), JSON.stringify({
+    payload: snapshot,
+    updatedAt: new Date().toISOString(),
+  }));
+}
+
+function getPersonalDataAccountKey(cacheKeyPrefix, userId) {
+  return `${cacheKeyPrefix}${encodeURIComponent(String(userId || ""))}`;
+}
+
 function normalizeIdArray(value, validSiteIds) {
   if (!Array.isArray(value)) {
     return [];

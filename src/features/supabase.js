@@ -21,6 +21,46 @@ export async function requestSupabaseRest(config, path, options = {}, accessToke
   return requestSupabase(config, path, options, accessToken);
 }
 
+export async function requestSupabaseRestWithSession(config, path, options = {}, session = {}) {
+  if (options.auth === false) {
+    return requestSupabaseRest(config, path, options);
+  }
+
+  if (typeof session.ensureActive === "function") {
+    await session.ensureActive();
+  }
+
+  const send = () => requestSupabaseRest(
+    config,
+    path,
+    options,
+    typeof session.getAccessToken === "function" ? session.getAccessToken() : "",
+  );
+
+  try {
+    return await send();
+  } catch (error) {
+    const canRefresh = typeof session.canRefresh === "function" && session.canRefresh();
+    if (error?.status !== 401 || !canRefresh || typeof session.refresh !== "function") {
+      throw error;
+    }
+
+    await session.refresh();
+    return send();
+  }
+}
+
+export async function revokeSupabaseSession(config, accessToken) {
+  const token = String(accessToken || "");
+  if (!token) {
+    return null;
+  }
+
+  return requestSupabaseRest(config, "/auth/v1/logout?scope=local", {
+    method: "POST",
+  }, token);
+}
+
 async function requestSupabase(config, path, options = {}, accessToken = "") {
   const headers = {
     apikey: config.anonKey,
@@ -42,7 +82,14 @@ async function requestSupabase(config, path, options = {}, accessToken = "") {
   });
 
   const text = await response.text();
-  const payload = text ? JSON.parse(text) : null;
+  let payload = null;
+  if (text) {
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      payload = response.ok ? text : null;
+    }
+  }
 
   if (!response.ok) {
     const error = new Error(payload?.msg || payload?.message || response.statusText);

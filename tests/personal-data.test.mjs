@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createPersonalDataSnapshot, mergePersonalData } from "../src/features/personal-data.js";
+import {
+  createPersonalDataSnapshot,
+  loadPersonalDataAccount,
+  mergePersonalData,
+  persistPersonalDataAccount,
+  switchPersonalDataAccount,
+} from "../src/features/personal-data.js";
 import { renderUserPage } from "../src/pages/user.js";
 
 test("个人数据快照会在站点索引可用后保留最近访问", () => {
@@ -38,6 +44,52 @@ test("合并个人数据时本机最近访问优先于云端旧顺序", () => {
   );
 
   assert.deepEqual(merged.recent, ["new-site", "old-site"]);
+});
+
+test("切换账号会保存原账号数据并恢复目标账号缓存", () => {
+  const storage = createStorage();
+  const ownerKey = "personal.owner";
+  const cacheKeyPrefix = "personal.account.";
+  const accountA = {
+    favorites: ["site-a"],
+    recent: ["site-a"],
+    workbenchNote: "A 的便签",
+    workbenchTodos: [],
+  };
+  const accountB = {
+    favorites: ["site-b"],
+    recent: ["site-b"],
+    workbenchNote: "B 的便签",
+    workbenchTodos: [],
+  };
+  storage.setItem(ownerKey, "user-a");
+  persistPersonalDataAccount(storage, cacheKeyPrefix, "user-b", accountB);
+
+  const result = switchPersonalDataAccount(storage, {
+    ownerKey,
+    cacheKeyPrefix,
+    userId: "user-b",
+    currentSnapshot: accountA,
+  });
+
+  assert.equal(result.changed, true);
+  assert.deepEqual(result.snapshot, accountB);
+  assert.deepEqual(loadPersonalDataAccount(storage, cacheKeyPrefix, "user-a"), accountA);
+  assert.equal(storage.getItem(ownerKey), "user-b");
+});
+
+test("首次绑定账号会保留当前匿名本地数据", () => {
+  const storage = createStorage();
+  const result = switchPersonalDataAccount(storage, {
+    ownerKey: "personal.owner",
+    cacheKeyPrefix: "personal.account.",
+    userId: "user-a",
+    currentSnapshot: { favorites: ["local-site"] },
+  });
+
+  assert.equal(result.changed, false);
+  assert.equal(result.snapshot, null);
+  assert.equal(storage.getItem("personal.owner"), "user-a");
 });
 
 test("已登录用户页默认只展示个人站点管理内容", () => {
@@ -156,4 +208,12 @@ function renderTestUserPage(stateOverrides = {}) {
     categoryOrder: ["工具"],
     allSites: [userSite],
   });
+}
+
+function createStorage() {
+  const values = new Map();
+  return {
+    getItem: (key) => values.get(key) || null,
+    setItem: (key, value) => values.set(key, String(value)),
+  };
 }

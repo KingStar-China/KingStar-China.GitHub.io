@@ -13,10 +13,22 @@ import {
   runCommandResult as executeCommandResult,
   shouldRunCommandOnPointerDown,
 } from "./lib/command-palette.js";
-import { hasSamePublicSites, runAfterFirstPaint } from "./lib/startup.js";
-import { createPersonalDataSnapshot, mergePersonalData as mergePersonalDataState, normalizePersonalData } from "./features/personal-data.js";
+import { hasSamePublicSites, normalizeCachedPublicSites, normalizePublicSiteRows, runAfterFirstPaint } from "./lib/startup.js";
+import {
+  createPersonalDataSnapshot,
+  mergePersonalData as mergePersonalDataState,
+  normalizePersonalData,
+  persistPersonalDataAccount,
+  switchPersonalDataAccount,
+} from "./features/personal-data.js";
 import { getAuthAccessToken, isPermanentSessionRefreshError, loadSyncSession as loadStoredSyncSession, normalizeSyncSession, persistSyncSession as persistStoredSyncSession, removeSyncSession } from "./features/sync-session.js";
-import { getSupabaseConfig, requestSupabaseAuth as requestSupabaseAuthApi, requestSupabaseRest as requestSupabaseRestApi } from "./features/supabase.js";
+import {
+  getSupabaseConfig,
+  requestSupabaseAuth as requestSupabaseAuthApi,
+  requestSupabaseRest as requestSupabaseRestApi,
+  requestSupabaseRestWithSession,
+  revokeSupabaseSession,
+} from "./features/supabase.js";
 import { mergeSitesBySubmittedAt, normalizeRemoteUserSite, normalizeUserSiteDraft } from "./features/user-sites.js";
 import { buildPageViewEvent, getAnalyticsVisitorId } from "./features/analytics.js";
 import { renderUserPage as renderUserPageView } from "./pages/user.js";
@@ -63,6 +75,8 @@ const STORAGE_KEYS = {
   workbenchNote: "nav-tool.workbench.note",
   workbenchTodos: "nav-tool.workbench.todos",
   personalUpdatedAt: "nav-tool.personal.updatedAt",
+  personalOwner: "nav-tool.personal.owner",
+  personalAccountPrefix: "nav-tool.personal.account.",
   publicSites: "nav-tool.publicSites",
   userSites: "nav-tool.userSites",
   syncSession: "nav-tool.sync.session",
@@ -2967,6 +2981,7 @@ function saveWorkbenchTodos() {
 
 function markPersonalDataChanged() {
   localStorage.setItem(STORAGE_KEYS.personalUpdatedAt, new Date().toISOString());
+  persistCurrentPersonalDataAccount();
   queueRemotePersonalSave();
 }
 
@@ -3115,6 +3130,7 @@ async function submitSyncAuth(mode) {
 
 async function completeSyncSignIn(session, message) {
   applySyncSession(session);
+  restoreLocalAccountData(state.sync.userId);
   persistSyncSession();
   state.sync.password = "";
   try {
@@ -3231,7 +3247,11 @@ async function updateSyncPassword() {
 }
 
 function signOutSyncAccount() {
+  const accessToken = state.sync.accessToken;
+  const userId = state.sync.userId;
+  const pendingSnapshot = state.sync.saveTimer ? getPersonalDataSnapshot() : null;
   window.clearTimeout(state.sync.saveTimer);
+  state.sync.saveTimer = 0;
   window.clearTimeout(syncSessionRefreshTimer);
   syncSessionRefreshTimer = 0;
   removeSyncSession(localStorage, STORAGE_KEYS.syncSession);
@@ -3253,6 +3273,21 @@ function signOutSyncAccount() {
   state.section = "login";
   state.nextRouteMode = "replace";
   render();
+
+  if (pendingSnapshot && accessToken && userId) {
+    requestSupabaseRestApi(SUPABASE_CONFIG, "/rest/v1/nav_user_state?on_conflict=user_id", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates" },
+      keepalive: true,
+      body: JSON.stringify({
+        user_id: userId,
+        payload: pendingSnapshot,
+        updated_at: new Date().toISOString(),
+      }),
+    }, accessToken).catch(() => {});
+  }
+
+  revokeSupabaseSession(SUPABASE_CONFIG, accessToken).catch(() => {});
 }
 
 async function handlePasswordRecoveryRedirect() {
@@ -3295,14 +3330,21 @@ async function handlePasswordRecoveryRedirect() {
       expires_in: expiresIn,
       user,
     });
+    restoreLocalAccountData(state.sync.userId);
     state.sync.email = state.sync.userEmail;
     state.sync.authMode = "recovery";
     state.userSettingsOpen = true;
     persistSyncSession();
+    let recoveryMessage = "已通过重置链接验证，请设置新密码。";
+    try {
+      await mergeRemotePersonalData();
+    } catch (error) {
+      recoveryMessage = `已通过重置链接验证，请设置新密码。云端数据暂未加载：${getErrorMessage(error)}`;
+    }
     state.passwordRecoveryPending = false;
     window.history.replaceState(null, "", `${window.location.pathname}?section=user`);
     state.section = "user";
-    setSyncMessage("已通过重置链接验证，请设置新密码。");
+    setSyncMessage(recoveryMessage);
     render();
     return true;
   } catch (error) {
@@ -3342,9 +3384,7 @@ async function restoreSyncSession() {
     state.section = "user";
     state.nextRouteMode = "replace";
   }
-  const cachedUserSites = loadCachedUserSites(state.sync.userId);
-  state.userSites = cachedUserSites || [];
-  rebuildSiteIndexes();
+  const cachedUserSites = restoreLocalAccountData(state.sync.userId);
   setSyncMessage(cachedUserSites ? "已从本机缓存恢复账号数据，正在连接云端数据库..." : "正在恢复同步会话...");
   render();
 
@@ -3495,9 +3535,9 @@ async function loadRemotePublicSites({ retryIndex = 0, force = false } = {}) {
       "/rest/v1/public_sites?select=id,name,url,category,tags,icon,description,aliases,sort_order,created_at&order=created_at.desc",
       { auth: false },
     );
-    const remoteSites = Array.isArray(rows) ? rows.map(normalizeRemotePublicSite).filter(Boolean) : [];
-    if (remoteSites.length === 0) {
-      return;
+    const remoteSites = normalizePublicSiteRows(rows, normalizeRemotePublicSite);
+    if (!remoteSites) {
+      throw new Error("公共站点响应格式无效。");
     }
 
     window.clearTimeout(publicSitesRetryTimer);
@@ -3571,6 +3611,54 @@ async function saveRemotePersonalData({ keepalive = false } = {}) {
 
 function getPersonalDataSnapshot() {
   return createPersonalDataSnapshot(state, siteIds, RECENT_HISTORY_LIMIT);
+}
+
+function getRawPersonalDataSnapshot() {
+  return {
+    favorites: [...state.favorites],
+    recent: [...state.recent].slice(0, RECENT_HISTORY_LIMIT),
+    workbenchNote: state.workbenchNote,
+    workbenchTodos: state.workbenchTodos.map((item) => ({ ...item })),
+  };
+}
+
+function restoreLocalAccountData(userId) {
+  const account = switchPersonalDataAccount(localStorage, {
+    ownerKey: STORAGE_KEYS.personalOwner,
+    cacheKeyPrefix: STORAGE_KEYS.personalAccountPrefix,
+    userId,
+    currentSnapshot: getRawPersonalDataSnapshot(),
+  });
+  const cachedUserSites = loadCachedUserSites(userId);
+  state.userSites = cachedUserSites || [];
+  rebuildSiteIndexes();
+
+  if (account.changed) {
+    applyPersonalDataSnapshot(account.snapshot || {
+      favorites: [],
+      recent: [],
+      workbenchNote: "",
+      workbenchTodos: [],
+    });
+  } else {
+    persistCurrentPersonalDataAccount();
+  }
+
+  return cachedUserSites;
+}
+
+function persistCurrentPersonalDataAccount() {
+  const ownerId = loadStoredText(STORAGE_KEYS.personalOwner);
+  if (!ownerId) {
+    return;
+  }
+
+  persistPersonalDataAccount(
+    localStorage,
+    STORAGE_KEYS.personalAccountPrefix,
+    ownerId,
+    getRawPersonalDataSnapshot(),
+  );
 }
 
 async function addUserSite() {
@@ -3831,17 +3919,13 @@ function applyPersonalDataSnapshot(snapshot) {
   localStorage.setItem(STORAGE_KEYS.workbenchNote, data.workbenchNote);
   localStorage.setItem(STORAGE_KEYS.workbenchTodos, JSON.stringify(data.workbenchTodos));
   localStorage.setItem(STORAGE_KEYS.personalUpdatedAt, new Date().toISOString());
+  persistCurrentPersonalDataAccount();
 }
 
 function loadCachedPublicSites() {
   try {
     const value = JSON.parse(localStorage.getItem(STORAGE_KEYS.publicSites) || "null");
-    if (!value || !Array.isArray(value.sites)) {
-      return null;
-    }
-
-    const cachedSites = value.sites.map(normalizeRemotePublicSite).filter(Boolean);
-    return cachedSites.length > 0 ? cachedSites : null;
+    return normalizeCachedPublicSites(value, normalizeRemotePublicSite);
   } catch {
     return null;
   }
@@ -3884,7 +3968,12 @@ async function requestSupabaseAuth(path, body) {
 }
 
 async function requestSupabaseRest(path, options = {}) {
-  return requestSupabaseRestApi(SUPABASE_CONFIG, path, options, state.sync.accessToken);
+  return requestSupabaseRestWithSession(SUPABASE_CONFIG, path, options, {
+    ensureActive: ensureActiveSyncSession,
+    getAccessToken: () => state.sync.accessToken,
+    canRefresh: () => Boolean(state.sync.signedIn && state.sync.refreshToken),
+    refresh: refreshSyncSession,
+  });
 }
 
 function trackPageView() {
