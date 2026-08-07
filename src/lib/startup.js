@@ -32,3 +32,19 @@ export function hasSamePublicSites(leftSites = [], rightSites = []) {
     );
   });
 }
+
+export function normalizePublicSiteRows(rows, normalizeSite) {
+  if (!Array.isArray(rows) || typeof normalizeSite !== "function") {
+    return null;
+  }
+
+  return rows.map(normalizeSite).filter(Boolean);
+}
+
+export function normalizeCachedPublicSites(value, normalizeSite) {
+  if (!value || typeof value !== "object" || !Array.isArray(value.sites)) {
+    return null;
+  }
+
+  return normalizePublicSiteRows(value.sites, normalizeSite);
+}

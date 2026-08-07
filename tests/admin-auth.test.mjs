@@ -17,8 +17,14 @@ test("后台使用用户 UUID 检查管理员身份", () => {
 
 test("后台会刷新和撤销 Supabase 会话", () => {
   assert.match(adminPage, /grant_type=refresh_token/);
-  assert.match(adminPage, /\/auth\/v1\/logout/);
+  assert.match(adminPage, /\/auth\/v1\/logout\?scope=local/);
   assert.match(adminPage, /expiresAt/);
+  assert.match(adminPage, /state\.refreshToken !== refreshToken/);
+});
+
+test("公网后台不再提供与前台排序规则冲突的置顶操作", () => {
+  assert.doesNotMatch(adminPage, /pin-site|function pinSite|shiftExistingSitesDown/);
+  assert.match(adminPage, /order=created_at\.desc/);
 });
 
 test("公共网站写权限只认 auth uid", () => {

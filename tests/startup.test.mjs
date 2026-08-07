@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { hasSamePublicSites, runAfterFirstPaint } from "../src/lib/startup.js";
+import { hasSamePublicSites, normalizeCachedPublicSites, normalizePublicSiteRows, runAfterFirstPaint } from "../src/lib/startup.js";
 
 test("runAfterFirstPaint uses requestIdleCallback when available", () => {
   let idleOptions = null;
@@ -64,4 +64,13 @@ test("hasSamePublicSites detects equivalent public site payloads", () => {
   assert.equal(hasSamePublicSites(sites, [{ ...sites[0], name: "Google Gemini" }]), false);
   assert.equal(hasSamePublicSites(sites, [{ ...sites[0], tags: ["Google", "AI"] }]), false);
   assert.equal(hasSamePublicSites(sites, []), false);
+});
+
+test("公共站点空响应和空缓存会被视为有效数据", () => {
+  const normalizeSite = (site) => site?.id ? site : null;
+
+  assert.deepEqual(normalizePublicSiteRows([], normalizeSite), []);
+  assert.deepEqual(normalizeCachedPublicSites({ sites: [] }, normalizeSite), []);
+  assert.equal(normalizePublicSiteRows(null, normalizeSite), null);
+  assert.equal(normalizeCachedPublicSites({}, normalizeSite), null);
 });
