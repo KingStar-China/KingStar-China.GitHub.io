@@ -1388,6 +1388,10 @@ a {
   gap: 26px;
 }
 
+.nav-results {
+  display: contents;
+}
+
 .category-block {
   display: grid;
   gap: 14px;

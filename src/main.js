@@ -8,7 +8,6 @@ import { formatPostReadingTime, getAdjacentPosts, getRelatedPosts } from "./lib/
 import {
   closeCommandPalette as closeCommandPaletteState,
   getCommandSections as getCommandSectionsState,
-  getFlatCommandResults as getFlatCommandResultsState,
   openCommandPalette as openCommandPaletteState,
   runCommandResult as executeCommandResult,
   shouldRunCommandOnPointerDown,
@@ -110,6 +109,16 @@ const REMOTE_SAVE_DEBOUNCE_MS = 800;
 const REMOTE_PUBLIC_SITES_RETRY_DELAYS = [1_500, 4_000, 10_000, 20_000];
 const SESSION_REFRESH_AHEAD_MS = 60_000;
 const SESSION_REFRESH_RETRY_MS = 60_000;
+const WORKBENCH_TIME_FORMATTER = new Intl.DateTimeFormat("zh-CN", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+const WORKBENCH_DATE_FORMATTER = new Intl.DateTimeFormat("zh-CN", {
+  month: "long",
+  day: "numeric",
+  weekday: "long",
+});
 
 /** @type {SiteItem[]} */
 const defaultSites = rawSites.map((site) => ({
@@ -227,6 +236,10 @@ let publicSitesLoaded = Boolean(cachedPublicSites);
 let syncSessionRefreshTimer = 0;
 let syncSessionRefreshPromise = null;
 let syncResumePromise = null;
+let articleScrollFrame = 0;
+let commandResultsCache = [];
+const visibleSitesCache = new Map();
+const filteredPostsCache = new Map();
 
 window.handleIconError = handleIconError;
 if (!redirectCanonicalHost()) {
@@ -855,7 +868,7 @@ function handleKeydown(event) {
     return;
   }
 
-  const commandResults = getFlatCommandResults();
+  const commandResults = commandResultsCache;
   if (commandResults.length === 0) {
     return;
   }
@@ -863,14 +876,14 @@ function handleKeydown(event) {
   if (event.key === "ArrowDown") {
     event.preventDefault();
     state.commandIndex = (state.commandIndex + 1) % commandResults.length;
-    syncCommandPaletteResults({ maintainFocus: true });
+    syncCommandSelection();
     return;
   }
 
   if (event.key === "ArrowUp") {
     event.preventDefault();
     state.commandIndex = (state.commandIndex - 1 + commandResults.length) % commandResults.length;
-    syncCommandPaletteResults({ maintainFocus: true });
+    syncCommandSelection();
     return;
   }
 
@@ -880,6 +893,7 @@ function handleKeydown(event) {
   }
 }
 function render(options = {}) {
+  resetDerivedDataCaches();
   const scrollY = options.preserveScroll ? window.scrollY : null;
   state.blogPage = clampPage(state.blogPage);
   document.documentElement.classList.toggle("has-user-modal", state.userSiteModalOpen || state.userSettingsOpen);
@@ -911,16 +925,7 @@ function render(options = {}) {
 
   refs.engineSearchInput = refs.heroSearch.querySelector('[data-role="engine-search"]');
   syncHeroSearchBox();
-
-  refs.workbenchTodoInput = refs.content.querySelector('[data-role="workbench-todo-input"]');
-  if (refs.workbenchTodoInput) {
-    refs.workbenchTodoInput.value = state.workbenchTodoDraft;
-  }
-  refs.syncStatus = refs.content.querySelector('[data-role="sync-status"]');
-  refs.categoryModalScroller = refs.content.querySelector('[data-role="category-modal-scroller"]');
-  if (refs.categoryModalScroller) {
-    refs.categoryModalScroller.addEventListener("scroll", handleCategoryModalScroll);
-  }
+  syncContentRefs();
 
   syncActiveHeading();
   syncActiveTocLink();
@@ -951,6 +956,19 @@ function render(options = {}) {
     requestAnimationFrame(() => {
       window.scrollTo({ top: scrollY, left: 0, behavior: "auto" });
     });
+  }
+}
+
+function syncContentRefs() {
+  refs.workbenchTodoInput = refs.content.querySelector('[data-role="workbench-todo-input"]');
+  if (refs.workbenchTodoInput) {
+    refs.workbenchTodoInput.value = state.workbenchTodoDraft;
+  }
+
+  refs.syncStatus = refs.content.querySelector('[data-role="sync-status"]');
+  refs.categoryModalScroller = refs.content.querySelector('[data-role="category-modal-scroller"]');
+  if (refs.categoryModalScroller) {
+    refs.categoryModalScroller.addEventListener("scroll", handleCategoryModalScroll);
   }
 }
 
@@ -1000,6 +1018,21 @@ function syncCommandPaletteResults({ maintainFocus = false } = {}) {
   }
 
   focusCommandInput();
+}
+
+function syncCommandSelection() {
+  const items = refs.commandPalette.querySelectorAll(".command-item");
+  let activeItem = null;
+
+  items.forEach((item, index) => {
+    const isActive = index === state.commandIndex;
+    item.classList.toggle("is-active", isActive);
+    if (isActive) {
+      activeItem = item;
+    }
+  });
+
+  activeItem?.scrollIntoView({ block: "nearest" });
 }
 function focusCommandInput() {
   clearCommandFocusRetry();
@@ -1337,7 +1370,9 @@ function renderNavToolbar() {
       ${renderNavFilterRows()}
     </div>
 
-    ${activeState ? `<div class="toolbar__footer"><div class="active-state" data-role="nav-active-state">${activeState}</div></div>` : ""}
+    <div class="toolbar__footer" data-role="nav-active-footer" ${activeState ? "" : "hidden"}>
+      <div class="active-state" data-role="nav-active-state">${activeState}</div>
+    </div>
   `;
 }
 function renderNavFilterRows() {
@@ -1374,22 +1409,29 @@ function renderNavSearchState() {
     return;
   }
 
+  resetDerivedDataCaches();
   refs.summary.textContent = buildSummary();
   refs.stats.innerHTML = renderNavStats();
-  refs.toolbar.querySelector('[data-role="nav-filters"]')?.replaceChildren();
   const navFilters = refs.toolbar.querySelector('[data-role="nav-filters"]');
   if (navFilters) {
     navFilters.innerHTML = renderNavFilterRows();
   }
+  const activeMarkup = renderActiveState();
+  const activeFooter = refs.toolbar.querySelector('[data-role="nav-active-footer"]');
   const activeState = refs.toolbar.querySelector('[data-role="nav-active-state"]');
   if (activeState) {
-    activeState.innerHTML = renderActiveState();
+    activeState.innerHTML = activeMarkup;
   }
-  refs.content.innerHTML = renderNavContent();
-  refs.workbenchTodoInput = refs.content.querySelector('[data-role="workbench-todo-input"]');
-  if (refs.workbenchTodoInput) {
-    refs.workbenchTodoInput.value = state.workbenchTodoDraft;
+  if (activeFooter) {
+    activeFooter.hidden = !activeMarkup;
   }
+  const navResults = refs.content.querySelector('[data-role="nav-results"]');
+  if (navResults) {
+    navResults.innerHTML = renderNavResults();
+  } else {
+    refs.content.innerHTML = renderNavContent();
+  }
+  syncContentRefs();
   syncRoute();
   updateSeo();
 }
@@ -1400,22 +1442,22 @@ function renderBlogSearchState() {
     return;
   }
 
+  resetDerivedDataCaches();
   state.blogPage = clampPage(state.blogPage);
   refs.summary.textContent = buildSummary();
   refs.stats.innerHTML = renderBlogStats();
-  refs.toolbar.innerHTML = renderBlogToolbar();
+  const tagFilters = refs.toolbar.querySelector('[data-role="blog-tag-filters"]');
+  if (tagFilters) {
+    tagFilters.innerHTML = renderBlogTagFilters();
+  }
+  const filteredPosts = getFilteredPosts();
+  const activeState = refs.toolbar.querySelector('[data-role="blog-active-state"]');
+  if (activeState) {
+    activeState.innerHTML = renderBlogActiveState(filteredPosts.length);
+  }
   refs.content.innerHTML = renderBlogList();
   syncRoute();
   updateSeo();
-
-  refs.blogSearchInput = refs.toolbar.querySelector('[data-role="blog-search"]');
-  if (refs.blogSearchInput) {
-    refs.blogSearchInput.value = state.blogQuery;
-    requestAnimationFrame(() => {
-      refs.blogSearchInput.focus();
-      refs.blogSearchInput.setSelectionRange(state.blogQuery.length, state.blogQuery.length);
-    });
-  }
 }
 
 function renderBlogToolbar() {
@@ -1452,11 +1494,11 @@ function renderBlogToolbar() {
             <span class="filter-label">博客标签</span>
             <small>按主题收束当前页内容</small>
           </div>
-          <div class="chip-group chip-group--dense">${renderBlogTagFilters()}</div>
+          <div class="chip-group chip-group--dense" data-role="blog-tag-filters">${renderBlogTagFilters()}</div>
         </section>
       </div>
       <div class="toolbar__footer">
-        <div class="active-state">
+        <div class="active-state" data-role="blog-active-state">
           ${renderBlogActiveState(filteredPosts.length)}
         </div>
       </div>
@@ -1679,9 +1721,15 @@ function renderWorkbenchSection() {
 }
 
 function renderNavContent() {
+  return `
+    <div class="nav-results" data-role="nav-results">${renderNavResults()}</div>
+    ${renderWorkbenchSection()}
+  `;
+}
+
+function renderNavResults() {
   const visibleSites = getVisibleSites();
   const groups = getGroupedSites(visibleSites);
-  const workbench = renderWorkbenchSection();
 
   if (visibleSites.length === 0) {
     return `
@@ -1690,7 +1738,6 @@ function renderNavContent() {
         <p>${escapeHTML(getEmptyMessage())}</p>
         <button type="button" class="empty-state__button" data-action="reset-filters">恢复全部站点</button>
       </section>
-      ${workbench}
     `;
   }
 
@@ -1720,7 +1767,7 @@ function renderNavContent() {
     )
     .join("");
 
-  return `${groupsMarkup}${renderCategoryModal(groups)}${workbench}`;
+  return `${groupsMarkup}${renderCategoryModal(groups)}`;
 }
 
 function renderCategoryModal(groups) {
@@ -1764,7 +1811,7 @@ function renderCategoryModal(groups) {
 
 function handleCategoryModalScroll(event) {
   const scroller = event.currentTarget;
-  if (!state.categoryModal.title || state.categoryModal.visibleCount >= getCategoryModalTotal()) {
+  if (!state.categoryModal.title) {
     return;
   }
 
@@ -1773,13 +1820,25 @@ function handleCategoryModalScroll(event) {
     return;
   }
 
-  state.categoryModal.visibleCount += CATEGORY_MODAL_BATCH_SIZE;
-  render();
-}
+  const group = getGroupedSites(getVisibleSites())
+    .find((item) => item.title === state.categoryModal.title);
+  if (!group || state.categoryModal.visibleCount >= group.sites.length) {
+    return;
+  }
 
-function getCategoryModalTotal() {
-  return getGroupedSites(getFilteredSites())
-    .find((group) => group.title === state.categoryModal.title)?.sites.length || 0;
+  const previousCount = state.categoryModal.visibleCount;
+  state.categoryModal.visibleCount = Math.min(previousCount + CATEGORY_MODAL_BATCH_SIZE, group.sites.length);
+  const nextSites = group.sites.slice(previousCount, state.categoryModal.visibleCount);
+  scroller.querySelector(".category-modal__grid")
+    ?.insertAdjacentHTML("beforeend", nextSites.map((site) => renderSiteCard(site)).join(""));
+
+  const remaining = group.sites.length - state.categoryModal.visibleCount;
+  const hint = scroller.querySelector(".category-modal__hint");
+  if (remaining > 0 && hint) {
+    hint.textContent = `继续向下滚动，加载剩余 ${remaining} 个网站`;
+  } else {
+    hint?.remove();
+  }
 }
 function renderBlogList() {
   if (posts.length === 0) {
@@ -2121,6 +2180,7 @@ function renderCommandPalette() {
 function buildCommandResultsMarkup() {
   const sections = getCommandSections();
   const flatResults = sections.flatMap((section) => section.items);
+  commandResultsCache = flatResults;
   state.commandIndex = flatResults.length === 0 ? 0 : Math.min(state.commandIndex, flatResults.length - 1);
 
   if (flatResults.length === 0) {
@@ -2386,10 +2446,30 @@ function renderChip(action, value, label, count, isActive) {
   `;
 }
 
-function getVisibleSites(options = {}) {
-  const baseSites = getViewScopedSites();
+function resetDerivedDataCaches() {
+  visibleSitesCache.clear();
+  filteredPostsCache.clear();
+}
 
-  return baseSites.filter((site) => {
+function getVisibleSites(options = {}) {
+  const viewSnapshot = state.view === "favorites"
+    ? [...state.favorites].join("\u001e")
+    : state.view === "recent"
+      ? state.recent.join("\u001e")
+      : "";
+  const cacheKey = [
+    state.view,
+    state.query,
+    options.ignoreCategory ? "*" : state.category,
+    options.ignoreTag ? "*" : state.tag,
+    viewSnapshot,
+  ].join("\u001f");
+  if (visibleSitesCache.has(cacheKey)) {
+    return visibleSitesCache.get(cacheKey);
+  }
+
+  const baseSites = getViewScopedSites();
+  const visibleSites = baseSites.filter((site) => {
     if (!options.ignoreCategory && state.category !== "all" && site.category !== state.category) {
       return false;
     }
@@ -2404,10 +2484,21 @@ function getVisibleSites(options = {}) {
 
     return true;
   });
+
+  visibleSitesCache.set(cacheKey, visibleSites);
+  return visibleSites;
 }
 
 function getFilteredPosts(options = {}) {
-  return posts.filter((post) => {
+  const cacheKey = [
+    state.blogQuery,
+    options.ignoreTag ? "*" : state.blogTag,
+  ].join("\u001f");
+  if (filteredPostsCache.has(cacheKey)) {
+    return filteredPostsCache.get(cacheKey);
+  }
+
+  const filteredPosts = posts.filter((post) => {
     if (!options.ignoreTag && state.blogTag !== "all" && !post.tags.includes(state.blogTag)) {
       return false;
     }
@@ -2418,6 +2509,9 @@ function getFilteredPosts(options = {}) {
 
     return true;
   });
+
+  filteredPostsCache.set(cacheKey, filteredPosts);
+  return filteredPosts;
 }
 
 function getPostPageSource(postId) {
@@ -2529,12 +2623,22 @@ function setTransientStatus(text) {
 }
 
 function handleScroll() {
-  if (state.section !== "blog-detail") {
+  if (state.section !== "blog-detail" || articleScrollFrame) {
     return;
   }
 
-  syncActiveHeading();
-  syncActiveTocLink();
+  articleScrollFrame = requestAnimationFrame(() => {
+    articleScrollFrame = 0;
+    if (state.section !== "blog-detail") {
+      return;
+    }
+
+    const previousHeadingId = state.activeHeadingId;
+    syncActiveHeading();
+    if (state.activeHeadingId !== previousHeadingId) {
+      syncActiveTocLink();
+    }
+  });
 }
 
 function syncActiveHeading() {
@@ -2704,10 +2808,6 @@ function getCommandSections() {
   return getCommandSectionsState(getCommandPaletteDeps());
 }
 
-function getFlatCommandResults() {
-  return getFlatCommandResultsState(getCommandPaletteDeps());
-}
-
 function runCommandResult(result) {
   executeCommandResult(result, {
     ...getCommandPaletteDeps(),
@@ -2725,6 +2825,7 @@ function openCommandPalette() {
 
 function closeCommandPalette() {
   clearCommandFocusRetry();
+  commandResultsCache = [];
   closeCommandPaletteState(state);
 }
 
@@ -3005,6 +3106,8 @@ function handleVisibilityChange() {
     return;
   }
 
+  state.now = Date.now();
+  syncWorkbenchClock();
   resumeSignedInSession("页面已恢复，用户站点已更新。", "页面已恢复，但暂时无法连接云端");
 }
 
@@ -3889,6 +3992,7 @@ function rebuildSiteIndexes() {
   categoryOrder = [...new Set(sites.map((site) => site.category))];
   siteIds = new Set(sites.map((site) => site.id));
   siteMap = new Map(sites.map((site) => [site.id, site]));
+  resetDerivedDataCaches();
 }
 
 function normalizeRemotePublicSite(site) {
@@ -4109,10 +4213,14 @@ function focusWorkbenchTodoInput() {
 }
 
 function startWorkbenchClock() {
-  window.setInterval(() => {
+  const tick = () => {
     state.now = Date.now();
     syncWorkbenchClock();
-  }, 1000);
+    const delay = 60_000 - (state.now % 60_000) + 50;
+    window.setTimeout(tick, delay);
+  };
+
+  tick();
 }
 
 function syncWorkbenchClock() {
@@ -4123,16 +4231,8 @@ function syncWorkbenchClock() {
   }
 
   const now = new Date(state.now);
-  timeNode.textContent = new Intl.DateTimeFormat("zh-CN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(now);
-  dateNode.textContent = new Intl.DateTimeFormat("zh-CN", {
-    month: "long",
-    day: "numeric",
-    weekday: "long",
-  }).format(now);
+  timeNode.textContent = WORKBENCH_TIME_FORMATTER.format(now);
+  dateNode.textContent = WORKBENCH_DATE_FORMATTER.format(now);
 }
 
 function syncTheme(theme) {
