@@ -1,12 +1,3 @@
-export function renderUserStats({ state, createStatCard }) {
-  return [
-    createStatCard("账号状态", state.sync.signedIn ? "已登录" : "未登录"),
-    createStatCard("我的站点", String(state.userSites.length)),
-    createStatCard("同步状态", state.sync.enabled ? "可用" : "本地"),
-    createStatCard("权限范围", "个人"),
-  ].join("");
-}
-
 export function renderUserPage({ state, escapeHTML, getHost, renderSiteCard, categoryOrder, allSites }) {
   if (!state.sync.signedIn) {
     return renderSignedOutUserPage({ state, escapeHTML });
@@ -14,20 +5,8 @@ export function renderUserPage({ state, escapeHTML, getHost, renderSiteCard, cat
 
   return `
     <section class="user-portal">
-      <div class="panel user-profile">
-        <div>
-          <p class="section-head__eyebrow">USER CENTER</p>
-          <h2>${escapeHTML(getUserDisplayName(state))}</h2>
-          <p>你的收藏、最近访问、待办和个人站点会跟随账号同步。</p>
-        </div>
-        <div class="user-profile__actions">
-          <span class="state-pill">已登录</span>
-          <button type="button" class="inline-reset" data-action="sync-sign-out" ${state.sync.busy ? "disabled" : ""}>退出登录</button>
-        </div>
-      </div>
-      ${renderUserOverview({ state })}
-      ${renderAccountSyncPanel({ state, escapeHTML })}
       ${renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrder, allSites })}
+      ${state.userSettingsOpen ? renderUserSettingsModal({ state, escapeHTML }) : ""}
     </section>
   `;
 }
@@ -84,55 +63,57 @@ function renderSignedOutUserPage({ state, escapeHTML }) {
   `;
 }
 
-function renderUserOverview({ state }) {
-  const items = [
-    ["我的站点", state.userSites.length],
-    ["收藏", state.favorites.size],
-    ["最近访问", state.recent.length],
-    ["待办", state.workbenchTodos.length],
-  ];
-
-  return `
-    <div class="user-overview">
-      ${items.map(([label, value]) => `
-        <article class="panel user-overview-card">
-          <span>${label}</span>
-          <strong>${value}</strong>
-        </article>
-      `).join("")}
-    </div>
-  `;
-}
-
-function renderAccountSyncPanel({ state, escapeHTML }) {
+function renderUserSettingsModal({ state, escapeHTML }) {
   const disabled = state.sync.busy ? "disabled" : "";
   const isRecovery = state.sync.authMode === "recovery";
 
   return `
-    <article class="panel user-account-panel">
-      <div>
-        <p class="section-head__eyebrow">SYNC</p>
-        <h2>云端同步</h2>
-        <p class="workbench-helper" data-role="sync-status">${escapeHTML(state.sync.message)}</p>
-      </div>
-      <div class="user-account-panel__actions">
-        <button type="button" class="workbench-button" data-action="sync-now" ${disabled}>立即同步</button>
-      </div>
-    </article>
-    <article class="panel user-password-panel">
-      <div>
-        <p class="section-head__eyebrow">PASSWORD</p>
-        <h2>${isRecovery ? "设置新密码" : "修改密码"}</h2>
-      </div>
-      <div class="user-password-form">
-        ${isRecovery ? "" : `
-          <input class="workbench-input" type="password" data-role="sync-current-password" value="${escapeHTML(state.sync.currentPassword)}" placeholder="当前密码" autocomplete="current-password" ${disabled}>
-        `}
-        <input class="workbench-input" type="password" data-role="sync-new-password" value="${escapeHTML(state.sync.newPassword)}" placeholder="新密码" autocomplete="new-password" ${disabled}>
-        <input class="workbench-input" type="password" data-role="sync-confirm-password" value="${escapeHTML(state.sync.confirmPassword)}" placeholder="确认新密码" autocomplete="new-password" ${disabled}>
-        <button type="button" class="workbench-button" data-action="sync-update-password" ${disabled}>保存密码</button>
-      </div>
-    </article>
+    <div class="user-site-modal user-settings-modal" role="dialog" aria-modal="true" aria-labelledby="user-settings-title">
+      <button type="button" class="user-site-modal__backdrop" data-action="close-user-settings" aria-label="关闭账户设置"></button>
+      <article class="panel user-site-modal__card user-settings-modal__card">
+        <div class="user-site-modal__head">
+          <div>
+            <p class="section-head__eyebrow">ACCOUNT</p>
+            <h2 id="user-settings-title">账户设置</h2>
+          </div>
+          <button type="button" class="user-site-modal__close" data-action="close-user-settings" aria-label="关闭账户设置">×</button>
+        </div>
+        <div class="user-settings-modal__body">
+          <section class="user-settings-section">
+            <div>
+              <span class="user-settings-section__label">登录账号</span>
+              <strong>${escapeHTML(getUserDisplayName(state))}</strong>
+            </div>
+            <span class="state-pill">已登录</span>
+          </section>
+          <section class="user-settings-section user-settings-section--sync">
+            <div>
+              <span class="user-settings-section__label">云端同步</span>
+              <p class="workbench-helper" data-role="sync-status">${escapeHTML(state.sync.message)}</p>
+            </div>
+            <button type="button" class="workbench-button" data-action="sync-now" ${disabled}>立即同步</button>
+          </section>
+          <section class="user-settings-section user-settings-section--password">
+            <div>
+              <span class="user-settings-section__label">安全</span>
+              <strong>${isRecovery ? "设置新密码" : "修改密码"}</strong>
+            </div>
+            <div class="user-password-form">
+              ${isRecovery ? "" : `
+                <input class="workbench-input" type="password" data-role="sync-current-password" value="${escapeHTML(state.sync.currentPassword)}" placeholder="当前密码" autocomplete="current-password" ${disabled}>
+              `}
+              <input class="workbench-input" type="password" data-role="sync-new-password" value="${escapeHTML(state.sync.newPassword)}" placeholder="新密码" autocomplete="new-password" ${disabled}>
+              <input class="workbench-input" type="password" data-role="sync-confirm-password" value="${escapeHTML(state.sync.confirmPassword)}" placeholder="确认新密码" autocomplete="new-password" ${disabled}>
+              <button type="button" class="workbench-button" data-action="sync-update-password" ${disabled}>保存密码</button>
+            </div>
+          </section>
+        </div>
+        <div class="user-settings-modal__foot">
+          <button type="button" class="inline-reset user-settings-modal__signout" data-action="sync-sign-out" ${disabled}>退出登录</button>
+          <button type="button" class="workbench-button" data-action="close-user-settings">完成</button>
+        </div>
+      </article>
+    </div>
   `;
 }
 
@@ -140,42 +121,25 @@ function renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrd
   const disabled = state.sync.busy ? "disabled" : "";
   const categoryOptions = getUserSiteCategories(categoryOrder, state.userSites);
   const tagOptions = getUserSiteTags(allSites);
-  const isEditing = Boolean(state.userSiteEditingId);
   const filteredSites = getFilteredUserSites(state);
   const filterCategories = getUserSiteCategories([], state.userSites);
 
   return `
     <section class="user-sites-manager">
-      <div class="section-head user-sites-manager__head">
+      <header class="user-sites-manager__head">
         <div>
-          <p class="section-head__eyebrow">CUSTOM SITES</p>
-          <h2>我的站点</h2>
+          <p class="section-head__eyebrow">MY SITES</p>
+          <div class="user-sites-manager__title">
+            <h2>我的站点</h2>
+            <span class="section-count">${state.userSites.length}</span>
+          </div>
+          <p>这里仅显示你在用户后台添加的网站。</p>
         </div>
-        <span class="section-count">${state.userSites.length}</span>
-      </div>
-      <div class="user-site-form">
-        <div class="user-site-form__row user-site-form__row--url">
-          ${renderUrlControl({ value: state.userSiteDraft.url, escapeHTML, disabled })}
+        <div class="user-sites-manager__actions">
+          <button type="button" class="user-page-button user-page-button--secondary" data-action="open-user-settings" ${disabled}>账户设置</button>
+          <button type="button" class="user-page-button user-page-button--primary" data-action="open-add-user-site" ${disabled}>+ 添加网站</button>
         </div>
-        <div class="user-site-form__row user-site-form__row--details">
-          <input class="workbench-input" data-user-site-field="name" value="${escapeHTML(state.userSiteDraft.name)}" placeholder="站点名称" ${disabled}>
-          <input class="workbench-input" data-user-site-field="icon" value="${escapeHTML(state.userSiteDraft.icon)}" placeholder="图标地址（可选）" ${disabled}>
-        </div>
-        <div class="user-site-form__row">
-          ${renderCategoryControl({ value: state.userSiteDraft.category, categoryOptions, escapeHTML, disabled })}
-        </div>
-        <div class="user-site-form__row">
-          ${renderTagControl({ value: state.userSiteDraft.tags, tagOptions, escapeHTML, disabled })}
-        </div>
-        <div class="user-site-form__row user-site-form__row--submit">
-          <input class="workbench-input" data-user-site-field="aliases" value="${escapeHTML(state.userSiteDraft.aliases)}" placeholder="别名（可选，用逗号分隔）" ${disabled}>
-          <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>添加站点</button>
-        </div>
-        <div class="user-site-form__row">
-          <input class="workbench-input" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="说明（可选）" ${disabled}>
-        </div>
-      </div>
-      <p class="workbench-helper">自定义站点只保存到你的账号，不会写入全站公共导航。</p>
+      </header>
       ${state.userSites.length > 0 ? `
         <div class="user-site-filter">
           <input class="workbench-input" data-role="user-site-search" value="${escapeHTML(state.userSiteQuery)}" placeholder="搜索我的站点">
@@ -186,23 +150,31 @@ function renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrd
           <span class="workbench-helper">显示 ${filteredSites.length} / ${state.userSites.length}</span>
         </div>
         ${filteredSites.length > 0 ? renderUserSitesList({ sites: filteredSites, escapeHTML, renderSiteCard }) : '<div class="workbench-empty">没有匹配的自定义站点。</div>'}
-      ` : '<div class="workbench-empty">还没有自定义站点。</div>'}
-      ${isEditing ? renderUserSiteEditModal({ state, escapeHTML, categoryOptions, tagOptions, disabled }) : ""}
+      ` : `
+        <div class="user-sites-empty">
+          <h3>还没有个人网站</h3>
+          <p>添加后会显示在这里，并跟随当前账号同步。</p>
+          <button type="button" class="user-page-button user-page-button--primary" data-action="open-add-user-site" ${disabled}>+ 添加第一个网站</button>
+        </div>
+      `}
+      ${state.userSiteModalOpen ? renderUserSiteModal({ state, escapeHTML, categoryOptions, tagOptions, disabled }) : ""}
     </section>
   `;
 }
 
-function renderUserSiteEditModal({ state, escapeHTML, categoryOptions, tagOptions, disabled }) {
+function renderUserSiteModal({ state, escapeHTML, categoryOptions, tagOptions, disabled }) {
+  const isEditing = Boolean(state.userSiteEditingId);
+
   return `
-    <div class="user-site-modal" role="dialog" aria-modal="true" aria-labelledby="user-site-edit-title">
-      <button type="button" class="user-site-modal__backdrop" data-action="cancel-edit-user-site" aria-label="关闭编辑"></button>
+    <div class="user-site-modal" role="dialog" aria-modal="true" aria-labelledby="user-site-form-title">
+      <button type="button" class="user-site-modal__backdrop" data-action="cancel-edit-user-site" aria-label="关闭网站表单"></button>
       <article class="panel user-site-modal__card">
         <div class="user-site-modal__head">
           <div>
-            <p class="section-head__eyebrow">EDIT SITE</p>
-            <h2 id="user-site-edit-title">编辑自定义站点</h2>
+            <p class="section-head__eyebrow">${isEditing ? "EDIT SITE" : "NEW SITE"}</p>
+            <h2 id="user-site-form-title">${isEditing ? "编辑网站" : "添加网站"}</h2>
           </div>
-          <button type="button" class="user-site-modal__close" data-action="cancel-edit-user-site" aria-label="关闭编辑">×</button>
+          <button type="button" class="user-site-modal__close" data-action="cancel-edit-user-site" aria-label="关闭网站表单">×</button>
         </div>
         <div class="user-site-edit-form">
           <div class="user-site-form__row user-site-form__row--url">
@@ -225,9 +197,10 @@ function renderUserSiteEditModal({ state, escapeHTML, categoryOptions, tagOption
             <input class="workbench-input" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="说明（可选）" ${disabled}>
           </div>
         </div>
+        <p class="workbench-helper user-site-modal__status" data-role="sync-status">${escapeHTML(state.sync.message)}</p>
         <div class="user-site-modal__actions">
           <button type="button" class="inline-reset" data-action="cancel-edit-user-site" ${disabled}>取消</button>
-          <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>保存修改</button>
+          <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>${isEditing ? "保存修改" : "添加网站"}</button>
         </div>
       </article>
     </div>
@@ -313,7 +286,7 @@ function renderUserSitesList({ sites, escapeHTML, renderSiteCard }) {
   return `
     <div class="user-site-list">
       ${groups.map((group) => `
-        <section class="panel category-block user-site-category" data-category-anchor="${escapeHTML(group.title)}">
+        <section class="user-site-category" data-category-anchor="${escapeHTML(group.title)}">
           <div class="section-head">
             <div>
               <p class="section-head__eyebrow">CUSTOM SITES</p>
