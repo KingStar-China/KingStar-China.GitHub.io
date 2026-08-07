@@ -1,5 +1,8 @@
 export function renderUserPage({ state, escapeHTML, getHost, renderSiteCard, categoryOrder, allSites }) {
   if (!state.sync.signedIn) {
+    if (state.section === "user") {
+      return renderRestoringUserPage();
+    }
     return renderSignedOutUserPage({ state, escapeHTML });
   }
 
@@ -7,6 +10,18 @@ export function renderUserPage({ state, escapeHTML, getHost, renderSiteCard, cat
     <section class="user-portal">
       ${renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrder, allSites })}
       ${state.userSettingsOpen ? renderUserSettingsModal({ state, escapeHTML }) : ""}
+    </section>
+  `;
+}
+
+function renderRestoringUserPage() {
+  return `
+    <section class="user-login-page" aria-live="polite">
+      <article class="panel user-login-card user-session-card">
+        <span class="user-session-card__spinner" aria-hidden="true"></span>
+        <h2>正在恢复登录状态</h2>
+        <p>正在读取本机账号缓存，请稍候。</p>
+      </article>
     </section>
   `;
 }
@@ -30,10 +45,11 @@ function renderSignedOutUserPage({ state, escapeHTML }) {
             <span>邮箱</span>
             <input
               type="email"
+              name="username"
               data-role="sync-email"
               class="workbench-input"
               placeholder="you@example.com"
-              autocomplete="email"
+              autocomplete="username"
               value="${escapeHTML(state.sync.email)}"
               ${disabled}
             >
@@ -42,6 +58,7 @@ function renderSignedOutUserPage({ state, escapeHTML }) {
             <span>密码</span>
             <input
               type="password"
+              name="current-password"
               data-role="sync-password"
               class="workbench-input"
               placeholder="输入密码"
@@ -142,7 +159,19 @@ function renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrd
       </header>
       ${state.userSites.length > 0 ? `
         <div class="user-site-filter">
-          <input class="workbench-input" data-role="user-site-search" value="${escapeHTML(state.userSiteQuery)}" placeholder="搜索我的站点">
+          <input
+            class="workbench-input"
+            type="search"
+            name="user-site-filter"
+            data-role="user-site-search"
+            value="${escapeHTML(state.userSiteQuery)}"
+            placeholder="搜索我的站点"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            data-lpignore="true"
+            data-1p-ignore
+          >
           <select class="workbench-input" data-role="user-site-category-filter">
             <option value="all">全部分类</option>
             ${filterCategories.map((category) => `<option value="${escapeHTML(category)}"${state.userSiteCategory === category ? " selected" : ""}>${escapeHTML(category)}</option>`).join("")}

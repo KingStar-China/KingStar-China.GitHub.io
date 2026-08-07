@@ -65,6 +65,10 @@ function parseAnalyticsRoute(url) {
     return { type: "blog", value: "" };
   }
 
+  if (section === "login") {
+    return { type: "login", value: "" };
+  }
+
   if (section === "user" || section === "promo") {
     return { type: "user", value: "" };
   }
@@ -76,6 +80,10 @@ function parseAnalyticsRoute(url) {
 
   if (hash.startsWith("/blog")) {
     return { type: "blog", value: "" };
+  }
+
+  if (hash.startsWith("/login")) {
+    return { type: "login", value: "" };
   }
 
   if (hash.startsWith("/user") || hash.startsWith("/promo")) {
