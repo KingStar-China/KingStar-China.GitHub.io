@@ -62,6 +62,25 @@ test("博客搜索标题精确命中分数高于同文的标签命中", () => {
   assert.ok(getPostSearchScore(domainPost, domainPost.title) > getPostSearchScore(domainPost, "Cloudflare"));
 });
 
+test("站点字段变化后会刷新搜索索引", () => {
+  const site = {
+    ...google,
+    tags: [...google.tags],
+  };
+
+  assert.equal(matchesSiteQuery(site, "临时缓存标签"), false);
+  site.tags.push("临时缓存标签");
+  assert.equal(matchesSiteQuery(site, "临时缓存标签"), true);
+});
+
+test("文章内容变化后会刷新搜索索引", () => {
+  const post = createPost({ content: ["旧内容"] });
+
+  assert.equal(matchesPostQuery(post, "新增内容"), false);
+  post.content.push("新增内容");
+  assert.equal(matchesPostQuery(post, "新增内容"), true);
+});
+
 function createPost(overrides = {}) {
   return {
     id: "post",

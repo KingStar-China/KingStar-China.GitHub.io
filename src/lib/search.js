@@ -2,26 +2,33 @@ export function normalizeQuery(value) {
   return String(value || "").trim().toLocaleLowerCase();
 }
 
+const EMPTY_STRING_ARRAY = Object.freeze([]);
+const siteSearchIndexCache = new WeakMap();
+const postSearchIndexCache = new WeakMap();
+let lastSearchQuerySource = null;
+let lastSearchQueryIndex = { keyword: "", compactKeyword: "" };
+
 export function getSiteSearchScore(site, query) {
-  const keyword = normalizeQuery(query);
+  const { keyword, compactKeyword } = getSearchQueryIndex(query);
   if (!keyword) {
     return 0;
   }
 
   let score = 0;
-  const name = normalizeQuery(site.name);
-  const category = normalizeQuery(site.category);
-  const description = normalizeQuery(site.description);
-  const tags = normalizeStringArray(site.tags);
-  const aliases = normalizeStringArray(site.aliases);
-  const compactKeyword = normalizeCompactQuery(keyword);
-  const compactName = normalizeCompactQuery(site.name);
-  const compactCategory = normalizeCompactQuery(site.category);
-  const compactDescription = normalizeCompactQuery(site.description);
-  const compactTags = normalizeCompactStringArray(site.tags);
-  const compactAliases = normalizeCompactStringArray(site.aliases);
-  const host = getNormalizedHost(site.url);
-  const compactHost = normalizeCompactQuery(host);
+  const {
+    name,
+    category,
+    description,
+    tags,
+    aliases,
+    compactName,
+    compactCategory,
+    compactDescription,
+    compactTags,
+    compactAliases,
+    host,
+    compactHost,
+  } = getSiteSearchIndex(site);
 
   if (name === keyword) {
     score += 300;
@@ -103,21 +110,22 @@ export function getSiteSearchScore(site, query) {
 }
 
 export function getPostSearchScore(post, query) {
-  const keyword = normalizeQuery(query);
+  const { keyword, compactKeyword } = getSearchQueryIndex(query);
   if (!keyword) {
     return 0;
   }
 
   let score = 0;
-  const title = normalizeQuery(post.title);
-  const summary = normalizeQuery(post.summary);
-  const tags = normalizeStringArray(post.tags);
-  const content = normalizeQuery(Array.isArray(post.content) ? post.content.join(" ") : post.content);
-  const compactKeyword = normalizeCompactQuery(keyword);
-  const compactTitle = normalizeCompactQuery(post.title);
-  const compactSummary = normalizeCompactQuery(post.summary);
-  const compactTags = normalizeCompactStringArray(post.tags);
-  const compactContent = normalizeCompactQuery(Array.isArray(post.content) ? post.content.join(" ") : post.content);
+  const {
+    title,
+    summary,
+    tags,
+    content,
+    compactTitle,
+    compactSummary,
+    compactTags,
+    compactContent,
+  } = getPostSearchIndex(post);
 
   if (title === keyword) {
     score += 300;
@@ -184,6 +192,119 @@ export function matchesPostQuery(post, query) {
   return getPostSearchScore(post, query) > 0;
 }
 
+function getSearchQueryIndex(value) {
+  const source = String(value || "");
+  if (source === lastSearchQuerySource) {
+    return lastSearchQueryIndex;
+  }
+
+  const keyword = normalizeQuery(source);
+  lastSearchQuerySource = source;
+  lastSearchQueryIndex = {
+    keyword,
+    compactKeyword: compactNormalizedQuery(keyword),
+  };
+  return lastSearchQueryIndex;
+}
+
+function getSiteSearchIndex(site) {
+  const tagsSource = Array.isArray(site.tags) ? site.tags : EMPTY_STRING_ARRAY;
+  const aliasesSource = Array.isArray(site.aliases) ? site.aliases : EMPTY_STRING_ARRAY;
+  const tagsKey = tagsSource.join("\u001f");
+  const aliasesKey = aliasesSource.join("\u001f");
+  const cached = siteSearchIndexCache.get(site);
+
+  if (
+    cached
+    && cached.sources.name === site.name
+    && cached.sources.category === site.category
+    && cached.sources.description === site.description
+    && cached.sources.tagsKey === tagsKey
+    && cached.sources.aliasesKey === aliasesKey
+    && cached.sources.url === site.url
+  ) {
+    return cached.index;
+  }
+
+  const name = normalizeQuery(site.name);
+  const category = normalizeQuery(site.category);
+  const description = normalizeQuery(site.description);
+  const tags = normalizeStringArray(tagsSource);
+  const aliases = normalizeStringArray(aliasesSource);
+  const host = getNormalizedHost(site.url);
+  const index = {
+    name,
+    category,
+    description,
+    tags,
+    aliases,
+    compactName: compactNormalizedQuery(name),
+    compactCategory: compactNormalizedQuery(category),
+    compactDescription: compactNormalizedQuery(description),
+    compactTags: tags.map(compactNormalizedQuery).filter(Boolean),
+    compactAliases: aliases.map(compactNormalizedQuery).filter(Boolean),
+    host,
+    compactHost: compactNormalizedQuery(host),
+  };
+
+  siteSearchIndexCache.set(site, {
+    sources: {
+      name: site.name,
+      category: site.category,
+      description: site.description,
+      tagsKey,
+      aliasesKey,
+      url: site.url,
+    },
+    index,
+  });
+  return index;
+}
+
+function getPostSearchIndex(post) {
+  const tagsSource = Array.isArray(post.tags) ? post.tags : EMPTY_STRING_ARRAY;
+  const contentSource = post.content;
+  const tagsKey = tagsSource.join("\u001f");
+  const contentValue = Array.isArray(contentSource) ? contentSource.join(" ") : contentSource;
+  const cached = postSearchIndexCache.get(post);
+
+  if (
+    cached
+    && cached.sources.title === post.title
+    && cached.sources.summary === post.summary
+    && cached.sources.tagsKey === tagsKey
+    && cached.sources.contentValue === contentValue
+  ) {
+    return cached.index;
+  }
+
+  const title = normalizeQuery(post.title);
+  const summary = normalizeQuery(post.summary);
+  const tags = normalizeStringArray(tagsSource);
+  const content = normalizeQuery(contentValue);
+  const index = {
+    title,
+    summary,
+    tags,
+    content,
+    compactTitle: compactNormalizedQuery(title),
+    compactSummary: compactNormalizedQuery(summary),
+    compactTags: tags.map(compactNormalizedQuery).filter(Boolean),
+    compactContent: compactNormalizedQuery(content),
+  };
+
+  postSearchIndexCache.set(post, {
+    sources: {
+      title: post.title,
+      summary: post.summary,
+      tagsKey,
+      contentValue,
+    },
+    index,
+  });
+  return index;
+}
+
 function normalizeStringArray(value) {
   if (!Array.isArray(value)) {
     return [];
@@ -192,18 +313,8 @@ function normalizeStringArray(value) {
   return value.map((item) => normalizeQuery(item));
 }
 
-function normalizeCompactStringArray(value) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((item) => normalizeCompactQuery(item))
-    .filter(Boolean);
-}
-
-function normalizeCompactQuery(value) {
-  return normalizeQuery(value).replace(/[^a-z0-9\u4e00-\u9fff]+/g, "");
+function compactNormalizedQuery(value) {
+  return value.replace(/[^a-z0-9\u4e00-\u9fff]+/g, "");
 }
 
 function getNormalizedHost(url) {
