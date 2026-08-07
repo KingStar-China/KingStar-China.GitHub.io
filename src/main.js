@@ -11,7 +11,7 @@ import {
   getFlatCommandResults as getFlatCommandResultsState,
   openCommandPalette as openCommandPaletteState,
   runCommandResult as executeCommandResult,
-  shouldRunSiteCommandOnPointerDown,
+  shouldRunCommandOnPointerDown,
 } from "./lib/command-palette.js";
 import { hasSamePublicSites, runAfterFirstPaint } from "./lib/startup.js";
 import { createPersonalDataSnapshot, mergePersonalData as mergePersonalDataState, normalizePersonalData } from "./features/personal-data.js";
@@ -414,7 +414,7 @@ function handlePointerDown(event) {
   const actionButton = event.target.closest("button[data-action]");
   const commandSiteLink = state.commandOpen ? event.target.closest(".command-palette a[data-site-id]") : null;
 
-  if (commandSiteLink && shouldRunSiteCommandOnPointerDown(event)) {
+  if (commandSiteLink && shouldRunCommandOnPointerDown(event)) {
     event.preventDefault();
     event.stopPropagation();
     refs.commandInput?.blur();
@@ -436,7 +436,7 @@ function handlePointerDown(event) {
     return;
   }
 
-  if (action !== "run-command") {
+  if (action !== "run-command" || !shouldRunCommandOnPointerDown(event)) {
     return;
   }
 
@@ -459,6 +459,11 @@ function handleClick(event) {
 
       openCommandPalette();
       syncCommandPaletteResults({ maintainFocus: true });
+      return;
+    }
+    if (action === "run-command") {
+      event.preventDefault();
+      runCommandResult({ kind: commandKind, id: commandId });
       return;
     }
     if (action === "set-search-engine") {

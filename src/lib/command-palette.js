@@ -95,7 +95,7 @@ export function closeCommandPalette(state) {
   state.commandIndex = 0;
 }
 
-export function shouldRunSiteCommandOnPointerDown(event) {
+export function shouldRunCommandOnPointerDown(event) {
   return event?.button === 0 && event?.pointerType === "mouse";
 }
 
