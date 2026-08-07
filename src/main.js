@@ -5,7 +5,14 @@ import { searchEngines as rawSearchEngines } from "./data/search-engines.js";
 import { themes } from "./data/themes.js";
 import { getPostSearchScore, getSiteSearchScore, matchesPostQuery, matchesSiteQuery } from "./lib/search.js";
 import { formatPostReadingTime, getAdjacentPosts, getRelatedPosts } from "./lib/blog.js";
-import { getCommandSections as getCommandSectionsState, getFlatCommandResults as getFlatCommandResultsState, runCommandResult as executeCommandResult, openCommandPalette as openCommandPaletteState, closeCommandPalette as closeCommandPaletteState } from "./lib/command-palette.js";
+import {
+  closeCommandPalette as closeCommandPaletteState,
+  getCommandSections as getCommandSectionsState,
+  getFlatCommandResults as getFlatCommandResultsState,
+  openCommandPalette as openCommandPaletteState,
+  runCommandResult as executeCommandResult,
+  shouldRunSiteCommandOnPointerDown,
+} from "./lib/command-palette.js";
 import { hasSamePublicSites, runAfterFirstPaint } from "./lib/startup.js";
 import { createPersonalDataSnapshot, mergePersonalData as mergePersonalDataState, normalizePersonalData } from "./features/personal-data.js";
 import { getAuthAccessToken, isPermanentSessionRefreshError, loadSyncSession as loadStoredSyncSession, normalizeSyncSession, persistSyncSession as persistStoredSyncSession, removeSyncSession } from "./features/sync-session.js";
@@ -407,7 +414,7 @@ function handlePointerDown(event) {
   const actionButton = event.target.closest("button[data-action]");
   const commandSiteLink = state.commandOpen ? event.target.closest(".command-palette a[data-site-id]") : null;
 
-  if (commandSiteLink && event.button === 0) {
+  if (commandSiteLink && shouldRunSiteCommandOnPointerDown(event)) {
     event.preventDefault();
     event.stopPropagation();
     refs.commandInput?.blur();
@@ -723,10 +730,13 @@ function handleClick(event) {
   }
 
   if (siteLink) {
-    trackRecent(siteLink.dataset.siteId);
-    if (state.commandOpen) {
-      closeCommandPalette();
+    if (state.commandOpen && siteLink.closest(".command-palette")) {
+      event.preventDefault();
+      runCommandResult({ kind: "site", id: siteLink.dataset.siteId });
+      return;
     }
+
+    trackRecent(siteLink.dataset.siteId);
     render();
   }
 }
