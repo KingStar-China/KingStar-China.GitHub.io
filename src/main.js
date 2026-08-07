@@ -19,7 +19,7 @@ import { getAuthAccessToken, isPermanentSessionRefreshError, loadSyncSession as 
 import { getSupabaseConfig, requestSupabaseAuth as requestSupabaseAuthApi, requestSupabaseRest as requestSupabaseRestApi } from "./features/supabase.js";
 import { mergeSitesBySubmittedAt, normalizeRemoteUserSite, normalizeUserSiteDraft } from "./features/user-sites.js";
 import { buildPageViewEvent, getAnalyticsVisitorId } from "./features/analytics.js";
-import { renderUserPage as renderUserPageView, renderUserStats as renderUserStatsView } from "./pages/user.js";
+import { renderUserPage as renderUserPageView } from "./pages/user.js";
 
 /**
  * @typedef {Object} SiteItem
@@ -155,6 +155,8 @@ const state = {
   userSiteQuery: "",
   userSiteCategory: "all",
   userSiteEditingId: "",
+  userSiteModalOpen: false,
+  userSettingsOpen: false,
   userSiteDraft: {
     name: "",
     url: "",
@@ -532,7 +534,14 @@ function handleClick(event) {
     }
 
     if (action === "set-section") {
-      state.section = getSectionId(value);
+      const nextSection = getSectionId(value);
+      if (nextSection === "user" && state.section !== "user") {
+        state.userSiteQuery = "";
+        state.userSiteCategory = "all";
+      }
+      state.section = nextSection;
+      state.userSiteModalOpen = false;
+      state.userSettingsOpen = false;
       state.nextRouteMode = "push";
       render();
       scrollPageTop();
@@ -658,6 +667,24 @@ function handleClick(event) {
       return;
     }
 
+    if (action === "open-add-user-site") {
+      openAddUserSiteModal();
+      return;
+    }
+
+    if (action === "open-user-settings") {
+      state.userSettingsOpen = true;
+      state.userSiteModalOpen = false;
+      render({ focusSelector: '[data-action="close-user-settings"]' });
+      return;
+    }
+
+    if (action === "close-user-settings") {
+      state.userSettingsOpen = false;
+      render();
+      return;
+    }
+
     if (action === "add-user-site") {
       addUserSite();
       return;
@@ -745,6 +772,19 @@ function handleClick(event) {
 }
 
 function handleKeydown(event) {
+  if (event.key === "Escape" && state.userSiteModalOpen) {
+    event.preventDefault();
+    cancelEditingUserSite();
+    return;
+  }
+
+  if (event.key === "Escape" && state.userSettingsOpen) {
+    event.preventDefault();
+    state.userSettingsOpen = false;
+    render();
+    return;
+  }
+
   if (event.target.matches('[data-role="engine-search"]') && event.key === "Enter") {
     event.preventDefault();
     submitEngineSearch();
@@ -821,7 +861,9 @@ function handleKeydown(event) {
 function render(options = {}) {
   const scrollY = options.preserveScroll ? window.scrollY : null;
   state.blogPage = clampPage(state.blogPage);
+  document.documentElement.classList.toggle("has-user-modal", state.userSiteModalOpen || state.userSettingsOpen);
   root.querySelector(".app-shell")?.classList.toggle("is-article-view", state.section === "blog-detail");
+  root.querySelector(".app-shell")?.classList.toggle("is-user-view", state.section === "user");
   refs.themeShelf.classList.toggle("is-expanded", state.themeShelfExpanded);
   refs.themeShelf.innerHTML = renderThemeShelf();
   refs.themeToggle = refs.themeShelf.querySelector('[data-role="theme-toggle"]');
@@ -830,8 +872,8 @@ function render(options = {}) {
   }
   refs.sectionTabs.innerHTML = renderSectionTabs();
   refs.summary.textContent = buildSummary();
-  refs.heroSearch.innerHTML = state.section === "nav" || state.section === "blog-list" || state.section === "user" ? renderHeroSearch() : "";
-  refs.stats.innerHTML = state.section === "user" ? renderUserStats() : state.section === "blog-list" || state.section === "blog-detail" ? renderBlogStats() : renderNavStats();
+  refs.heroSearch.innerHTML = state.section === "nav" || state.section === "blog-list" ? renderHeroSearch() : "";
+  refs.stats.innerHTML = state.section === "user" ? "" : state.section === "blog-list" || state.section === "blog-detail" ? renderBlogStats() : renderNavStats();
   refs.toolbar.innerHTML = renderToolbar();
   refs.content.innerHTML = renderContent();
   renderCommandPaletteState({ maintainFocus: state.commandOpen });
@@ -996,10 +1038,6 @@ function renderSectionTabs() {
 }
 
 function renderNavStats() {
-  if (state.section === "user") {
-    return renderUserStats();
-  }
-
   const visibleSites = getVisibleSites();
   const favoriteCount = sites.filter((site) => state.favorites.has(site.id)).length;
   const recentCount = state.recent.filter((id) => siteIds.has(id)).length;
@@ -1010,10 +1048,6 @@ function renderNavStats() {
     createStatCard("已收藏", String(favoriteCount)),
     createStatCard("最近打开", String(recentCount)),
   ].join("");
-}
-
-function renderUserStats() {
-  return renderUserStatsView({ state, createStatCard });
 }
 
 function renderBlogStats() {
@@ -3186,6 +3220,8 @@ function signOutSyncAccount() {
   syncSessionRefreshTimer = 0;
   removeSyncSession(localStorage, STORAGE_KEYS.syncSession);
   state.userSites = [];
+  resetUserSiteDraft();
+  state.userSettingsOpen = false;
   rebuildSiteIndexes();
   state.sync.signedIn = false;
   state.sync.userEmail = "";
@@ -3556,6 +3592,8 @@ function startEditingUserSite(siteId) {
   }
 
   state.userSiteEditingId = site.id;
+  state.userSiteModalOpen = true;
+  state.userSettingsOpen = false;
   state.userSiteDraft = {
     name: site.name,
     url: site.url,
@@ -3566,13 +3604,21 @@ function startEditingUserSite(siteId) {
     description: getEditableUserSiteDescription(site.description),
   };
   setSyncMessage("正在编辑自定义站点，保存后会更新原记录。");
-  render();
+  render({ focusSelector: '[data-user-site-field="url"]' });
 }
 
 function cancelEditingUserSite() {
   resetUserSiteDraft();
   setSyncMessage("已取消编辑。");
   render();
+}
+
+function openAddUserSiteModal() {
+  resetUserSiteDraft();
+  state.userSiteModalOpen = true;
+  state.userSettingsOpen = false;
+  setSyncMessage("填写网址后可一键识别站点信息。");
+  render({ focusSelector: '[data-user-site-field="url"]' });
 }
 
 function appendUserSiteDraftTag(tag) {
@@ -3665,6 +3711,7 @@ function getEditableUserSiteDescription(description) {
 
 function resetUserSiteDraft() {
   state.userSiteEditingId = "";
+  state.userSiteModalOpen = false;
   state.userSiteDraft = { name: "", url: "", icon: "", category: "", tags: "", aliases: "", description: "" };
 }
 

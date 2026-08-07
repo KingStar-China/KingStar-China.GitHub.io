@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createPersonalDataSnapshot, mergePersonalData } from "../src/features/personal-data.js";
-import { renderUserStats } from "../src/pages/user.js";
+import { renderUserPage } from "../src/pages/user.js";
 
 test("个人数据快照会在站点索引可用后保留最近访问", () => {
   const validSiteIds = new Set(["default-site", "remote-user-site"]);
@@ -40,20 +40,87 @@ test("合并个人数据时本机最近访问优先于云端旧顺序", () => {
   assert.deepEqual(merged.recent, ["new-site", "old-site"]);
 });
 
-test("用户页右侧统计显示用户后台数据", () => {
-  const markup = renderUserStats({
-    state: {
-      sync: {
-        signedIn: true,
-        enabled: true,
-      },
-      userSites: [{ id: "site-1" }, { id: "site-2" }],
-    },
-    createStatCard: (label, value) => `<article><span>${label}</span><strong>${value}</strong></article>`,
+test("已登录用户页默认只展示个人站点管理内容", () => {
+  const markup = renderTestUserPage();
+
+  assert.match(markup, /我的站点/);
+  assert.match(markup, /用户站点一/);
+  assert.match(markup, /data-action="open-add-user-site"/);
+  assert.match(markup, /data-action="open-user-settings"/);
+  assert.doesNotMatch(markup, /当前密码/);
+  assert.doesNotMatch(markup, /data-user-site-field="url"/);
+});
+
+test("添加网站按钮对应独立网站表单弹窗", () => {
+  const markup = renderTestUserPage({
+    userSiteModalOpen: true,
   });
 
-  assert.match(markup, /账号状态[\s\S]*已登录/);
-  assert.match(markup, /我的站点[\s\S]*2/);
-  assert.match(markup, /同步状态[\s\S]*可用/);
-  assert.match(markup, /权限范围[\s\S]*个人/);
+  assert.match(markup, /aria-labelledby="user-site-form-title"/);
+  assert.match(markup, /id="user-site-form-title">添加网站/);
+  assert.match(markup, /data-user-site-field="url"/);
+  assert.match(markup, /data-action="add-user-site"/);
 });
+
+test("账户设置只在设置弹窗中显示同步和密码操作", () => {
+  const markup = renderTestUserPage({
+    userSettingsOpen: true,
+  });
+
+  assert.match(markup, /id="user-settings-title">账户设置/);
+  assert.match(markup, /data-action="sync-now"/);
+  assert.match(markup, /data-role="sync-current-password"/);
+  assert.match(markup, /data-action="sync-sign-out"/);
+});
+
+function renderTestUserPage(stateOverrides = {}) {
+  const userSite = {
+    id: "user-site-1",
+    name: "用户站点一",
+    url: "https://example.com",
+    category: "工具",
+    tags: ["自定义"],
+    aliases: [],
+    description: "测试站点",
+    source: "user",
+  };
+  const state = {
+    sync: {
+      signedIn: true,
+      enabled: true,
+      busy: false,
+      authMode: "",
+      userEmail: "user@example.com",
+      email: "user@example.com",
+      message: "同步可用",
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+    userSites: [userSite],
+    userSiteQuery: "",
+    userSiteCategory: "all",
+    userSiteEditingId: "",
+    userSiteModalOpen: false,
+    userSettingsOpen: false,
+    userSiteDraft: {
+      name: "",
+      url: "",
+      icon: "",
+      category: "",
+      tags: "",
+      aliases: "",
+      description: "",
+    },
+    ...stateOverrides,
+  };
+
+  return renderUserPage({
+    state,
+    escapeHTML: (value) => String(value),
+    getHost: (url) => new URL(url).host,
+    renderSiteCard: (site) => `<article data-site-id="${site.id}">${site.name}</article>`,
+    categoryOrder: ["工具"],
+    allSites: [userSite],
+  });
+}
