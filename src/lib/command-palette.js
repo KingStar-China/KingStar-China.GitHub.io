@@ -99,6 +99,18 @@ export function shouldRunCommandOnPointerDown(event) {
   return event?.button === 0 && event?.pointerType === "mouse";
 }
 
+export function shouldOpenCommandOnPointerDown(event) {
+  return event?.button === 0 && event?.pointerType === "mouse";
+}
+
+export function getCommandActivationDelay(event, delayMs) {
+  return Number(event?.detail) > 0 ? Math.max(0, Number(delayMs) || 0) : 0;
+}
+
+export function isCommandActivationBlocked(activationAt, now) {
+  return Number(now) < Number(activationAt);
+}
+
 function getDefaultCommandSections({ state, posts, siteMap, getHost, formatShortDate }) {
   const recentSites = state.recent
     .map((id) => siteMap.get(id))
