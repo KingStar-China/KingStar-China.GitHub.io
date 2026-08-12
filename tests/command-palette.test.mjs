@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   closeCommandPalette,
   getCommandActivationDelay,
@@ -10,6 +11,8 @@ import {
   shouldOpenCommandOnPointerDown,
   shouldRunCommandOnPointerDown,
 } from "../src/lib/command-palette.js";
+
+const styleSource = readFileSync(new URL("../src/style.css", import.meta.url), "utf8");
 
 test("命令面板默认显示最近访问和最新文章", () => {
   const deps = createPaletteDeps({
@@ -111,6 +114,11 @@ test("触摸点击打开搜索后会短暂阻止结果激活", () => {
   assert.equal(getCommandActivationDelay({ detail: 0 }, 500), 0);
   assert.equal(isCommandActivationBlocked(1500, 1499), true);
   assert.equal(isCommandActivationBlocked(1500, 1500), false);
+});
+
+test("手机版全站搜索结果底部保留半屏滚动空间", () => {
+  assert.match(styleSource, /\.command-results\s*\{[\s\S]*?padding-bottom:\s*calc\(50dvh\s*\+\s*env\(safe-area-inset-bottom\)\)/);
+  assert.match(styleSource, /scroll-padding-bottom:\s*calc\(50dvh\s*\+\s*env\(safe-area-inset-bottom\)\)/);
 });
 
 test("运行站点结果会直接打开目标 URL 并记录最近访问", () => {
