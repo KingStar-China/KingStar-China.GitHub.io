@@ -7,9 +7,12 @@ import { getPostSearchScore, getSiteSearchScore, matchesPostQuery, matchesSiteQu
 import { formatPostReadingTime, getAdjacentPosts, getRelatedPosts } from "./lib/blog.js";
 import {
   closeCommandPalette as closeCommandPaletteState,
+  getCommandActivationDelay,
   getCommandSections as getCommandSectionsState,
+  isCommandActivationBlocked,
   openCommandPalette as openCommandPaletteState,
   runCommandResult as executeCommandResult,
+  shouldOpenCommandOnPointerDown,
   shouldRunCommandOnPointerDown,
 } from "./lib/command-palette.js";
 import { hasSamePublicSites, normalizeCachedPublicSites, normalizePublicSiteRows, runAfterFirstPaint } from "./lib/startup.js";
@@ -109,6 +112,7 @@ const REMOTE_SAVE_DEBOUNCE_MS = 800;
 const REMOTE_PUBLIC_SITES_RETRY_DELAYS = [1_500, 4_000, 10_000, 20_000];
 const SESSION_REFRESH_AHEAD_MS = 60_000;
 const SESSION_REFRESH_RETRY_MS = 60_000;
+const COMMAND_TOUCH_ACTIVATION_DELAY_MS = 500;
 const WORKBENCH_TIME_FORMATTER = new Intl.DateTimeFormat("zh-CN", {
   hour: "2-digit",
   minute: "2-digit",
@@ -238,6 +242,7 @@ let syncSessionRefreshPromise = null;
 let syncResumePromise = null;
 let articleScrollFrame = 0;
 let commandResultsCache = [];
+let commandTouchActivationAt = 0;
 const visibleSitesCache = new Map();
 const filteredPostsCache = new Map();
 
@@ -465,9 +470,13 @@ function handlePointerDown(event) {
   const { action, commandKind, commandId } = actionButton.dataset;
 
   if (action === "open-command") {
+    if (!shouldOpenCommandOnPointerDown(event)) {
+      return;
+    }
+
     event.preventDefault();
     event.stopPropagation();
-    openCommandPalette();
+    openCommandPalette({ activationDelay: 0 });
     syncCommandPaletteResults({ maintainFocus: true });
     return;
   }
@@ -490,15 +499,26 @@ function handleClick(event) {
 
     if (action === "open-command") {
       if (event.detail !== 0) {
+        if (state.commandOpen) {
+          return;
+        }
+
+        openCommandPalette({
+          activationDelay: getCommandActivationDelay(event, COMMAND_TOUCH_ACTIVATION_DELAY_MS),
+        });
+        syncCommandPaletteResults({ maintainFocus: true });
         return;
       }
 
-      openCommandPalette();
+      openCommandPalette({ activationDelay: 0 });
       syncCommandPaletteResults({ maintainFocus: true });
       return;
     }
     if (action === "run-command") {
       event.preventDefault();
+      if (actionButton.closest(".command-palette") && isCommandActivationBlocked(commandTouchActivationAt, performance.now())) {
+        return;
+      }
       runCommandResult({ kind: commandKind, id: commandId });
       return;
     }
@@ -796,6 +816,9 @@ function handleClick(event) {
   if (siteLink) {
     if (state.commandOpen && siteLink.closest(".command-palette")) {
       event.preventDefault();
+      if (isCommandActivationBlocked(commandTouchActivationAt, performance.now())) {
+        return;
+      }
       runCommandResult({ kind: "site", id: siteLink.dataset.siteId });
       return;
     }
@@ -2819,13 +2842,15 @@ function runCommandResult(result) {
   });
 }
 
-function openCommandPalette() {
+function openCommandPalette({ activationDelay = 0 } = {}) {
+  commandTouchActivationAt = performance.now() + Math.max(0, activationDelay);
   openCommandPaletteState(state);
 }
 
 function closeCommandPalette() {
   clearCommandFocusRetry();
   commandResultsCache = [];
+  commandTouchActivationAt = 0;
   closeCommandPaletteState(state);
 }
 

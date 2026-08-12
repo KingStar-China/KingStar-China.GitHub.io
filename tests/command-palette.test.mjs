@@ -2,9 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   closeCommandPalette,
+  getCommandActivationDelay,
   getCommandSections,
+  isCommandActivationBlocked,
   openCommandPalette,
   runCommandResult,
+  shouldOpenCommandOnPointerDown,
   shouldRunCommandOnPointerDown,
 } from "../src/lib/command-palette.js";
 
@@ -93,6 +96,21 @@ test("搜索结果只允许鼠标在 pointerdown 阶段立即执行", () => {
   assert.equal(shouldRunCommandOnPointerDown({ button: 0, pointerType: "touch" }), false);
   assert.equal(shouldRunCommandOnPointerDown({ button: 0, pointerType: "pen" }), false);
   assert.equal(shouldRunCommandOnPointerDown({ button: 1, pointerType: "mouse" }), false);
+});
+
+test("全站搜索只允许鼠标在 pointerdown 阶段打开", () => {
+  assert.equal(shouldOpenCommandOnPointerDown({ button: 0, pointerType: "mouse" }), true);
+  assert.equal(shouldOpenCommandOnPointerDown({ button: 0, pointerType: "touch" }), false);
+  assert.equal(shouldOpenCommandOnPointerDown({ button: 0, pointerType: "pen" }), false);
+  assert.equal(shouldOpenCommandOnPointerDown({ button: 1, pointerType: "mouse" }), false);
+});
+
+test("触摸点击打开搜索后会短暂阻止结果激活", () => {
+  assert.equal(getCommandActivationDelay({ detail: 1, pointerType: "touch" }, 500), 500);
+  assert.equal(getCommandActivationDelay({ detail: 1 }, 500), 500);
+  assert.equal(getCommandActivationDelay({ detail: 0 }, 500), 0);
+  assert.equal(isCommandActivationBlocked(1500, 1499), true);
+  assert.equal(isCommandActivationBlocked(1500, 1500), false);
 });
 
 test("运行站点结果会直接打开目标 URL 并记录最近访问", () => {
