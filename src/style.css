@@ -4781,7 +4781,8 @@ body.is-command-open {
     overflow-x: hidden;
     overflow-y: auto;
     padding-right: 0;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    padding-bottom: calc(50dvh + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(50dvh + env(safe-area-inset-bottom));
     touch-action: pan-y;
     -webkit-overflow-scrolling: touch;
   }
@@ -4877,6 +4878,11 @@ body.is-command-open {
     .command-palette {
       height: 100vh;
       max-height: 100vh;
+    }
+
+    .command-results {
+      padding-bottom: calc(50vh + env(safe-area-inset-bottom));
+      scroll-padding-bottom: calc(50vh + env(safe-area-inset-bottom));
     }
   }
 }
