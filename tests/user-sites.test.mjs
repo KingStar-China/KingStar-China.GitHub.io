@@ -28,6 +28,28 @@ test("自定义站点图标地址为空时保持为空", () => {
   assert.equal(site.icon, "");
 });
 
+test("SVG 图标地址和 ICO 一样只校验 HTTP(S) 地址，不限制扩展名", () => {
+  const site = normalizeUserSiteDraft({
+    name: "FreeSocks",
+    url: "https://freesocks.org/",
+    icon: "https://freesocks.org/favicon.svg",
+    category: "外网",
+  });
+
+  assert.equal(site.icon, "https://freesocks.org/favicon.svg");
+});
+
+test("读取远程站点时会清理图标地址空白并归一化协议大小写", () => {
+  const site = normalizeRemoteUserSite({
+    id: "remote-site",
+    name: "FreeSocks",
+    url: "https://freesocks.org/",
+    icon: " HTTPS://freesocks.org/favicon.svg ",
+  });
+
+  assert.equal(site.icon, "https://freesocks.org/favicon.svg");
+});
+
 test("自定义站点分类为空时拒绝提交", () => {
   const site = normalizeUserSiteDraft({
     name: "示例",

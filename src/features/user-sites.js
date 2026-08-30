@@ -38,7 +38,7 @@ export function normalizeRemoteUserSite(site) {
     category: String(site.category || "个人").trim() || "个人",
     tags: Array.isArray(site.tags) ? site.tags.map((tag) => String(tag).trim()).filter(Boolean) : [],
     aliases: Array.isArray(site.aliases) ? site.aliases.map((alias) => String(alias).trim()).filter(Boolean) : [],
-    icon: String(site.icon || ""),
+    icon: normalizeRemoteIcon(site.icon),
     description: normalizeRemoteDescription(site.description),
     createdAt: normalizeRemoteTimestamp(site.created_at || site.createdAt),
     source: "user",
@@ -84,6 +84,15 @@ function normalizeRemoteTimestamp(value) {
 function normalizeRemoteDescription(value) {
   const description = String(value || "").trim();
   return description === "我的自定义站点" ? "" : description;
+}
+
+function normalizeRemoteIcon(value) {
+  const icon = String(value || "").trim();
+  if (!icon || !/^https?:\/\//i.test(icon)) {
+    return icon;
+  }
+
+  return normalizeHttpUrl(icon);
 }
 
 function normalizeHttpUrl(value) {
