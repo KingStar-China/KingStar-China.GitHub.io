@@ -7,7 +7,7 @@ import {
   persistPersonalDataAccount,
   switchPersonalDataAccount,
 } from "../src/features/personal-data.js";
-import { renderUserPage } from "../src/pages/user.js";
+import { renderUserPage, renderUserSiteModal } from "../src/pages/user.js";
 
 test("个人数据快照会在站点索引可用后保留最近访问", () => {
   const validSiteIds = new Set(["default-site", "remote-user-site"]);
@@ -141,6 +141,34 @@ test("添加网站按钮对应独立网站表单弹窗", () => {
   assert.match(markup, /id="user-site-form-title">添加网站/);
   assert.match(markup, /data-user-site-field="url"/);
   assert.match(markup, /data-action="add-user-site"/);
+});
+
+test("导航页可以复用网站编辑弹窗而不依赖用户页容器", () => {
+  const state = {
+    sync: { busy: false, message: "正在编辑自定义站点" },
+    userSites: [{ category: "外网", tags: ["节点"] }],
+    userSiteEditingId: "user-site-1",
+    userSiteDraft: {
+      name: "FreeSocks",
+      url: "https://freesocks.org/",
+      icon: "https://freesocks.org/favicon.svg",
+      category: "外网",
+      tags: "节点",
+      aliases: "freesocks.org",
+      description: "免费节点",
+    },
+  };
+
+  const markup = renderUserSiteModal({
+    state,
+    escapeHTML: (value) => String(value),
+    categoryOrder: ["外网"],
+    allSites: state.userSites,
+  });
+
+  assert.match(markup, /id="user-site-form-title">编辑网站/);
+  assert.match(markup, /value="https:\/\/freesocks.org\/favicon\.svg"/);
+  assert.match(markup, /data-action="cancel-edit-user-site"/);
 });
 
 test("账户设置只在设置弹窗中显示同步和密码操作", () => {

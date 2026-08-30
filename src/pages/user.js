@@ -191,8 +191,21 @@ function renderUserSitesManager({ state, escapeHTML, renderSiteCard, categoryOrd
   `;
 }
 
-function renderUserSiteModal({ state, escapeHTML, categoryOptions, tagOptions, disabled }) {
+export function renderUserSiteModal({
+  state,
+  escapeHTML,
+  categoryOptions,
+  tagOptions,
+  disabled,
+  categoryOrder = [],
+  allSites = [],
+}) {
   const isEditing = Boolean(state.userSiteEditingId);
+  const resolvedCategoryOptions = Array.isArray(categoryOptions)
+    ? categoryOptions
+    : getUserSiteCategories(categoryOrder, state.userSites);
+  const resolvedTagOptions = Array.isArray(tagOptions) ? tagOptions : getUserSiteTags(allSites);
+  const resolvedDisabled = typeof disabled === "string" ? disabled : state.sync.busy ? "disabled" : "";
 
   return `
     <div class="user-site-modal" role="dialog" aria-modal="true" aria-labelledby="user-site-form-title">
@@ -207,29 +220,29 @@ function renderUserSiteModal({ state, escapeHTML, categoryOptions, tagOptions, d
         </div>
         <div class="user-site-edit-form">
           <div class="user-site-form__row user-site-form__row--url">
-            ${renderUrlControl({ value: state.userSiteDraft.url, escapeHTML, disabled })}
+            ${renderUrlControl({ value: state.userSiteDraft.url, escapeHTML, disabled: resolvedDisabled })}
           </div>
           <div class="user-site-form__row user-site-form__row--details">
-            <input class="workbench-input" data-user-site-field="name" value="${escapeHTML(state.userSiteDraft.name)}" placeholder="站点名称" ${disabled}>
-            <input class="workbench-input" data-user-site-field="icon" value="${escapeHTML(state.userSiteDraft.icon)}" placeholder="图标地址（可选）" ${disabled}>
+            <input class="workbench-input" data-user-site-field="name" value="${escapeHTML(state.userSiteDraft.name)}" placeholder="站点名称" ${resolvedDisabled}>
+            <input class="workbench-input" data-user-site-field="icon" value="${escapeHTML(state.userSiteDraft.icon)}" placeholder="图标地址（可选）" ${resolvedDisabled}>
           </div>
           <div class="user-site-form__row">
-            ${renderCategoryControl({ value: state.userSiteDraft.category, categoryOptions, escapeHTML, disabled })}
+            ${renderCategoryControl({ value: state.userSiteDraft.category, categoryOptions: resolvedCategoryOptions, escapeHTML, disabled: resolvedDisabled })}
           </div>
           <div class="user-site-form__row">
-            ${renderTagControl({ value: state.userSiteDraft.tags, tagOptions, escapeHTML, disabled })}
+            ${renderTagControl({ value: state.userSiteDraft.tags, tagOptions: resolvedTagOptions, escapeHTML, disabled: resolvedDisabled })}
           </div>
           <div class="user-site-form__row">
-            <input class="workbench-input" data-user-site-field="aliases" value="${escapeHTML(state.userSiteDraft.aliases)}" placeholder="别名（可选，用逗号分隔）" ${disabled}>
+            <input class="workbench-input" data-user-site-field="aliases" value="${escapeHTML(state.userSiteDraft.aliases)}" placeholder="别名（可选，用逗号分隔）" ${resolvedDisabled}>
           </div>
           <div class="user-site-form__row">
-            <input class="workbench-input" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="说明（可选）" ${disabled}>
+            <input class="workbench-input" data-user-site-field="description" value="${escapeHTML(state.userSiteDraft.description)}" placeholder="说明（可选）" ${resolvedDisabled}>
           </div>
         </div>
         <p class="workbench-helper user-site-modal__status" data-role="sync-status">${escapeHTML(state.sync.message)}</p>
         <div class="user-site-modal__actions">
-          <button type="button" class="inline-reset" data-action="cancel-edit-user-site" ${disabled}>取消</button>
-          <button type="button" class="workbench-button" data-action="add-user-site" ${disabled}>${isEditing ? "保存修改" : "添加网站"}</button>
+          <button type="button" class="inline-reset" data-action="cancel-edit-user-site" ${resolvedDisabled}>取消</button>
+          <button type="button" class="workbench-button" data-action="add-user-site" ${resolvedDisabled}>${isEditing ? "保存修改" : "添加网站"}</button>
         </div>
       </article>
     </div>

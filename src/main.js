@@ -33,7 +33,7 @@ import {
 } from "./features/supabase.js";
 import { mergeSitesBySubmittedAt, normalizeRemoteUserSite, normalizeUserSiteDraft } from "./features/user-sites.js";
 import { buildPageViewEvent, getAnalyticsVisitorId } from "./features/analytics.js";
-import { renderUserPage as renderUserPageView } from "./pages/user.js";
+import { renderUserPage as renderUserPageView, renderUserSiteModal as renderUserSiteModalView } from "./pages/user.js";
 
 /**
  * @typedef {Object} SiteItem
@@ -1558,19 +1558,28 @@ function renderBlogDetailToolbar() {
   `;
 }
 function renderContent() {
+  let content;
+
   if (state.section === "user" || state.section === "login") {
-    return renderUserPage();
+    content = renderUserPage();
+  } else if (state.section === "nav") {
+    content = renderNavContent();
+  } else if (state.section === "blog-list") {
+    content = renderBlogList();
+  } else {
+    content = renderBlogDetail();
   }
 
-  if (state.section === "nav") {
-    return renderNavContent();
+  if (state.userSiteModalOpen && state.sync.signedIn && state.section !== "user" && state.section !== "login") {
+    content += renderUserSiteModalView({
+      state,
+      escapeHTML,
+      categoryOrder,
+      allSites: sites,
+    });
   }
 
-  if (state.section === "blog-list") {
-    return renderBlogList();
-  }
-
-  return renderBlogDetail();
+  return content;
 }
 
 function renderUserPage() {
@@ -2309,7 +2318,11 @@ function renderCommandEmptyState() {
 function renderIcon(site) {
   const initials = getInitials(site.name);
   const hue = getHue(site.id);
-  const src = site.icon ? resolveAsset(site.icon) : getSiteFaviconUrl(site.url);
+  const iconValue = String(site.icon || "").trim();
+  const iconSrc = resolveAsset(iconValue);
+  const faviconSrc = getSiteFaviconUrl(site.url);
+  const src = iconSrc || faviconSrc;
+  const fallbackSrc = iconSrc && iconSrc !== faviconSrc ? faviconSrc : "";
 
   if (src) {
     return `
@@ -2318,6 +2331,9 @@ function renderIcon(site) {
           src="${escapeHTML(src)}"
           alt="${escapeHTML(site.name)}"
           loading="lazy"
+          decoding="async"
+          referrerpolicy="no-referrer"
+          ${fallbackSrc ? `data-icon-fallback="${escapeHTML(fallbackSrc)}"` : ""}
           onerror="handleIconError(this)"
         >
         <span class="site-icon__fallback" hidden style="--icon-hue: ${hue};">${escapeHTML(initials)}</span>
@@ -4886,6 +4902,13 @@ function handleIconError(image) {
     return;
   }
 
+  const fallbackSrc = image.dataset?.iconFallback || "";
+  if (fallbackSrc && image.dataset.iconFallbackUsed !== "true") {
+    image.dataset.iconFallbackUsed = "true";
+    image.src = fallbackSrc;
+    return;
+  }
+
   const fallback = image?.nextElementSibling;
   if (fallback) {
     fallback.hidden = false;
@@ -4902,11 +4925,17 @@ function getSiteFaviconUrl(url) {
 }
 
 function resolveAsset(path) {
-  if (/^https?:\/\//.test(path)) {
-    return path;
+  const value = String(path || "").trim();
+  if (!value) {
+    return "";
   }
 
-  return new URL(path, window.location.href).href;
+  try {
+    const url = new URL(value, window.location.href);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+  } catch {
+    return "";
+  }
 }
 
 function getInitials(name) {
