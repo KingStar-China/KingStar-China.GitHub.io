@@ -1,0 +1,5 @@
+project_id = "845864204-nav"
+
+[functions.admin-blog]
+verify_jwt = true
+entrypoint = "./functions/admin-blog/index.ts"

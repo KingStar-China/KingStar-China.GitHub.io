@@ -9,4 +9,6 @@ dist/
 .admin.err.log
 admin-server.log
 admin-server.err.log
+supabase/.temp/
+supabase/.branches/
 

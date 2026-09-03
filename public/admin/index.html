@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex,nofollow">
     <title>超级用户后台 | 少昊导航</title>
+    <link rel="stylesheet" href="./blog.css">
     <style>
       :root {
         color-scheme: dark;
@@ -409,7 +410,7 @@
         <div class="login-card__head">
           <p class="eyebrow">ADMIN</p>
           <h1>登录到后台</h1>
-          <p class="muted">管理主页公共网站数据</p>
+          <p class="muted">管理网站和博客</p>
         </div>
         <div class="form">
           <label>邮箱
@@ -423,7 +424,12 @@
         </div>
       </section>
 
-      <section class="layout hidden" data-view="admin">
+      <div class="hidden" data-view="admin-shell">
+      <nav class="admin-tabs" data-role="admin-tabs" aria-label="管理内容" role="tablist">
+        <button type="button" role="tab" id="sites-tab" aria-controls="sites-panel" aria-selected="true" data-admin-section="sites">网站</button>
+        <button type="button" role="tab" id="blog-tab" aria-controls="blog-panel" aria-selected="false" data-admin-section="blog" tabindex="-1">博客</button>
+      </nav>
+      <section class="layout" data-view="admin" id="sites-panel" role="tabpanel" aria-labelledby="sites-tab">
         <article class="panel card">
           <div>
             <p class="eyebrow">EDIT SITE</p>
@@ -498,9 +504,13 @@
           <div class="site-list" data-role="site-list"></div>
         </article>
       </section>
+      <section class="hidden" id="blog-panel" data-role="blog-manager" role="tabpanel" aria-labelledby="blog-tab"></section>
+      </div>
     </main>
 
-    <script>
+    <script type="module">
+      import { createBlogManager } from "./blog.js";
+
       const SUPABASE_URL = "https://zfvwrnuenurxauvvfsuw.supabase.co";
       const SUPABASE_KEY = "sb_publishable_TQuGLzZKqPmkr3_d_LCyAw_aA9RAsOy";
       const SESSION_KEY = "nav-admin.session";
@@ -524,7 +534,7 @@
 
       const views = {
         login: document.querySelector('[data-view="login"]'),
-        admin: document.querySelector('[data-view="admin"]'),
+        admin: document.querySelector('[data-view="admin-shell"]'),
       };
       const shell = document.querySelector(".shell");
       const loginStatus = document.querySelector('[data-role="login-status"]');
@@ -539,6 +549,16 @@
       const signOutButton = document.querySelector('[data-action="sign-out"]');
       const iconUpload = document.querySelector('[data-role="icon-upload"]');
       let refreshSessionPromise = null;
+      const blogManager = createBlogManager({
+        root: document.querySelector('[data-role="blog-manager"]'),
+        tabs: document.querySelector('[data-role="admin-tabs"]'),
+        sitesPanel: document.querySelector('[data-view="admin"]'),
+        request: (payload) => requestRest("/functions/v1/admin-blog", {
+          method: "POST", auth: true, body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(90000),
+        }),
+        toast: showToast,
+      });
 
       siteSearch.addEventListener("input", () => {
         state.siteQuery = siteSearch.value.trim().toLocaleLowerCase();
@@ -575,7 +595,7 @@
         if (!action) return;
 
         if (action === "sign-in") runAction(actionButton, "登录中...", signIn);
-        if (action === "sign-out") runAction(actionButton, "退出中...", signOut);
+        if (action === "sign-out" && blogManager.canLeave()) runAction(actionButton, "退出中...", signOut);
         if (action === "save-site") runAction(actionButton, "保存中...", saveSite);
         if (action === "identify-site") identifySite();
         if (action === "upload-icon") iconUpload.click();
@@ -963,6 +983,7 @@
       }
 
       function showLogin() {
+        blogManager.reset();
         views.login.classList.remove("hidden");
         views.admin.classList.add("hidden");
         signOutButton.classList.add("hidden");
@@ -1072,6 +1093,7 @@
           method: options.method || "GET",
           headers,
           body: options.body,
+          signal: options.signal,
         });
         const text = await response.text();
         let payload = null;
