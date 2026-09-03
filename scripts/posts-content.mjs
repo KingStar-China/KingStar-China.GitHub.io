@@ -3,6 +3,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import hljs from "highlight.js";
 import { Marked } from "marked";
+import { normalizeMarkdownContent, parsePostMarkdown, serializePostMarkdown } from "../src/lib/post-markdown.js";
+
+export { normalizeMarkdownContent } from "../src/lib/post-markdown.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -89,13 +92,6 @@ export async function writePostsToMarkdown(posts) {
   return await syncGeneratedPostsData();
 }
 
-export function normalizeMarkdownContent(value) {
-  return String(value || "")
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n")
-    .trim();
-}
-
 export function getReferencedPostImageNames(content) {
   const matches = String(content || "").matchAll(POST_IMAGE_PATTERN);
   return Array.from(new Set(
@@ -103,100 +99,6 @@ export function getReferencedPostImageNames(content) {
       .map((match) => String(match[1] || "").trim())
       .filter(Boolean),
   ));
-}
-
-function parsePostMarkdown(source, id) {
-  const normalizedSource = String(source || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  const match = normalizedSource.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
-
-  if (!match) {
-    throw new Error(`${id}.md 缺少 front matter`);
-  }
-
-  const metadata = parseFrontMatter(match[1], id);
-  const content = normalizeMarkdownContent(match[2]);
-
-  return {
-    id,
-    ...metadata,
-    content,
-  };
-}
-
-function parseFrontMatter(block, id) {
-  const metadata = {
-    title: "",
-    summary: "",
-    publishedAt: "",
-    tags: [],
-  };
-  const lines = String(block || "").split("\n");
-
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index].trimEnd();
-    if (!line.trim()) {
-      continue;
-    }
-
-    if (/^tags\s*:\s*$/.test(line)) {
-      const tags = [];
-      while (index + 1 < lines.length && /^\s*-\s+/.test(lines[index + 1])) {
-        index += 1;
-        tags.push(parseScalar(lines[index].replace(/^\s*-\s+/, "")));
-      }
-      metadata.tags = tags.filter(Boolean);
-      continue;
-    }
-
-    const scalarMatch = line.match(/^([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*)$/);
-    if (!scalarMatch) {
-      throw new Error(`${id}.md front matter 无法解析：${line}`);
-    }
-
-    const [, key, value] = scalarMatch;
-    if (!(key in metadata)) {
-      continue;
-    }
-
-    metadata[key] = parseScalar(value);
-  }
-
-  return metadata;
-}
-
-function parseScalar(value) {
-  const text = String(value || "").trim();
-  if (!text) {
-    return "";
-  }
-
-  if ((text.startsWith("\"") && text.endsWith("\"")) || (text.startsWith("'") && text.endsWith("'"))) {
-    try {
-      return JSON.parse(text.startsWith("'") ? `"${text.slice(1, -1).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"` : text);
-    } catch {
-      return text.slice(1, -1);
-    }
-  }
-
-  return text;
-}
-
-function serializePostMarkdown(post) {
-  const tags = Array.isArray(post.tags) ? post.tags : [];
-  const content = normalizeMarkdownContent(post.content);
-
-  return [
-    "---",
-    `title: ${JSON.stringify(String(post.title || "").trim())}`,
-    `summary: ${JSON.stringify(String(post.summary || "").trim())}`,
-    `publishedAt: ${JSON.stringify(String(post.publishedAt || "").trim())}`,
-    "tags:",
-    ...tags.map((tag) => `  - ${JSON.stringify(String(tag || "").trim())}`),
-    "---",
-    "",
-    content,
-    "",
-  ].join("\n");
 }
 
 async function deleteUnusedPostImages(existingPosts, nextPosts, removedPostIds) {

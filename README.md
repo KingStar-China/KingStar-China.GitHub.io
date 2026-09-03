@@ -110,7 +110,28 @@ npm run build
 
 ## 数据维护
 
-站点数据统一维护在 [`src/data/sites.js`](./src/data/sites.js)，博客文章维护在 [`src/data/posts.js`](./src/data/posts.js)。
+默认站点维护在 [`src/data/sites.js`](./src/data/sites.js)，公网后台添加的公共站点存放在 Supabase。博客正文维护在 [`src/content/posts/`](./src/content/posts/) 的 Markdown 文件中；`src/data/posts.generated.js` 是构建产物，不要直接编辑。
+
+## 公网博客管理
+
+登录 [超级后台](https://845864204.xyz/admin/) 后，切换到“博客”，即可新建、编辑、预览和删除文章。保存会提交对应的 Markdown 文件到本仓库 `main` 分支，并触发原有的 GitHub Pages 部署；页面分别显示保存结果和发布状态。
+
+- 博客仍在 GitHub，不存放在 Supabase 数据库。Supabase Edge Function `admin-blog` 仅负责验证登录用户的 `admin_users.user_id` 权限、校验内容和代理指定仓库的操作。
+- 编辑使用文件 SHA 检查版本。遇到冲突或网络失败时保留编辑框内容，不强制覆盖仓库。删除文章不会自动删除图片，避免误删共享图片。
+- 正文使用 Markdown，预览在禁用脚本的隔离 iframe 中显示。现有 `public/post-image/` 图片继续可用；新图片可引用 HTTPS 图片地址。
+- 本地编辑前先运行 `git pull --ff-only`，同步公网后台提交的文章，再使用本地管理器或直接编辑 Markdown。
+
+### 部署博客接口
+
+`supabase/config.toml` 为 `admin-blog` 启用 JWT 验证。服务端还会向 Supabase Auth 验证用户，再通过用户自己的权限查询管理员标记；普通用户不能调用博客接口。
+
+在 Supabase 项目的 Edge Function Secrets 中设置 `BLOG_GITHUB_TOKEN` 和 `BLOG_SUPABASE_PUBLISHABLE_KEY`。GitHub 凭据需能访问本仓库，至少具有 Contents 读写与 Actions 读取权限；建议使用仅授权此仓库的 fine-grained token。不要把 GitHub token 放进 `VITE_` 环境变量、前端文件或 Git 仓库。
+
+```powershell
+npx --yes supabase@2.116.0 functions deploy admin-blog --project-ref zfvwrnuenurxauvvfsuw --use-api
+```
+
+接口锁定本仓库、`main` 分支及 `src/content/posts/*.md`。修改域名或仓库时，需要同步调整 `supabase/functions/admin-blog/handler.js` 中的配置并重新部署。
 
 每个站点条目至少包含这些字段：
 
@@ -135,7 +156,7 @@ npm run admin
 这个页面只在本机运行，用来编辑：
 
 - `src/data/sites.js`
-- `src/data/posts.js`
+- `src/content/posts/*.md`
 
 可以在本地管理器里完成这些操作：
 
