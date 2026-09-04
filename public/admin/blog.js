@@ -254,7 +254,7 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
     if (action === "preview") run(async (started) => {
       const { html } = await request({ action: "preview", content: fields.content.value });
       if (started !== generation) return;
-      byRole("preview").srcdoc = previewDocument(html);
+      renderBlogPreview(byRole("preview"), html);
       setMode("preview");
     });
     if (action === "delete" && current?.sha && window.confirm(`确定删除文章“${current.post.title}”并发布吗？`)) {
@@ -311,6 +311,15 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+}
+
+export function renderBlogPreview(frame, html) {
+  // Reusing a hidden srcdoc frame can leave its document without a layout in Chromium.
+  const preview = frame.cloneNode(false);
+  preview.classList.remove("hidden");
+  preview.srcdoc = previewDocument(html);
+  frame.replaceWith(preview);
+  return preview;
 }
 
 export function previewDocument(html) {

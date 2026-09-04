@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import { createAdminBlogHandler } from "../supabase/functions/admin-blog/handler.js";
 import { parsePostMarkdown, serializePostMarkdown } from "../src/lib/post-markdown.js";
-import { previewDocument } from "../public/admin/blog.js";
+import { previewDocument, renderBlogPreview } from "../public/admin/blog.js";
 
 const SHA_A = "a".repeat(40);
 const SHA_B = "b".repeat(40);
@@ -279,4 +279,45 @@ test("文章预览文档设置禁用脚本的 CSP", () => {
   assert.match(document, /default-src 'none'/);
   assert.match(document, /form-action 'none'/);
   assert.doesNotMatch(document, /script-src 'unsafe-inline'/);
+});
+
+test("每次预览挂载新的可见 iframe，保留隔离属性且不复用旧文档", () => {
+  let mounted;
+  function frame(attributes, source = "") {
+    return {
+      attributes: { ...attributes },
+      srcdoc: source,
+      hidden: true,
+      classList: { remove(name) { assert.equal(name, "hidden"); } },
+      cloneNode(deep) {
+        assert.equal(deep, false);
+        const copy = frame(this.attributes, this.srcdoc);
+        copy.classList.remove = (name) => {
+          assert.equal(name, "hidden");
+          copy.hidden = false;
+        };
+        return copy;
+      },
+      replaceWith(next) {
+        assert.equal(next.hidden, false);
+        assert.match(next.srcdoc, /<!doctype html>/);
+        mounted = next;
+      },
+    };
+  }
+  const original = frame({ sandbox: "", referrerpolicy: "no-referrer", title: "文章预览" });
+  const first = renderBlogPreview(original, "<h2>首次正文</h2><img src='/post-image/example.png'>");
+  assert.equal(mounted, first);
+  assert.notEqual(first, original);
+  assert.equal(original.srcdoc, "");
+  assert.deepEqual(first.attributes, original.attributes);
+  assert.match(first.srcdoc, /首次正文/);
+  assert.match(first.srcdoc, /src='\/post-image\/example.png'/);
+
+  const next = renderBlogPreview(first, "<p>修改后的正文</p>");
+  assert.equal(mounted, next);
+  assert.notEqual(next, first);
+  assert.deepEqual(next.attributes, original.attributes);
+  assert.match(next.srcdoc, /修改后的正文/);
+  assert.doesNotMatch(next.srcdoc, /首次正文/);
 });
