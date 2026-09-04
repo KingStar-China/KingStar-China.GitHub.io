@@ -326,6 +326,24 @@ export function previewDocument(html) {
   return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data: 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>body{margin:0;padding:24px;font:16px/1.8 system-ui,sans-serif;color:#16252c;overflow-wrap:anywhere}img{max-width:100%;height:auto}pre{overflow:auto;padding:16px;background:#edf2f4}code{font-family:ui-monospace,monospace}table{border-collapse:collapse;display:block;overflow:auto}td,th{border:1px solid #ccd5d9;padding:8px}a{color:#087e72}blockquote{border-left:3px solid #0f766e;margin-left:0;padding-left:16px;color:#586b75}</style>
+    <style>
+      :root{color-scheme:dark;--bg:#08141d;--panel-soft:#0e2330;--border:rgba(151,226,219,.18);--text:#e8f3f5;--muted:#95aab4;--heading:#f5fbfc;--brand-strong:#9ff7ed;background:var(--bg);color:var(--text);scrollbar-color:#48636f var(--bg)}
+      *{box-sizing:border-box}
+      body{margin:0;padding:24px;font:16px/1.8 system-ui,"Microsoft YaHei","PingFang SC",sans-serif;overflow-wrap:anywhere}
+      body>:first-child{margin-top:0}body>:last-child{margin-bottom:0}
+      h1,h2,h3,h4,h5,h6{color:var(--heading);line-height:1.45}
+      img{max-width:100%;height:auto}
+      pre{overflow:auto;padding:16px;border:1px solid var(--border);border-radius:6px;background:var(--panel-soft)}
+      code{font-family:ui-monospace,"Cascadia Code",Consolas,monospace}
+      :not(pre)>code{padding:2px 5px;border-radius:4px;background:var(--panel-soft);color:#ffd19a}
+      table{border-collapse:collapse;display:block;max-width:100%;overflow:auto}
+      td,th{border:1px solid var(--border);padding:8px 12px}th{background:var(--panel-soft);color:var(--heading)}
+      a{color:var(--brand-strong);text-underline-offset:.18em}a:hover{color:var(--heading)}
+      blockquote{border-left:3px solid #0f766e;margin-left:0;padding-left:16px;color:var(--muted)}
+      hr{border:0;border-top:1px solid var(--border);margin:24px 0}
+      :focus-visible{outline:2px solid var(--brand-strong);outline-offset:3px}
+      ::selection{background:#0f766e;color:var(--heading)}
+      @media(max-width:480px){body{padding:16px}}
+    </style>
     </head><body>${html}</body></html>`;
 }

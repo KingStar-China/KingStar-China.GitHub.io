@@ -281,6 +281,27 @@ test("文章预览文档设置禁用脚本的 CSP", () => {
   assert.doesNotMatch(document, /script-src 'unsafe-inline'/);
 });
 
+test("文章预览和外层框使用深色配色，不反转文章图片", async () => {
+  const document = previewDocument('<p>正文 <code>code</code></p><img src="/post-image/example.png">');
+  const styles = document.match(/<style>([\s\S]*?)<\/style>/)[1];
+  const admin = await readFile(new URL("../public/admin/index.html", import.meta.url), "utf8");
+  const outerStyles = await readFile(new URL("../public/admin/blog.css", import.meta.url), "utf8");
+  const frameRule = outerStyles.match(/\.blog-preview\s*\{([^}]+)\}/)[1];
+
+  assert.match(styles, /color-scheme:dark/);
+  assert.match(styles, /background:var\(--bg\)/);
+  assert.match(frameRule, /background:\s*var\(--panel\)/);
+  assert.match(frameRule, /color-scheme:\s*dark/);
+  for (const name of ["text", "muted", "heading", "brand-strong"]) {
+    const value = admin.match(new RegExp(`--${name}:\\s*(#[a-f0-9]+)`))[1];
+    assert.ok(styles.includes(`--${name}:${value}`), `Preview should match admin ${name}`);
+  }
+  assert.match(styles, /pre\{[^}]*background:var\(--panel-soft\)/);
+  assert.match(styles, /scrollbar-color:/);
+  assert.doesNotMatch(styles, /(?:filter|mix-blend-mode)\s*:/);
+  assert.match(document, /<img src="\/post-image\/example.png">/);
+});
+
 test("每次预览挂载新的可见 iframe，保留隔离属性且不复用旧文档", () => {
   let mounted;
   function frame(attributes, source = "") {
