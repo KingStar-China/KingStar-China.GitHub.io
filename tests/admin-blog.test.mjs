@@ -6,6 +6,7 @@ import { parsePostMarkdown, serializePostMarkdown } from "../src/lib/post-markdo
 import { createRequire } from "node:module";
 import { marked } from "marked";
 import { createMarkdownEditor } from "../public/admin/markdown-editor.js";
+import { describeBlogSave, describeBlogPublication } from "../public/admin/blog.js";
 
 const SHA_A = "a".repeat(40);
 const SHA_B = "b".repeat(40);
@@ -299,6 +300,62 @@ function editorHarness(loadEditor) {
   const editor = createMarkdownEditor({ source, container, modeControl, onChange: () => { changes += 1; }, loadEditor: loadEditor || (async () => Editor) });
   return { source, container, editor, Editor, toolbar, modeControl, get instance() { return instance; }, get changes() { return changes; } };
 }
+
+test("保存按钮立即进入处理中且不允许重复提交", () => {
+  const saving = describeBlogSave({ phase: "saving" }, true, true);
+  assert.equal(saving.label, "正在保存…");
+  assert.equal(saving.state, "saving");
+  assert.equal(saving.locked, true);
+  assert.equal(saving.tone, "busy");
+});
+
+test("无新修改时锁定保存按钮，修改文章或新建后重新允许保存", () => {
+  assert.equal(describeBlogSave({}, false, true).locked, true);
+  assert.equal(describeBlogSave({}, false, true).label, "已保存");
+  assert.equal(describeBlogSave({}, true, true).locked, false);
+  assert.equal(describeBlogSave({}, false, false).locked, false);
+  const dirty = describeBlogSave({ phase: "published", message: "已发布上线。" }, true, true);
+  assert.equal(dirty.label, "保存并发布");
+  assert.match(dirty.message, /未保存/);
+});
+
+test("保存未确认可重试，发布失败仍明确标为已经保存", () => {
+  const failed = describeBlogSave({ phase: "error", message: "网络超时，内容仍保留" }, true, true);
+  assert.equal(failed.label, "重试保存");
+  assert.equal(failed.locked, false);
+  assert.equal(failed.tone, "error");
+  const publication = describeBlogPublication({ status: "completed", conclusion: "failure" }, true);
+  const saved = describeBlogSave(publication, false, true);
+  assert.equal(saved.label, "已保存");
+  assert.equal(saved.locked, true);
+  assert.equal(saved.tone, "warning");
+  assert.match(saved.message, /文章已保存.*发布失败/);
+});
+
+test("只有发布任务成功才显示已上线，不混淆等待、构建和取消", () => {
+  for (const deployment of [null, { status: "queued" }, { status: "in_progress" }]) {
+    const feedback = describeBlogPublication(deployment, true);
+    assert.equal(feedback.phase, "publishing");
+    assert.equal(describeBlogSave(feedback, false, true).label, "已保存");
+  }
+  const success = describeBlogPublication({ status: "completed", conclusion: "success" }, true);
+  assert.equal(describeBlogSave(success, false, true).label, "已发布");
+  const cancelled = describeBlogPublication({ status: "completed", conclusion: "cancelled" }, true);
+  assert.equal(cancelled.phase, "publish-error");
+  assert.match(cancelled.message, /已保存.*取消/);
+  assert.equal(describeBlogSave({ phase: "publish-unknown" }, false, true).label, "已保存");
+});
+
+test("保存提示位于按钮旁并可被读屏读取，保存和发布结果分别处理", async () => {
+  const client = await readFile(new URL("../public/admin/blog.js", import.meta.url), "utf8");
+  assert.match(client, /data-blog-role="save-feedback" role="status" aria-live="polite"/);
+  assert.match(client, /aria-describedby="blog-save-feedback"/);
+  assert.match(client, /if \(current\.sha && !isDirty\(\)\) return/);
+  assert.match(client, /saveButton\.disabled = busy \|\| !current \|\| feedback\.locked/);
+  assert.match(client, /if \(commit && saveFeedback\.commit === commit\)/);
+  assert.match(client, /check !== publishCheck/);
+  assert.match(client, /toast\(result\.unchanged/);
+});
 
 test("切换按钮只挂载一次到工具栏末尾，源码模式不编辑隐藏的可视化内容", async () => {
   const h = editorHarness();
