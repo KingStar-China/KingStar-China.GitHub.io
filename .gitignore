@@ -1,5 +1,6 @@
 node_modules/
 dist/
+public/admin/vendor/
 .DS_Store
 .env.local
 .env.*.local

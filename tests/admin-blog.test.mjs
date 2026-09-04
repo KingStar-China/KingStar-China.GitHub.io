@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import { createAdminBlogHandler } from "../supabase/functions/admin-blog/handler.js";
 import { parsePostMarkdown, serializePostMarkdown } from "../src/lib/post-markdown.js";
-import { previewDocument, renderBlogPreview } from "../public/admin/blog.js";
+import { createRequire } from "node:module";
+import { marked } from "marked";
+import { createMarkdownEditor } from "../public/admin/markdown-editor.js";
 
 const SHA_A = "a".repeat(40);
 const SHA_B = "b".repeat(40);
@@ -274,71 +276,140 @@ test("现有 Markdown 文章可由共享解析器无损序列化", async () => {
   }
 });
 
-test("文章预览文档设置禁用脚本的 CSP", () => {
-  const document = previewDocument("<p>正文</p><script>alert(1)</script>");
-  assert.match(document, /default-src 'none'/);
-  assert.match(document, /form-action 'none'/);
-  assert.doesNotMatch(document, /script-src 'unsafe-inline'/);
+function editorHarness(loadEditor) {
+  const source = Object.assign(new EventTarget(), { value: "*原始正文*\n" });
+  const container = Object.assign(new EventTarget(), { querySelector: () => null, querySelectorAll: () => [] });
+  let instance, changes = 0;
+  class Editor {
+    constructor(_container, options) {
+      instance = this;
+      this.options = options;
+      this.writes = [];
+      this.disabledCount = 0;
+      queueMicrotask(options.after);
+    }
+    setValue(value, clearStack) { this.writes.push({ value, clearStack }); this.value = value.trim().replaceAll("*", "_"); }
+    getValue() { return this.value; }
+    disabled() { this.disabledCount += 1; }
+    enable() { this.disabledCount -= 1; }
+    destroy() { this.destroyed = true; }
+  }
+  const editor = createMarkdownEditor({ source, container, onChange: () => { changes += 1; }, loadEditor: loadEditor || (async () => Editor) });
+  return { source, container, editor, Editor, get instance() { return instance; }, get changes() { return changes; } };
+}
+
+test("源码与可视化模式双向同步，切换模式不改写原文或清空撤销历史", async () => {
+  const h = editorHarness();
+  await h.editor.showVisual();
+  assert.equal(h.instance.options.mode, "wysiwyg");
+  assert.equal(h.instance.options.cache.enable, false);
+  h.editor.showSource();
+  assert.equal(h.source.value, "*原始正文*\n");
+  assert.equal(h.changes, 0);
+  await h.editor.showVisual();
+  assert.equal(h.instance.writes.length, 1);
+  h.instance.value = "**修改后的正文**\n";
+  h.instance.options.input();
+  assert.equal(h.source.value, "**修改后的正文**\n");
+  h.editor.showSource();
+  h.source.value = "## 源码新增标题\n";
+  await h.editor.showVisual();
+  assert.equal(h.instance.value, "## 源码新增标题");
+  assert.equal(h.instance.writes.length, 2);
 });
 
-test("文章预览和外层框使用深色配色，不反转文章图片", async () => {
-  const document = previewDocument('<p>正文 <code>code</code></p><img src="/post-image/example.png">');
-  const styles = document.match(/<style>([\s\S]*?)<\/style>/)[1];
-  const admin = await readFile(new URL("../public/admin/index.html", import.meta.url), "utf8");
-  const outerStyles = await readFile(new URL("../public/admin/blog.css", import.meta.url), "utf8");
-  const frameRule = outerStyles.match(/\.blog-preview\s*\{([^}]+)\}/)[1];
-
-  assert.match(styles, /color-scheme:dark/);
-  assert.match(styles, /background:var\(--bg\)/);
-  assert.match(frameRule, /background:\s*var\(--panel\)/);
-  assert.match(frameRule, /color-scheme:\s*dark/);
-  for (const name of ["text", "muted", "heading", "brand-strong"]) {
-    const value = admin.match(new RegExp(`--${name}:\\s*(#[a-f0-9]+)`))[1];
-    assert.ok(styles.includes(`--${name}:${value}`), `Preview should match admin ${name}`);
-  }
-  assert.match(styles, /pre\{[^}]*background:var\(--panel-soft\)/);
-  assert.match(styles, /scrollbar-color:/);
-  assert.doesNotMatch(styles, /(?:filter|mix-blend-mode)\s*:/);
-  assert.match(document, /<img src="\/post-image\/example.png">/);
+test("保存前同步最新可视化内容，不等待编辑器延迟回调", async () => {
+  const h = editorHarness();
+  await h.editor.showVisual();
+  h.instance.value = "最后一次按键";
+  assert.equal(h.editor.flush(), "最后一次按键");
+  assert.equal(h.source.value, "最后一次按键");
+  h.instance.value = "_原始正文_";
+  assert.equal(h.editor.flush(), "*原始正文*\n", "Undo to initial document preserves original syntax");
 });
 
-test("每次预览挂载新的可见 iframe，保留隔离属性且不复用旧文档", () => {
-  let mounted;
-  function frame(attributes, source = "") {
-    return {
-      attributes: { ...attributes },
-      srcdoc: source,
-      hidden: true,
-      classList: { remove(name) { assert.equal(name, "hidden"); } },
-      cloneNode(deep) {
-        assert.equal(deep, false);
-        const copy = frame(this.attributes, this.srcdoc);
-        copy.classList.remove = (name) => {
-          assert.equal(name, "hidden");
-          copy.hidden = false;
-        };
-        return copy;
-      },
-      replaceWith(next) {
-        assert.equal(next.hidden, false);
-        assert.match(next.srcdoc, /<!doctype html>/);
-        mounted = next;
-      },
-    };
-  }
-  const original = frame({ sandbox: "", referrerpolicy: "no-referrer", title: "文章预览" });
-  const first = renderBlogPreview(original, "<h2>首次正文</h2><img src='/post-image/example.png'>");
-  assert.equal(mounted, first);
-  assert.notEqual(first, original);
-  assert.equal(original.srcdoc, "");
-  assert.deepEqual(first.attributes, original.attributes);
-  assert.match(first.srcdoc, /首次正文/);
-  assert.match(first.srcdoc, /src='\/post-image\/example.png'/);
+test("切换文章清空撤销栈，保存期间禁用编辑且输入法状态正确", async () => {
+  const h = editorHarness();
+  h.editor.setDisabled(true);
+  await h.editor.showVisual();
+  assert.equal(h.instance.disabledCount, 1);
+  h.editor.setDisabled(true);
+  assert.equal(h.instance.disabledCount, 1);
+  h.editor.setDisabled(false);
+  assert.equal(h.instance.disabledCount, 0);
+  h.container.dispatchEvent(new Event("compositionstart"));
+  assert.equal(h.editor.isComposing(), true);
+  h.container.dispatchEvent(new Event("compositionend"));
+  assert.equal(h.editor.isComposing(), false);
+  h.editor.reset();
+  assert.deepEqual(h.instance.writes.at(-1), { value: "", clearStack: true });
+  h.source.value = "另一篇文章";
+  await h.editor.showVisual();
+  assert.equal(h.instance.value, "另一篇文章");
+});
 
-  const next = renderBlogPreview(first, "<p>修改后的正文</p>");
-  assert.equal(mounted, next);
-  assert.notEqual(next, first);
-  assert.deepEqual(next.attributes, original.attributes);
-  assert.match(next.srcdoc, /修改后的正文/);
-  assert.doesNotMatch(next.srcdoc, /首次正文/);
+test("编辑器加载失败或退出登录后不覆盖源码，下一次可重试", async () => {
+  let resolve, reject;
+  const h = editorHarness(() => new Promise((res, rej) => { resolve = res; reject = rej; }));
+  const failed = h.editor.showVisual();
+  reject(new Error("offline"));
+  await assert.rejects(failed, /offline/);
+  assert.equal(h.source.value, "*原始正文*\n");
+  const stale = h.editor.showVisual();
+  h.editor.reset();
+  h.source.value = "新用户文章";
+  resolve(h.Editor);
+  assert.equal(await stale, false);
+  assert.equal(h.instance, undefined);
+  const retry = h.editor.showVisual();
+  resolve(h.Editor);
+  assert.equal(await retry, true);
+  assert.equal(h.instance.value, "新用户文章");
+});
+
+const require = createRequire(import.meta.url);
+require("../node_modules/vditor/dist/js/lute/lute.min.js");
+function createLute() {
+  const lute = globalThis.Lute.New();
+  lute.SetSanitize(true);
+  lute.SetVditorCodeBlockPreview(false);
+  lute.SetVditorMathBlockPreview(false);
+  lute.SetAutoSpace(false);
+  lute.SetFixTermTypo(false);
+  return lute;
+}
+
+test("实际编辑引擎往返保留现有文章、图片、表格、代码块和任务列表内容", async () => {
+  const lute = createLute();
+  const directory = new URL("../src/content/posts/", import.meta.url);
+  const sources = [];
+  for (const name of (await readdir(directory)).filter((name) => name.endsWith(".md"))) {
+    sources.push(parsePostMarkdown(await readFile(new URL(name, directory), "utf8"), name.slice(0, -3)).content);
+  }
+  sources.push("## 标题\n\n**加粗** 和 [链接](https://example.com)\n\n![说明](/post-image/example.png)\n\n```js\nconst a = '<tag>';\n```\n\n- [x] 已完成\n- [ ] 待完成\n\n| 一 | 二 |\n| --- | --- |\n| A | B |\n");
+  // The rich editor normalizes loose lists to tight lists, without changing item content.
+  const html = (md) => marked.parse(md).replace(/<li><p>([\s\S]*?)<\/p>\s*<\/li>/g, "<li>$1</li>").trim();
+  for (const source of sources) {
+    const roundTrip = lute.VditorDOM2Md(lute.Md2VditorDOM(source));
+    assert.equal(html(roundTrip), html(source));
+  }
+});
+
+test("可视化渲染净化脚本、事件属性和危险链接，代码仍作为代码保留", () => {
+  const lute = createLute();
+  const dom = lute.Md2VditorDOM('<img src="x" onerror="alert(1)">\n\n[危险](javascript:alert(1))\n\n<script>alert(1)</script>\n\n```html\n<img onerror="alert(2)">\n```');
+  assert.doesNotMatch(dom, /<script|<[^>]+\sonerror=|href="javascript:/i);
+  assert.match(dom, /&lt;img/);
+});
+
+test("编辑器延续后台深色主题，不反转图片且前端不再请求只读预览", async () => {
+  const css = await readFile(new URL("../public/admin/blog.css", import.meta.url), "utf8");
+  const client = await readFile(new URL("../public/admin/blog.js", import.meta.url), "utf8");
+  assert.match(css, /--textarea-background-color:\s*#08141d/);
+  assert.match(css, /--textarea-text-color:\s*var\(--text\)/);
+  assert.match(css, /color-scheme:\s*dark/);
+  assert.doesNotMatch(css, /(?:filter|mix-blend-mode)\s*:/);
+  assert.doesNotMatch(client, /action:\s*"preview"|<iframe/);
+  assert.match(client, /markdownEditor\.flush\(\)/);
+  assert.match(client, /event\.submitter !== root\.querySelector\('\[data-blog-action="save"\]'\)/);
 });

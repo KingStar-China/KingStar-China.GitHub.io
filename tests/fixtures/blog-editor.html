@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blog editor regression fixture</title>
+  <link rel="stylesheet" href="/admin/blog.css">
+</head>
+<body>
+  <main style="padding:24px">
+    <div class="admin-tabs" id="tabs" role="tablist">
+      <button role="tab" data-admin-section="sites">网站</button>
+      <button role="tab" data-admin-section="blog">博客</button>
+    </div>
+    <section id="sites"></section>
+    <section id="blog-panel" class="hidden"></section>
+    <pre id="saved" aria-label="保存请求" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>
+  </main>
+  <script type="module">
+    import { createBlogManager } from "/admin/blog.js";
+    import { parsePostMarkdown } from "/src/lib/post-markdown.js";
+    const admin = new DOMParser().parseFromString(await (await fetch("/admin/index.html")).text(), "text/html");
+    document.head.prepend(admin.querySelector("style"));
+    const names = ["20260503102114", "20260502113407", "20260502113341"];
+    const posts = [];
+    for (const id of names) {
+      posts.push(parsePostMarkdown(await (await fetch(`/src/content/posts/${id}.md`)).text(), id));
+    }
+    const saved = document.querySelector("#saved");
+    createBlogManager({
+      root: document.querySelector("#blog-panel"), tabs: document.querySelector("#tabs"), sitesPanel: document.querySelector("#sites"),
+      toast: (message) => { saved.textContent = message; },
+      request: async (body) => {
+        if (body.action === "list") return { posts: posts.map(({ content, ...post }) => ({ ...post, sha: "a".repeat(40) })) };
+        if (body.action === "get") return { post: posts.find((post) => post.id === body.id), sha: "a".repeat(40) };
+        if (body.action === "status") return { deployment: null };
+        if (body.action === "save") {
+          saved.textContent = JSON.stringify(body, null, 2);
+          await new Promise((resolve) => setTimeout(resolve, 1200));
+          const index = posts.findIndex((post) => post.id === body.post.id);
+          if (index >= 0) posts[index] = body.post; else posts.push(body.post);
+          return { post: body.post, sha: "b".repeat(40), unchanged: true };
+        }
+        throw new Error(`Unexpected request: ${body.action}`);
+      },
+    });
+    document.querySelector('[data-admin-section="blog"]').click();
+  </script>
+</body>
+</html>
