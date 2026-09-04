@@ -10,7 +10,9 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
   let publishCommit = "";
   let pollTimer;
   let pollCount = 0;
+  let publishCheck = 0;
   let mode = "visual";
+  let saveFeedback = {};
 
   root.innerHTML = `
     <div class="blog-toolbar">
@@ -58,9 +60,13 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
                 <div class="hidden" data-blog-role="content-label"><textarea aria-label="Markdown 正文" name="blog-post-content" data-blog-field="content" spellcheck="false" required></textarea></div>
               </div>
             </div>
+            <div class="blog-save-feedback" id="blog-save-feedback" data-blog-role="save-feedback" role="status" aria-live="polite" aria-atomic="true">
+              <span data-blog-role="save-message"></span>
+              <a class="hidden" data-blog-role="save-publish-link" target="_blank" rel="noopener noreferrer">查看发布记录</a>
+            </div>
             <div class="blog-editor-actions">
               <div class="actions">
-                <button type="submit" class="button primary" data-blog-action="save">保存并发布</button>
+                <button type="submit" class="button primary blog-save-button" data-blog-action="save" aria-describedby="blog-save-feedback"><span class="blog-save-icon" data-blog-role="save-icon" aria-hidden="true"></span><span data-blog-role="save-label">保存并发布</span></button>
                 <a class="button" data-blog-role="view-post" target="_blank" rel="noopener noreferrer">查看线上文章</a>
               </div>
               <button type="button" class="button danger" data-blog-action="delete">删除文章</button>
@@ -72,6 +78,7 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
 
   const byRole = (name) => root.querySelector(`[data-blog-role="${name}"]`);
   const form = byRole("form");
+  const saveButton = root.querySelector('[data-blog-action="save"]');
   const fields = Object.fromEntries([...root.querySelectorAll("[data-blog-field]")].map((input) => [input.dataset.blogField, input]));
   const list = byRole("list");
   const markdownEditor = createMarkdownEditor({
@@ -105,6 +112,18 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
     form.querySelector("fieldset").disabled = busy;
     root.querySelectorAll("button[data-blog-action], button[data-blog-id]").forEach((button) => { button.disabled = busy; });
     markdownEditor.setDisabled(busy);
+    const feedback = describeBlogSave(saveFeedback, dirty, Boolean(current?.sha));
+    saveButton.disabled = busy || !current || feedback.locked;
+    saveButton.dataset.state = feedback.state;
+    saveButton.setAttribute("aria-busy", String(saveFeedback.phase === "saving"));
+    byRole("save-label").textContent = feedback.label;
+    byRole("save-icon").textContent = feedback.locked && saveFeedback.phase !== "saving" ? "\u2713" : "";
+    byRole("save-feedback").dataset.tone = feedback.tone;
+    byRole("save-message").textContent = feedback.message;
+    const publishLink = byRole("save-publish-link");
+    publishLink.classList.toggle("hidden", !saveFeedback.url || dirty);
+    if (saveFeedback.url) publishLink.href = saveFeedback.url;
+    else publishLink.removeAttribute("href");
     root.querySelector('[data-blog-action="delete"]').disabled = busy || !current?.sha;
     byRole("dirty").textContent = busy ? "处理中…" : dirty ? "未保存" : current?.sha ? "已保存" : "新文章";
     byRole("dirty").dataset.dirty = String(dirty);
@@ -167,6 +186,7 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
 
   function setForm(data) {
     current = data;
+    saveFeedback = {};
     form.classList.toggle("hidden", !data);
     byRole("empty").classList.toggle("hidden", Boolean(data));
     markdownEditor.reset();
@@ -217,25 +237,42 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
     clearTimeout(pollTimer);
     const started = generation;
     const commit = publishCommit;
+    const check = ++publishCheck;
+    let completed = false;
     try {
       const { deployment } = await request({ action: "status", ...(commit ? { commit } : {}) });
-      if (started !== generation || commit !== publishCommit) return;
+      if (started !== generation || commit !== publishCommit || check !== publishCheck) return;
       const status = byRole("publish-status");
       const link = byRole("publish-link");
       const validUrl = deployment?.url?.startsWith("https://github.com/KingStar-China/KingStar-China.GitHub.io/actions/runs/");
       link.classList.toggle("hidden", !validUrl);
       if (validUrl) link.href = deployment.url;
       else link.removeAttribute("href");
-      if (!deployment) status.textContent = commit ? "已保存，等待发布任务启动" : "暂无发布记录";
-      else if (deployment.status !== "completed") status.textContent = "正在构建并发布…";
-      else if (deployment.conclusion === "success") status.textContent = "已发布上线";
-      else if (deployment.conclusion === "cancelled") status.textContent = "此次发布已取消，请查看最新发布记录";
-      else status.textContent = "文章已保存，发布失败，请查看发布记录";
-      if (repeat && (!deployment || deployment.status !== "completed") && ++pollCount < 36) {
-        pollTimer = setTimeout(() => checkPublish(true), 10000);
+      const feedback = describeBlogPublication(deployment, Boolean(commit));
+      completed = deployment?.status === "completed";
+      status.textContent = feedback.message;
+      if (commit && saveFeedback.commit === commit) {
+        const previousPhase = saveFeedback.phase;
+        saveFeedback = { ...saveFeedback, ...feedback, url: validUrl ? deployment.url : "" };
+        updateControls();
+        if (feedback.phase === "published" && previousPhase !== "published") toast("已保存的文章版本已发布上线。");
+        if (feedback.phase === "publish-error" && previousPhase !== "publish-error") toast(feedback.message, "error");
       }
     } catch {
-      if (started === generation && commit === publishCommit) byRole("publish-status").textContent = "暂时无法获取发布状态，请稍后刷新";
+      if (started !== generation || commit !== publishCommit || check !== publishCheck) return;
+      byRole("publish-status").textContent = "暂时无法获取发布状态，请稍后刷新";
+      if (commit && saveFeedback.commit === commit) {
+        saveFeedback = { ...saveFeedback, phase: "publish-unknown", message: "文章已保存，暂时无法确认上线状态，可稍后刷新发布状态。" };
+        updateControls();
+      }
+    } finally {
+      if (repeat && !completed && started === generation && commit === publishCommit && check === publishCheck) {
+        if (++pollCount < 36) pollTimer = setTimeout(() => checkPublish(true), 10000);
+        else if (commit && saveFeedback.commit === commit) {
+          saveFeedback = { ...saveFeedback, phase: "publish-unknown", message: "文章已保存，上线结果尚未确认，请刷新发布状态或查看发布记录。" };
+          updateControls();
+        }
+      }
     }
   }
 
@@ -247,19 +284,37 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
     markdownEditor.flush();
     if (!fields.content.validity.valid) setMode("source");
     if (!form.reportValidity() || !current) return;
+    if (current.sha && !isDirty()) return;
     run(async (started) => {
+      saveFeedback = { phase: "saving" };
+      updateControls();
       setStatus("正在保存文章…");
-      const result = await request({ action: "save", post: readForm(), sha: current.sha });
+      toast("正在保存文章…", "busy");
+      let result;
+      try {
+        result = await request({ action: "save", post: readForm(), sha: current.sha });
+      } catch (error) {
+        if (started === generation) saveFeedback = { phase: "error", message: `未能确认保存结果，编辑内容仍保留，可重试。${error.message || ""}` };
+        throw error;
+      }
       if (started !== generation) return;
       posts = posts.filter((post) => post.id !== result.post.id);
       const { content, ...metadata } = result.post;
       posts.push({ ...metadata, sha: result.sha });
       posts.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
       setForm(result);
-      setStatus(result.unchanged ? "内容与仓库一致，无需重复保存。" : "文章已保存，正在发布。上线进度见上方发布状态。");
-      publishCommit = result.commit || publishCommit;
-      pollCount = 0;
-      checkPublish(true);
+      saveFeedback = {
+        phase: result.commit ? "publishing" : "saved", commit: result.commit || "",
+        message: result.unchanged ? "内容与仓库一致，无需重复保存。" : result.commit ? "保存成功，正在发布，上线状态会自动更新。" : "文章已保存。",
+      };
+      setStatus(saveFeedback.message);
+      updateControls();
+      toast(result.unchanged ? "内容已保存，无需重复提交。" : result.commit ? "保存成功，正在发布。" : "保存成功。");
+      if (result.commit) {
+        publishCommit = result.commit;
+        pollCount = 0;
+        checkPublish(true);
+      }
       await showVisual(started);
     });
   });
@@ -338,6 +393,28 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
 
   reset();
   return { reset, canLeave };
+}
+
+export function describeBlogSave(feedback = {}, dirty = false, hasSavedVersion = false) {
+  if (feedback.phase === "saving") return { label: "正在保存…", message: "正在保存到仓库，请稍候…", tone: "busy", state: "saving", locked: true };
+  if (dirty || !hasSavedVersion) {
+    if (feedback.phase === "error") return { label: "重试保存", message: feedback.message, tone: "error", state: "error", locked: false };
+    return { label: "保存并发布", message: dirty ? "有未保存的修改" : "文章尚未保存", tone: "muted", state: "ready", locked: false };
+  }
+  const warning = ["publish-error", "publish-unknown"].includes(feedback.phase);
+  return {
+    label: feedback.phase === "published" ? "已发布" : "已保存",
+    message: feedback.message || "内容已保存，无新修改。",
+    tone: warning ? "warning" : "success", state: "saved", locked: true,
+  };
+}
+
+export function describeBlogPublication(deployment, hasCommit) {
+  if (!deployment) return { phase: "publishing", message: hasCommit ? "保存成功，等待发布任务启动。" : "暂无发布记录" };
+  if (deployment.status !== "completed") return { phase: "publishing", message: "文章已保存，正在构建并发布…" };
+  if (deployment.conclusion === "success") return { phase: "published", message: "已发布上线。" };
+  if (deployment.conclusion === "cancelled") return { phase: "publish-error", message: "文章已保存，此次发布已取消，请查看最新发布记录。" };
+  return { phase: "publish-error", message: "文章已保存，但发布失败，请查看发布记录。" };
 }
 
 function escapeHtml(value) {

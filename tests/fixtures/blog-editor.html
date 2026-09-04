@@ -8,12 +8,19 @@
 </head>
 <body>
   <main style="padding:24px">
+    <details>
+      <summary>测试控制</summary>
+      <label>模拟保存结果<select id="save-outcome"><option value="success">成功</option><option value="error">失败</option><option value="unchanged">无变化</option></select></label>
+      <label>模拟发布结果<select id="publish-outcome"><option value="building">发布中</option><option value="success">已上线</option><option value="failure">发布失败</option><option value="error">查询失败</option></select></label>
+      <p>保存请求次数：<output id="save-count" aria-label="保存请求次数">0</output></p>
+    </details>
     <div class="admin-tabs" id="tabs" role="tablist">
       <button role="tab" data-admin-section="sites">网站</button>
       <button role="tab" data-admin-section="blog">博客</button>
     </div>
     <section id="sites"></section>
     <section id="blog-panel" class="hidden"></section>
+    <p id="notice" role="status" aria-label="操作提示"></p>
     <pre id="saved" aria-label="保存请求" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>
   </main>
   <script type="module">
@@ -29,17 +36,26 @@
     const saved = document.querySelector("#saved");
     createBlogManager({
       root: document.querySelector("#blog-panel"), tabs: document.querySelector("#tabs"), sitesPanel: document.querySelector("#sites"),
-      toast: (message) => { saved.textContent = message; },
+      toast: (message) => { document.querySelector("#notice").textContent = message; },
       request: async (body) => {
         if (body.action === "list") return { posts: posts.map(({ content, ...post }) => ({ ...post, sha: "a".repeat(40) })) };
         if (body.action === "get") return { post: posts.find((post) => post.id === body.id), sha: "a".repeat(40) };
-        if (body.action === "status") return { deployment: null };
+        if (body.action === "status") {
+          if (!body.commit) return { deployment: null };
+          const outcome = document.querySelector("#publish-outcome").value;
+          if (outcome === "error") throw new Error("模拟发布状态查询失败");
+          return { deployment: { status: outcome === "building" ? "in_progress" : "completed", conclusion: outcome, url: "https://github.com/KingStar-China/KingStar-China.GitHub.io/actions/runs/1" } };
+        }
         if (body.action === "save") {
+          const outcome = document.querySelector("#save-outcome").value;
+          const count = document.querySelector("#save-count");
+          count.textContent = String(Number(count.textContent) + 1);
           saved.textContent = JSON.stringify(body, null, 2);
-          await new Promise((resolve) => setTimeout(resolve, 1200));
+          await new Promise((resolve) => setTimeout(resolve, 2500));
+          if (outcome === "error") throw new Error("模拟保存请求超时");
           const index = posts.findIndex((post) => post.id === body.post.id);
           if (index >= 0) posts[index] = body.post; else posts.push(body.post);
-          return { post: body.post, sha: "b".repeat(40), unchanged: true };
+          return { post: body.post, sha: "b".repeat(40), ...(outcome === "unchanged" ? { unchanged: true } : { commit: count.textContent.padStart(40, "0") }) };
         }
         throw new Error(`Unexpected request: ${body.action}`);
       },

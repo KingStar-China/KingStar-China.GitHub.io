@@ -74,7 +74,20 @@
   line-height: 1.7;
   tab-size: 2;
 }
-.blog-editor-actions { margin-top: 16px; }
+.blog-editor-actions { margin-top: 8px; }
+.blog-save-feedback { min-height: 2.8em; margin-top: 16px; font-size: 0.9rem; line-height: 1.5; color: var(--muted); overflow-wrap: anywhere; }
+.blog-save-feedback[data-tone="busy"] { color: #7dd3fc; }
+.blog-save-feedback[data-tone="success"] { color: #9ff7cf; }
+.blog-save-feedback[data-tone="error"] { color: var(--danger); }
+.blog-save-feedback[data-tone="warning"] { color: #f3ce87; }
+.blog-save-feedback a { margin-left: 0.6em; color: var(--brand-strong); white-space: nowrap; }
+.blog-save-button { display: inline-grid; grid-template-columns: 1em 1fr; align-items: center; gap: 8px; min-width: 160px; }
+.blog-save-icon { display: inline-block; width: 1em; height: 1em; line-height: 1; }
+.blog-save-button[data-state="saving"] .blog-save-icon { border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: blog-save-spin 0.8s linear infinite; }
+#blog-panel .blog-save-button[data-state="saving"]:disabled { opacity: 1; cursor: wait; }
+#blog-panel .blog-save-button[data-state="saved"]:disabled { opacity: 1; cursor: default; color: #9ff7cf; border-color: #426b5b; background: #14372e; }
+@keyframes blog-save-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .blog-save-button[data-state="saving"] .blog-save-icon { animation: none; } }
 .blog-editor .button, .blog-toolbar .button { border-radius: 6px; }
 .blog-content-editor { min-width: 0; }
 .blog-mode-fallback:empty { display: none; }
