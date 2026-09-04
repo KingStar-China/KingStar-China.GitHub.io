@@ -278,7 +278,9 @@ test("现有 Markdown 文章可由共享解析器无损序列化", async () => {
 
 function editorHarness(loadEditor) {
   const source = Object.assign(new EventTarget(), { value: "*原始正文*\n" });
-  const container = Object.assign(new EventTarget(), { querySelector: () => null, querySelectorAll: () => [] });
+  const modeControl = {};
+  const toolbar = { children: [], appendChild(child) { this.children.push(child); } };
+  const container = Object.assign(new EventTarget(), { querySelector: (selector) => selector === ".vditor-toolbar" ? toolbar : null, querySelectorAll: () => [] });
   let instance, changes = 0;
   class Editor {
     constructor(_container, options) {
@@ -294,9 +296,33 @@ function editorHarness(loadEditor) {
     enable() { this.disabledCount -= 1; }
     destroy() { this.destroyed = true; }
   }
-  const editor = createMarkdownEditor({ source, container, onChange: () => { changes += 1; }, loadEditor: loadEditor || (async () => Editor) });
-  return { source, container, editor, Editor, get instance() { return instance; }, get changes() { return changes; } };
+  const editor = createMarkdownEditor({ source, container, modeControl, onChange: () => { changes += 1; }, loadEditor: loadEditor || (async () => Editor) });
+  return { source, container, editor, Editor, toolbar, modeControl, get instance() { return instance; }, get changes() { return changes; } };
 }
+
+test("切换按钮只挂载一次到工具栏末尾，源码模式不编辑隐藏的可视化内容", async () => {
+  const h = editorHarness();
+  await h.editor.showVisual();
+  assert.deepEqual(h.toolbar.children, [h.modeControl]);
+  h.editor.showSource();
+  assert.equal(h.instance.disabledCount, 1);
+  h.editor.setDisabled(true);
+  h.editor.setDisabled(false);
+  assert.equal(h.instance.disabledCount, 1, "Source mode keeps rich formatting disabled");
+  await h.editor.showVisual();
+  assert.equal(h.instance.disabledCount, 0);
+  assert.deepEqual(h.toolbar.children, [h.modeControl]);
+});
+
+test("博客默认加载可视化编辑，只提供一个切换按钮且在剩余工具栏区域居中", async () => {
+  const client = await readFile(new URL("../public/admin/blog.js", import.meta.url), "utf8");
+  const css = await readFile(new URL("../public/admin/blog.css", import.meta.url), "utf8");
+  assert.equal([...client.matchAll(/<button[^>]+data-blog-action="toggle-mode"/g)].length, 1);
+  assert.doesNotMatch(client, /data-blog-action="(?:source-mode|visual-mode)"/);
+  assert.match(client, /setForm\(data\);\s*setStatus\(""\);\s*await showVisual\(started\)/);
+  assert.match(client, /toggle\.textContent = mode === "source" \? "可视化编辑" : "Markdown 源码"/);
+  assert.match(css, /\.blog-editor-mode-slot\s*\{[^}]*flex: 1 0 140px;[^}]*justify-content: center/);
+});
 
 test("源码与可视化模式双向同步，切换模式不改写原文或清空撤销历史", async () => {
   const h = editorHarness();
