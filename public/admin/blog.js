@@ -1,4 +1,4 @@
-import { createMarkdownEditor } from "./markdown-editor.js?v=20260904-editable";
+import { createMarkdownEditor } from "./markdown-editor.js?v=20260904-mode-toggle";
 
 export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
   let posts = [];
@@ -10,6 +10,7 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
   let publishCommit = "";
   let pollTimer;
   let pollCount = 0;
+  let mode = "visual";
 
   root.innerHTML = `
     <div class="blog-toolbar">
@@ -48,13 +49,13 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
               </div>
               <label>标签<input name="blog-post-tags" data-blog-field="tags" placeholder="用逗号分隔" maxlength="1800"></label>
               <label>摘要<textarea name="blog-post-summary" data-blog-field="summary" maxlength="1000" required></textarea></label>
-              <div class="blog-editor-modes" role="group" aria-label="编辑模式">
-                <button type="button" class="button" data-blog-action="source-mode" aria-pressed="true">Markdown 源码</button>
-                <button type="button" class="button" data-blog-action="visual-mode" aria-pressed="false">可视化编辑</button>
-              </div>
-              <label data-blog-role="content-label">Markdown 正文<textarea name="blog-post-content" data-blog-field="content" spellcheck="false" required></textarea></label>
-              <div class="blog-visual-panel hidden" data-blog-role="visual-panel">
-                <div class="blog-visual-editor" data-blog-role="visual-editor"></div>
+              <div class="blog-content-editor">
+                <div class="blog-mode-fallback"><div class="blog-editor-mode-slot" data-blog-role="mode-control"><button type="button" class="button blog-mode-toggle" data-blog-action="toggle-mode" title="切换到 Markdown 源码">Markdown 源码</button></div></div>
+                <p class="blog-editor-loading hidden" data-blog-role="editor-loading" role="status">正在加载编辑器…</p>
+                <div class="blog-visual-panel" data-blog-role="visual-panel">
+                  <div class="blog-visual-editor" data-blog-role="visual-editor"></div>
+                </div>
+                <div class="hidden" data-blog-role="content-label"><textarea aria-label="Markdown 正文" name="blog-post-content" data-blog-field="content" spellcheck="false" required></textarea></div>
               </div>
             </div>
             <div class="blog-editor-actions">
@@ -74,7 +75,7 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
   const fields = Object.fromEntries([...root.querySelectorAll("[data-blog-field]")].map((input) => [input.dataset.blogField, input]));
   const list = byRole("list");
   const markdownEditor = createMarkdownEditor({
-    source: fields.content, container: byRole("visual-editor"), onChange: updateControls,
+    source: fields.content, container: byRole("visual-editor"), modeControl: byRole("mode-control"), onChange: updateControls,
   });
 
   function readForm() {
@@ -140,12 +141,28 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
   }
 
   function setMode(nextMode) {
-    const visual = nextMode === "visual";
+    mode = nextMode;
+    const visual = mode === "visual";
     if (!visual) markdownEditor.showSource();
-    byRole("content-label").classList.toggle("hidden", visual);
-    byRole("visual-panel").classList.toggle("hidden", !visual);
-    root.querySelector('[data-blog-action="source-mode"]').setAttribute("aria-pressed", String(!visual));
-    root.querySelector('[data-blog-action="visual-mode"]').setAttribute("aria-pressed", String(visual));
+    byRole("content-label").classList.toggle("hidden", mode !== "source");
+    byRole("visual-panel").classList.toggle("hidden", mode === "loading");
+    byRole("visual-editor").classList.toggle("is-source", mode === "source");
+    byRole("editor-loading").classList.toggle("hidden", mode !== "loading");
+    const toggle = root.querySelector('[data-blog-action="toggle-mode"]');
+    toggle.textContent = mode === "source" ? "可视化编辑" : "Markdown 源码";
+    toggle.title = `切换到 ${toggle.textContent}`;
+  }
+
+  async function showVisual(started) {
+    try {
+      const ready = await markdownEditor.showVisual();
+      if (!ready || started !== generation) return false;
+      setMode("visual");
+      return true;
+    } catch (error) {
+      if (started === generation) setMode("source");
+      throw error;
+    }
   }
 
   function setForm(data) {
@@ -153,7 +170,7 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
     form.classList.toggle("hidden", !data);
     byRole("empty").classList.toggle("hidden", Boolean(data));
     markdownEditor.reset();
-    setMode("source");
+    setMode(data ? "loading" : "source");
     if (data) {
       for (const [name, input] of Object.entries(fields)) input.value = name === "tags" ? data.post.tags.join(", ") : data.post[name];
       fields.id.readOnly = Boolean(data.sha);
@@ -169,6 +186,7 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
     if (started !== generation) return;
     setForm(data);
     setStatus("");
+    await showVisual(started);
   }
 
   async function loadPosts(started) {
@@ -242,6 +260,7 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
       publishCommit = result.commit || publishCommit;
       pollCount = 0;
       checkPublish(true);
+      await showVisual(started);
     });
   });
 
@@ -257,21 +276,18 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
     if (!action || busy) return;
     if (action === "reload") run(loadPosts);
     if (action === "check-publish") { pollCount = 0; checkPublish(Boolean(publishCommit)); }
-    if (action === "source-mode") { setMode("source"); updateControls(); }
-    if (action === "new" && canLeave()) {
+    if (action === "new" && canLeave()) run(async (started) => {
       const date = new Date();
       const localDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
       setForm({ post: { id: String(Date.now()), title: "", summary: "", publishedAt: localDate, tags: [], content: "" }, sha: null });
       setStatus("");
-      fields.title.focus();
-    }
-    if (action === "visual-mode") run(async (started) => {
-      setStatus("正在加载编辑器…");
-      const ready = await markdownEditor.showVisual();
-      if (!ready || started !== generation) return;
-      setMode("visual");
-      setStatus("");
+      await showVisual(started);
+      if (started === generation) fields.title.focus();
     });
+    if (action === "toggle-mode") {
+      if (mode === "visual") { setMode("source"); updateControls(); }
+      else run(async (started) => { setMode("loading"); if (await showVisual(started)) setStatus(""); });
+    }
     if (action === "delete" && current?.sha && window.confirm(`确定删除文章“${current.post.title}”并发布吗？`)) {
       run(async (started) => {
         const result = await request({ action: "delete", id: current.post.id, sha: current.sha });

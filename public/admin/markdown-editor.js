@@ -36,7 +36,7 @@ async function loadVditor() {
   return assetsPromise;
 }
 
-export function createMarkdownEditor({ source, container, onChange, loadEditor = loadVditor }) {
+export function createMarkdownEditor({ source, container, modeControl, onChange, loadEditor = loadVditor }) {
   let editor;
   let active = false;
   let disabled = false;
@@ -45,6 +45,14 @@ export function createMarkdownEditor({ source, container, onChange, loadEditor =
   let rendered = "";
   let lastSource = null;
   let composing = false;
+  let editorDisabled = false;
+
+  function updateEditingState() {
+    const next = disabled || !active;
+    if (!editor || editorDisabled === next) return;
+    next ? editor.disabled() : editor.enable();
+    editorDisabled = next;
+  }
 
   const compositionStart = () => { composing = true; };
   const compositionEnd = () => { composing = false; flush(true); };
@@ -94,7 +102,7 @@ export function createMarkdownEditor({ source, container, onChange, loadEditor =
       editable?.setAttribute("aria-label", "可视化正文");
       editable?.setAttribute("aria-multiline", "true");
       container.querySelectorAll("button").forEach((button) => { button.type = "button"; });
-      if (disabled) editor.disabled();
+      if (modeControl) container.querySelector(".vditor-toolbar").appendChild(modeControl);
     }
     if (source.value !== lastSource) {
       original = source.value;
@@ -103,18 +111,19 @@ export function createMarkdownEditor({ source, container, onChange, loadEditor =
       lastSource = original;
     }
     active = true;
+    updateEditingState();
     return true;
   }
 
   return {
     showVisual,
-    showSource() { flush(); active = false; },
+    showSource() { flush(); active = false; updateEditingState(); },
     flush,
     isComposing: () => composing,
     setDisabled(value) {
       if (disabled === value) return;
       disabled = value;
-      if (editor) value ? editor.disabled() : editor.enable();
+      updateEditingState();
     },
     reset() {
       generation += 1;
@@ -123,6 +132,7 @@ export function createMarkdownEditor({ source, container, onChange, loadEditor =
       original = rendered = "";
       lastSource = null;
       if (editor) editor.setValue("", true);
+      updateEditingState();
     },
   };
 }
