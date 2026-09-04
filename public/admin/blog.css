@@ -76,9 +76,58 @@
 }
 .blog-editor-actions { margin-top: 16px; }
 .blog-editor .button, .blog-toolbar .button { border-radius: 6px; }
-.blog-preview { width: 100%; min-height: 32rem; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color-scheme: dark; }
-.blog-preview-modes { display: flex; gap: 6px; margin: 6px 0; }
-.blog-preview-modes .button[aria-pressed="true"] { border-color: var(--brand-strong); color: var(--brand-strong); }
+.blog-editor-modes { display: flex; gap: 6px; margin: 6px 0; flex-wrap: wrap; }
+.blog-editor-modes .button[aria-pressed="true"] { border-color: var(--brand-strong); color: var(--brand-strong); background: var(--panel-soft); }
+.blog-visual-panel { min-width: 0; }
+.blog-visual-editor.vditor {
+  --border-color: var(--border);
+  --panel-background-color: #0e2330;
+  --panel-shadow: 0 6px 24px #0008;
+  --toolbar-background-color: #0b1c26;
+  --toolbar-icon-color: var(--muted);
+  --toolbar-icon-hover-color: var(--brand-strong);
+  --textarea-background-color: #08141d;
+  --textarea-text-color: var(--text);
+  --heading-border-color: var(--border);
+  --blockquote-color: var(--muted);
+  --toolbar-height: 40px;
+  width: 100%;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color-scheme: dark;
+  letter-spacing: 0;
+}
+.blog-visual-editor .vditor-toolbar { flex-shrink: 0; padding: 4px; }
+.blog-visual-editor .vditor-toolbar__item { padding: 0; }
+.blog-visual-editor .vditor-toolbar__item .vditor-tooltipped { width: 36px; height: 40px; padding: 11px 8px; border-radius: 4px; }
+.blog-visual-editor .vditor-toolbar__item .vditor-tooltipped:hover { background: var(--panel-soft); }
+.blog-visual-editor .vditor-toolbar__divider { height: 40px; }
+.blog-visual-editor .vditor-content { min-height: 0; }
+.blog-visual-editor .vditor-reset {
+  color: var(--text);
+  font: 16px/1.8 system-ui, "Microsoft YaHei", "PingFang SC", sans-serif;
+  overflow-wrap: anywhere;
+  letter-spacing: 0;
+}
+.blog-visual-editor .vditor-wysiwyg > .vditor-reset { padding: 24px !important; }
+.blog-visual-editor .vditor-reset p { margin: 0 0 1em; }
+.blog-visual-editor .vditor-reset :is(h1, h2, h3, h4, h5, h6) { color: var(--heading); line-height: 1.45; border-color: var(--border); }
+.blog-visual-editor .vditor-reset h1 { font-size: 1.75em; }
+.blog-visual-editor .vditor-reset h2 { font-size: 1.5em; }
+.blog-visual-editor .vditor-reset h3 { font-size: 1.25em; }
+.blog-visual-editor .vditor-reset a { color: var(--brand-strong); }
+.blog-visual-editor .vditor-reset blockquote { color: var(--muted); border-color: var(--brand); }
+.blog-visual-editor .vditor-reset :is(th, td) { border-color: var(--border); min-width: 60px; }
+.blog-visual-editor .vditor-reset table tr { background: var(--textarea-background-color); }
+.blog-visual-editor .vditor-reset table tbody tr:nth-child(2n), .blog-visual-editor .vditor-reset th { background: var(--panel-soft); }
+.blog-visual-editor .vditor-reset code:not(.hljs):not(.highlight-chroma) { background: var(--panel-soft); color: #ffd19a; }
+.blog-visual-editor .vditor-reset img { max-width: 100%; height: auto; }
+.blog-visual-editor input[type="checkbox"] { width: 16px; min-height: 16px; accent-color: var(--brand); }
+.blog-visual-editor .vditor-input { min-height: 32px; padding: 4px 8px; font-size: 14px; }
+.blog-visual-editor .vditor-wysiwyg > .vditor-reset { scrollbar-color: #48636f #08141d; overscroll-behavior: contain; }
+.blog-visual-editor .vditor-hint, .blog-visual-editor .vditor-panel { max-width: 100%; }
 #blog-panel button:disabled { cursor: wait; opacity: 0.55; }
 #blog-panel .blog-dirty[data-dirty="true"] { color: #f3ce87; }
 #blog-panel a.button[aria-disabled="true"] { pointer-events: none; opacity: 0.5; }
@@ -91,6 +140,9 @@
   .blog-toolbar .actions { gap: 8px; }
   .blog-editor .grid-2 { grid-template-columns: minmax(0, 1fr); }
   .blog-editor textarea[data-blog-field="content"] { min-height: 20rem; font-size: 1rem; }
-  .blog-preview { min-height: 28rem; }
+  .blog-visual-editor.vditor { --toolbar-height: 44px; height: 520px !important; max-height: 75dvh; min-height: 360px; }
+  .blog-visual-editor .vditor-toolbar__divider { display: none; }
+  .blog-visual-editor .vditor-wysiwyg > .vditor-reset { padding: 16px !important; }
+  .blog-visual-editor .vditor-toolbar__item .vditor-tooltipped { width: 40px; height: 44px; }
   .blog-publish-row { align-items: flex-start; }
 }

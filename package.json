@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "sync:posts": "node ./scripts/generate-posts-data.mjs",
-    "dev": "node ./scripts/generate-posts-data.mjs && vite --host 127.0.0.1 --port 5173 --strictPort",
-    "build": "node ./scripts/generate-posts-data.mjs && node ./scripts/generate-seo.mjs && vite build",
+    "dev": "node ./scripts/prepare-blog-editor.mjs && node ./scripts/generate-posts-data.mjs && vite --host 127.0.0.1 --port 5173 --strictPort",
+    "build": "node ./scripts/prepare-blog-editor.mjs && node ./scripts/generate-posts-data.mjs && node ./scripts/generate-seo.mjs && vite build",
     "test": "node ./scripts/generate-posts-data.mjs && node --test --experimental-test-isolation=none tests/content.test.mjs tests/search.test.mjs tests/seo.test.mjs tests/command-palette.test.mjs tests/blog.test.mjs tests/user-sites.test.mjs tests/sync-session.test.mjs tests/personal-data.test.mjs tests/analytics.test.mjs tests/theme.test.mjs tests/startup.test.mjs tests/admin-auth.test.mjs tests/admin-blog.test.mjs",
     "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
     "admin": "node ./scripts/generate-posts-data.mjs && node ./scripts/admin-server.mjs",
@@ -17,5 +17,8 @@
     "highlight.js": "^11.11.1",
     "marked": "^18.0.0",
     "vite": "^8.0.2"
+  },
+  "dependencies": {
+    "vditor": "4.0.0"
   }
 }

@@ -1,3 +1,5 @@
+import { createMarkdownEditor } from "./markdown-editor.js?v=20260904-editable";
+
 export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
   let posts = [];
   let current = null;
@@ -8,7 +10,6 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
   let publishCommit = "";
   let pollTimer;
   let pollCount = 0;
-  let mode = "edit";
 
   root.innerHTML = `
     <div class="blog-toolbar">
@@ -47,12 +48,14 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
               </div>
               <label>标签<input name="blog-post-tags" data-blog-field="tags" placeholder="用逗号分隔" maxlength="1800"></label>
               <label>摘要<textarea name="blog-post-summary" data-blog-field="summary" maxlength="1000" required></textarea></label>
-              <div class="blog-preview-modes" aria-label="正文视图">
-                <button type="button" class="button" data-blog-action="edit-mode" aria-pressed="true">正文</button>
-                <button type="button" class="button" data-blog-action="preview" aria-pressed="false">预览</button>
+              <div class="blog-editor-modes" role="group" aria-label="编辑模式">
+                <button type="button" class="button" data-blog-action="source-mode" aria-pressed="true">Markdown 源码</button>
+                <button type="button" class="button" data-blog-action="visual-mode" aria-pressed="false">可视化编辑</button>
               </div>
               <label data-blog-role="content-label">Markdown 正文<textarea name="blog-post-content" data-blog-field="content" spellcheck="false" required></textarea></label>
-              <iframe class="blog-preview hidden" data-blog-role="preview" title="文章预览" sandbox="" referrerpolicy="no-referrer"></iframe>
+              <div class="blog-visual-panel hidden" data-blog-role="visual-panel">
+                <div class="blog-visual-editor" data-blog-role="visual-editor"></div>
+              </div>
             </div>
             <div class="blog-editor-actions">
               <div class="actions">
@@ -70,8 +73,12 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
   const form = byRole("form");
   const fields = Object.fromEntries([...root.querySelectorAll("[data-blog-field]")].map((input) => [input.dataset.blogField, input]));
   const list = byRole("list");
+  const markdownEditor = createMarkdownEditor({
+    source: fields.content, container: byRole("visual-editor"), onChange: updateControls,
+  });
 
   function readForm() {
+    markdownEditor.flush();
     return {
       id: fields.id.value.trim(), title: fields.title.value.trim(),
       publishedAt: fields.publishedAt.value, summary: fields.summary.value.trim(),
@@ -93,11 +100,13 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
   }
 
   function updateControls() {
+    const dirty = isDirty();
     form.querySelector("fieldset").disabled = busy;
-    root.querySelectorAll("button").forEach((button) => { button.disabled = busy; });
+    root.querySelectorAll("button[data-blog-action], button[data-blog-id]").forEach((button) => { button.disabled = busy; });
+    markdownEditor.setDisabled(busy);
     root.querySelector('[data-blog-action="delete"]').disabled = busy || !current?.sha;
-    byRole("dirty").textContent = busy ? "处理中…" : isDirty() ? "未保存" : current?.sha ? "已保存" : "新文章";
-    byRole("dirty").dataset.dirty = String(isDirty());
+    byRole("dirty").textContent = busy ? "处理中…" : dirty ? "未保存" : current?.sha ? "已保存" : "新文章";
+    byRole("dirty").dataset.dirty = String(dirty);
     byRole("view-post").setAttribute("aria-disabled", String(!current?.sha));
     if (current?.sha) byRole("view-post").href = `/?post=${encodeURIComponent(current.post.id)}`;
     else byRole("view-post").removeAttribute("href");
@@ -131,19 +140,20 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
   }
 
   function setMode(nextMode) {
-    mode = nextMode;
-    byRole("content-label").classList.toggle("hidden", mode !== "edit");
-    byRole("preview").classList.toggle("hidden", mode !== "preview");
-    root.querySelector('[data-blog-action="edit-mode"]').setAttribute("aria-pressed", String(mode === "edit"));
-    root.querySelector('[data-blog-action="preview"]').setAttribute("aria-pressed", String(mode === "preview"));
+    const visual = nextMode === "visual";
+    if (!visual) markdownEditor.showSource();
+    byRole("content-label").classList.toggle("hidden", visual);
+    byRole("visual-panel").classList.toggle("hidden", !visual);
+    root.querySelector('[data-blog-action="source-mode"]').setAttribute("aria-pressed", String(!visual));
+    root.querySelector('[data-blog-action="visual-mode"]').setAttribute("aria-pressed", String(visual));
   }
 
   function setForm(data) {
     current = data;
     form.classList.toggle("hidden", !data);
     byRole("empty").classList.toggle("hidden", Boolean(data));
-    byRole("preview").srcdoc = "";
-    setMode("edit");
+    markdownEditor.reset();
+    setMode("source");
     if (data) {
       for (const [name, input] of Object.entries(fields)) input.value = name === "tags" ? data.post.tags.join(", ") : data.post[name];
       fields.id.readOnly = Boolean(data.sha);
@@ -213,7 +223,11 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    if (!fields.content.validity.valid) setMode("edit");
+    // Editor popovers can contain their own buttons; only this command publishes a post.
+    if (event.submitter !== root.querySelector('[data-blog-action="save"]')) return;
+    if (busy || markdownEditor.isComposing()) return;
+    markdownEditor.flush();
+    if (!fields.content.validity.valid) setMode("source");
     if (!form.reportValidity() || !current) return;
     run(async (started) => {
       setStatus("正在保存文章…");
@@ -243,7 +257,7 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
     if (!action || busy) return;
     if (action === "reload") run(loadPosts);
     if (action === "check-publish") { pollCount = 0; checkPublish(Boolean(publishCommit)); }
-    if (action === "edit-mode") setMode("edit");
+    if (action === "source-mode") { setMode("source"); updateControls(); }
     if (action === "new" && canLeave()) {
       const date = new Date();
       const localDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -251,11 +265,12 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
       setStatus("");
       fields.title.focus();
     }
-    if (action === "preview") run(async (started) => {
-      const { html } = await request({ action: "preview", content: fields.content.value });
-      if (started !== generation) return;
-      renderBlogPreview(byRole("preview"), html);
-      setMode("preview");
+    if (action === "visual-mode") run(async (started) => {
+      setStatus("正在加载编辑器…");
+      const ready = await markdownEditor.showVisual();
+      if (!ready || started !== generation) return;
+      setMode("visual");
+      setStatus("");
     });
     if (action === "delete" && current?.sha && window.confirm(`确定删除文章“${current.post.title}”并发布吗？`)) {
       run(async (started) => {
@@ -311,39 +326,4 @@ export function createBlogManager({ root, tabs, sitesPanel, request, toast }) {
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
-}
-
-export function renderBlogPreview(frame, html) {
-  // Reusing a hidden srcdoc frame can leave its document without a layout in Chromium.
-  const preview = frame.cloneNode(false);
-  preview.classList.remove("hidden");
-  preview.srcdoc = previewDocument(html);
-  frame.replaceWith(preview);
-  return preview;
-}
-
-export function previewDocument(html) {
-  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data: 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-      :root{color-scheme:dark;--bg:#08141d;--panel-soft:#0e2330;--border:rgba(151,226,219,.18);--text:#e8f3f5;--muted:#95aab4;--heading:#f5fbfc;--brand-strong:#9ff7ed;background:var(--bg);color:var(--text);scrollbar-color:#48636f var(--bg)}
-      *{box-sizing:border-box}
-      body{margin:0;padding:24px;font:16px/1.8 system-ui,"Microsoft YaHei","PingFang SC",sans-serif;overflow-wrap:anywhere}
-      body>:first-child{margin-top:0}body>:last-child{margin-bottom:0}
-      h1,h2,h3,h4,h5,h6{color:var(--heading);line-height:1.45}
-      img{max-width:100%;height:auto}
-      pre{overflow:auto;padding:16px;border:1px solid var(--border);border-radius:6px;background:var(--panel-soft)}
-      code{font-family:ui-monospace,"Cascadia Code",Consolas,monospace}
-      :not(pre)>code{padding:2px 5px;border-radius:4px;background:var(--panel-soft);color:#ffd19a}
-      table{border-collapse:collapse;display:block;max-width:100%;overflow:auto}
-      td,th{border:1px solid var(--border);padding:8px 12px}th{background:var(--panel-soft);color:var(--heading)}
-      a{color:var(--brand-strong);text-underline-offset:.18em}a:hover{color:var(--heading)}
-      blockquote{border-left:3px solid #0f766e;margin-left:0;padding-left:16px;color:var(--muted)}
-      hr{border:0;border-top:1px solid var(--border);margin:24px 0}
-      :focus-visible{outline:2px solid var(--brand-strong);outline-offset:3px}
-      ::selection{background:#0f766e;color:var(--heading)}
-      @media(max-width:480px){body{padding:16px}}
-    </style>
-    </head><body>${html}</body></html>`;
 }
