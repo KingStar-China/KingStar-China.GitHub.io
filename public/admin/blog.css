@@ -156,5 +156,6 @@
   .blog-publish-row { align-items: flex-start; }
 }
 
-.blog-visual-editor.vditor.is-source { height: auto !important; min-height: 0; max-height: none; border-bottom: 0; border-radius: 6px 6px 0 0; }
+/* Vditor sets both height and min-height inline; collapse both in source mode. */
+.blog-visual-editor.vditor.is-source { height: auto !important; min-height: 0 !important; max-height: none; border-bottom: 0; border-radius: 6px 6px 0 0; }
 .blog-visual-editor.is-source .vditor-content { display: none; }

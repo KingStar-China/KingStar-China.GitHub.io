@@ -344,6 +344,15 @@ test("源码与可视化模式双向同步，切换模式不改写原文或清�
   assert.equal(h.instance.writes.length, 2);
 });
 
+test("源码模式覆盖编辑器的内联高度和最小高度，不保留可视化区域占位", async () => {
+  const css = await readFile(new URL("../public/admin/blog.css", import.meta.url), "utf8");
+  const rule = css.match(/\.blog-visual-editor\.vditor\.is-source\s*\{([^}]+)\}/)?.[1];
+  assert.ok(rule, "Source mode needs its own container sizing rule");
+  assert.match(rule, /(?:^|;)\s*height:\s*auto\s*!important\s*;/);
+  assert.match(rule, /(?:^|;)\s*min-height:\s*0\s*!important\s*;/);
+  assert.match(css, /\.blog-visual-editor\.is-source\s+\.vditor-content\s*\{\s*display:\s*none\s*;/);
+});
+
 test("保存前同步最新可视化内容，不等待编辑器延迟回调", async () => {
   const h = editorHarness();
   await h.editor.showVisual();
