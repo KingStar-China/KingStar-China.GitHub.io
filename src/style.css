@@ -6659,3 +6659,29 @@ html.has-user-modal body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Keep keyboard focus visible across themes and prevent long results from widening the dialog. */
+.command-palette :is(a, button):focus-visible {
+  outline: 2px solid var(--accent, #14b8a6);
+  outline-offset: 3px;
+}
+.command-search-wrap:focus-within {
+  border-color: var(--accent, #14b8a6);
+  box-shadow: 0 0 0 2px var(--accent, #14b8a6);
+}
+.command-search:focus-visible {
+  outline: none;
+}
+.command-item__body strong,
+.command-item__body > span,
+.command-item__meta {
+  overflow-wrap: anywhere;
+}
+.command-item__title strong {
+  min-width: 0;
+}
+@media (max-width: 640px) {
+  .command-palette {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}

@@ -318,3 +318,27 @@ function createPost(overrides = {}) {
     ...overrides,
   };
 }
+
+test("输入法确认不会提交表单，Tab 聚焦的结果保留原生 Enter 行为", async () => {
+  const { runInNewContext } = await import("node:vm");
+  const source = readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
+  const handler = source.slice(source.indexOf("function handleKeydown(event) {"), source.indexOf("function render(options"));
+  let opened = 0;
+  const context = {
+    state: { commandOpen: true },
+    commandResultsCache: [{ id: "first" }],
+    runCommandResult: () => opened++,
+  };
+  runInNewContext(`${handler}; this.handle = handleKeydown;`, context);
+  for (const ime of [{ isComposing: true }, { keyCode: 229 }]) {
+    context.handle({ key: "Enter", ...ime });
+  }
+  const event = (isSearch) => ({
+    key: "Enter", preventDefault() {},
+    target: { matches: (selector) => isSearch && selector === '[data-role="command-search"]' },
+  });
+  context.handle(event(false));
+  assert.equal(opened, 0);
+  context.handle(event(true));
+  assert.equal(opened, 1);
+});

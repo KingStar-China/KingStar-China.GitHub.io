@@ -92,3 +92,10 @@ function createPost(overrides = {}) {
     ...overrides,
   };
 }
+
+test("仅空白搜索与空搜索一致，不隐藏所有网站和文章", () => {
+  for (const query of ["", " ", "\t\n", "\u3000"]) {
+    assert.equal(matchesSiteQuery(google, query), true);
+    assert.equal(matchesPostQuery(domainPost, query), true);
+  }
+});

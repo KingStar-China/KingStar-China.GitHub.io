@@ -829,6 +829,11 @@ function handleClick(event) {
 }
 
 function handleKeydown(event) {
+  // IME confirmation belongs to the input method, never to form shortcuts.
+  if (event.isComposing || event.keyCode === 229) {
+    return;
+  }
+
   if (event.key === "Escape" && state.userSiteModalOpen) {
     event.preventDefault();
     cancelEditingUserSite();
@@ -880,7 +885,18 @@ function handleKeydown(event) {
     return;
   }
 
-  if (event.isComposing) {
+  if (event.key === "Tab") {
+    const controls = [...refs.commandPalette.querySelectorAll('input, button, a[href]')]
+      .filter((element) => !element.disabled && element.getClientRects().length > 0
+        && !element.classList.contains("command-overlay__backdrop"));
+    const first = controls[0];
+    const last = controls.at(-1);
+    if (first && (event.shiftKey
+      ? document.activeElement === first || !controls.includes(document.activeElement)
+      : document.activeElement === last || !controls.includes(document.activeElement))) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    }
     return;
   }
 
@@ -911,6 +927,10 @@ function handleKeydown(event) {
   }
 
   if (event.key === "Enter") {
+    // Links and buttons activated with Tab keep their native keyboard behavior.
+    if (!event.target.matches('[data-role="command-search"]')) {
+      return;
+    }
     event.preventDefault();
     runCommandResult(commandResults[state.commandIndex]);
   }
@@ -2186,6 +2206,7 @@ function renderCommandPalette() {
               type="search"
               data-role="command-search"
               class="command-search"
+              aria-label="搜索网站和文章"
               autocomplete="off"
               spellcheck="false"
               autofocus
