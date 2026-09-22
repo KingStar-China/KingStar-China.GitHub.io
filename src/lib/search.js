@@ -177,7 +177,7 @@ export function getPostSearchScore(post, query) {
 }
 
 export function matchesSiteQuery(site, query) {
-  if (!query) {
+  if (!getSearchQueryIndex(query).keyword) {
     return true;
   }
 
@@ -185,7 +185,7 @@ export function matchesSiteQuery(site, query) {
 }
 
 export function matchesPostQuery(post, query) {
-  if (!query) {
+  if (!getSearchQueryIndex(query).keyword) {
     return true;
   }
 
