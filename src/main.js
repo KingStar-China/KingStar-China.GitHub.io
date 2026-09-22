@@ -280,6 +280,10 @@ function init() {
   refs.commandPalette = root.querySelector('[data-role="command-palette"]');
 
   root.addEventListener("input", handleInput);
+  root.addEventListener("toggle", (event) => {
+    if (event.target.matches(".nav-tags")) state.navTagsOpen = event.target.open;
+    if (event.target.matches(".personal-layer--compact")) state.workbenchOpen = event.target.open;
+  }, true);
   root.addEventListener("pointerdown", handlePointerDown, true);
   root.addEventListener("click", handleClick);
   window.addEventListener("keydown", handleKeydown);
@@ -949,6 +953,7 @@ function render(options = {}) {
     refs.themeToggle.textContent = state.theme === "dark" ? "浅色底" : "深色底";
   }
   refs.sectionTabs.innerHTML = renderSectionTabs();
+  refs.toolbar.classList.toggle("toolbar--nav", state.section === "nav");
   refs.summary.textContent = buildSummary();
   refs.heroSearch.innerHTML = state.section === "nav" || state.section === "blog-list" ? renderHeroSearch() : "";
   refs.stats.innerHTML = state.section === "user" || state.section === "login" ? "" : state.section === "blog-list" || state.section === "blog-detail" ? renderBlogStats() : renderNavStats();
@@ -1387,23 +1392,18 @@ function renderNavToolbar() {
   return `
     <div class="toolbar-shell toolbar-shell--nav">
       <div class="toolbar__heading toolbar__heading--compact">
-        <span class="field-label">SIGNAL DECK</span>
-        <h2>导航工作台</h2>
-        <p>先锁定目标，再进入站点。搜索、分类和标签都收进同一张信号面板。</p>
+        <h2>网站导航</h2>
       </div>
       <section class="toolbar-panel toolbar-panel--search">
-        <div class="toolbar-panel__head">
-          <span class="field-label">快速检索</span>
-          <small>站点名、描述、标签统一过滤</small>
-        </div>
         <label class="search-field">
           <input
             data-role="search"
+            aria-label="筛选网站"
             type="search"
             inputmode="search"
             autocomplete="off"
             spellcheck="false"
-            placeholder="搜站点名、标签、描述，例如 GPT / 文档 / 视频"
+            placeholder="筛选网站：名称、标签、描述"
           >
         </label>
       </section>
@@ -1423,7 +1423,6 @@ function renderNavFilterRows() {
     <section class="filter-panel filter-row">
       <div class="filter-panel__head">
         <span class="filter-label">视图</span>
-        <small>全部 / 收藏 / 最近访问</small>
       </div>
       <div class="chip-group">${renderViewFilters()}</div>
     </section>
@@ -1431,18 +1430,14 @@ function renderNavFilterRows() {
     <section class="filter-panel filter-row">
       <div class="filter-panel__head">
         <span class="filter-label">分类</span>
-        <small>按工具区域收束结果</small>
       </div>
       <div class="chip-group">${renderCategoryFilters()}</div>
     </section>
 
-    <section class="filter-panel filter-row">
-      <div class="filter-panel__head">
-        <span class="filter-label">标签</span>
-        <small>适合跨分类交叉筛选</small>
-      </div>
+    <details class="filter-panel nav-tags" ${state.navTagsOpen || state.tag !== "all" ? "open" : ""}>
+      <summary>标签筛选 <span>${state.tag === "all" ? "按需展开" : escapeHTML(state.tag)}</span></summary>
       <div class="chip-group chip-group--dense">${renderTagFilters()}</div>
-    </section>
+    </details>
   `;
 }
 
@@ -1759,16 +1754,10 @@ function renderWorkbenchSection() {
   const pendingCount = state.workbenchTodos.filter((item) => !item.done).length;
 
   return `
-    <section class="panel personal-layer" data-section-anchor="workbench">
-      <div class="section-head personal-layer__head">
-        <div>
-          <p class="section-head__eyebrow">PERSONAL LAYER</p>
-          <h2>个人工作台</h2>
-        </div>
-        <span class="section-count">${pendingCount}</span>
-      </div>
+    <details class="panel personal-layer personal-layer--compact" data-section-anchor="workbench" ${state.workbenchOpen ? "open" : ""}>
+      <summary>个人工作台 <span>${pendingCount ? `${pendingCount} 项待办` : "待办 · 便签 · 云端同步"}</span></summary>
       ${renderWorkbench()}
-    </section>
+    </details>
   `;
 }
 
