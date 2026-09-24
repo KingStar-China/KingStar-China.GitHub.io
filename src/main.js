@@ -282,7 +282,15 @@ function init() {
   root.addEventListener("input", handleInput);
   root.addEventListener("toggle", (event) => {
     if (event.target.matches(".nav-tags")) state.navTagsOpen = event.target.open;
-    if (event.target.matches(".personal-layer--compact")) state.workbenchOpen = event.target.open;
+    if (event.target.matches(".personal-layer--compact")) {
+      state.workbenchOpen = event.target.open;
+      if (state.workbenchOpen && !event.target.querySelector(".workbench")) {
+        event.target.insertAdjacentHTML("beforeend", renderWorkbench());
+        syncWorkbenchClock();
+      } else if (!state.workbenchOpen) {
+        event.target.querySelector(".workbench")?.remove();
+      }
+    }
   }, true);
   root.addEventListener("pointerdown", handlePointerDown, true);
   root.addEventListener("click", handleClick);
@@ -1398,10 +1406,13 @@ function renderNavToolbar() {
         <label class="search-field">
           <input
             data-role="search"
+            name="site-filter"
             aria-label="筛选网站"
             type="search"
             inputmode="search"
             autocomplete="off"
+            data-lpignore="true"
+            data-1p-ignore
             spellcheck="false"
             placeholder="筛选网站：名称、标签、描述"
           >
@@ -1756,7 +1767,7 @@ function renderWorkbenchSection() {
   return `
     <details class="panel personal-layer personal-layer--compact" data-section-anchor="workbench" ${state.workbenchOpen ? "open" : ""}>
       <summary>个人工作台 <span>${pendingCount ? `${pendingCount} 项待办` : "待办 · 便签 · 云端同步"}</span></summary>
-      ${renderWorkbench()}
+      ${state.workbenchOpen ? renderWorkbench() : ""}
     </details>
   `;
 }
