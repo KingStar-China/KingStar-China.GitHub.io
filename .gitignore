@@ -6,6 +6,7 @@ public/admin/vendor/
 .env.*.local
 .preview.log
 .preview.err.log
+.preview-*.log
 .admin.log
 .admin.err.log
 admin-server.log
